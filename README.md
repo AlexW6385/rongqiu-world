@@ -4,6 +4,8 @@
 
 它和 [重奏展览馆](https://github.com/AlexW6385/4.6-billion-symphony) 是两个方向：展览馆轻便、信息全，覆盖整本书；这里只做绒球，追求真实感、细节和视觉美术。
 
+**在线游玩：<https://alexw6385.github.io/rongqiu-world/>**（建议用电脑和独立显卡；手机会自动降低画质）
+
 整个项目是一个 `index.html`，不需要构建。用任意静态服务器打开即可，three.js 从 jsDelivr 加载。
 
 ## 怎么玩
