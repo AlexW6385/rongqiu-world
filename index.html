@@ -1,3 +1,9 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="小说《进化的四十六亿重奏》里绒球的可游览 3D 世界：真实尺度、昼夜与月相、按原著布局的地貌、植物与生物。">
 <title>绒球世界</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@500;600;700&family=Noto+Sans+SC:wght@400;500&display=swap">
@@ -13,6 +19,7 @@
   color-scheme:dark;
 }
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html,body{height:100%;margin:0;background:var(--ink);color:var(--text);font-family:var(--sans);overflow:hidden;-webkit-tap-highlight-color:transparent}
 body{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0}
 button{font:inherit;color:inherit}
@@ -141,7 +148,8 @@ body.touch #hint{bottom:calc(160px + env(safe-area-inset-bottom,0px))}
   #plaque .brand{display:none}
 }
 </style>
-
+</head>
+<body>
 <canvas id="c"></canvas>
 <div id="plaque" aria-live="polite">
   <div class="brand">绒球世界</div>
@@ -1570,3 +1578,6 @@ applyQuality();{const [a,b]=landNear(view.lat,view.lon);view.lat=a;view.lon=b;}s
 let curtain={t:0,max:9};function arriveCurtain(name){const l=$('#load');l.textContent=name?'前往 '+name:'正在生成绒球';l.classList.remove('off');curtain={t:0,max:name?5:9};}
 if(!window.__noloop)requestAnimationFrame(tick);else $('#load').classList.add('off');
 </script>
+
+</body>
+</html>
