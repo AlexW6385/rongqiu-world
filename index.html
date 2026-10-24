@@ -62,6 +62,8 @@ select{width:100%;background:rgba(255,255,255,.05);color:var(--text);border:1px 
 #hint{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);padding:9px 18px;border-radius:999px;background:var(--glass);
   backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--line);font-size:12px;color:var(--dim);letter-spacing:.06em;white-space:nowrap;pointer-events:none;transition:opacity 1.2s;max-width:calc(100vw - 32px);overflow:hidden;text-overflow:ellipsis}
 #hint.off{opacity:0}
+#speedToast{position:fixed;left:50%;top:calc(22px + env(safe-area-inset-top,0px));transform:translateX(-50%);padding:7px 16px;border-radius:999px;background:var(--glass-hi);border:1px solid var(--line-hi);color:var(--gold);font-family:var(--serif);font-size:14px;letter-spacing:.12em;pointer-events:none;transition:opacity .5s;font-variant-numeric:tabular-nums;z-index:7}
+#speedToast.off{opacity:0}
 
 /* touch stick */
 #stick{position:fixed;left:max(28px,env(safe-area-inset-left,0px));bottom:calc(36px + env(safe-area-inset-bottom,0px));width:112px;height:112px;border-radius:50%;
@@ -176,6 +178,7 @@ body.touch #hint{bottom:calc(160px + env(safe-area-inset-bottom,0px))}
   <label class="field"><span>时间</span><input id="sun" type="range" min="0" max="24" step="0.05" value="7"><output id="sunv">07:00</output></label>
   <p class="note">绒球上的一天约等于现实中的 24 分钟</p>
   <label class="field"><span>身高</span><input id="eye" type="range" min="1.5" max="12" step="0.1" value="3"><output id="eyev">3 m</output></label>
+  <label class="field"><span>速度</span><input id="spd" type="range" min="0" max="1" step="0.001" value="0.1037"><output id="spdv">×1</output></label>
   <label class="field"><span>音乐</span><input id="vol" type="range" min="0" max="1" step="0.01" value="0.7"><output id="volv">70%</output></label>
   <label class="field"><span>云量</span><input id="cover" type="range" min="0" max="1" step="0.01" value="0.5"><output id="coverv">50%</output></label>
   <label class="field"><span>画质</span><select id="q"><option value="auto">自动</option><option value="high">高</option><option value="mid">中</option><option value="low">低</option></select><output id="qv"></output></label>
@@ -183,10 +186,12 @@ body.touch #hint{bottom:calc(160px + env(safe-area-inset-bottom,0px))}
     <kbd>拖动</kbd><span>转头（双击锁定鼠标，Esc 释放）</span>
     <kbd>W A S D</kbd><span>行走</span>
     <kbd>Shift</kbd><span>奔跑</span>
-    <kbd>滚轮</kbd><span>调整速度（最高 400 倍）</span>
+    <kbd>− / =</kbd><span>按档减速 / 加速（0 回到正常）</span>
+    <kbd>滚轮</kbd><span>无级调速（最高 400 倍）</span>
     <kbd>M</kbd><span>打开地图</span>
   </div>
 </div>
+<div id="speedToast" class="off" aria-live="polite"></div>
 <div id="hint">拖动画面转头 · WASD 行走 · Shift 奔跑 · 滚轮调速 · M 打开地图</div>
 <div id="stick" aria-hidden="true"><i></i></div>
 <div id="map" hidden role="dialog" aria-modal="true" aria-label="绒球全图">
@@ -1008,8 +1013,10 @@ function frameLandmark(lat,lon){const q=fromLL(lat,lon,1);let best=null,bd=1e9;
 /* ===== creatures =====
    Each species is built once from smooth primitives into a few shared geometries: one merged body, plus separate legs /
    wings / tail so they can move. A creature on screen is therefore only a handful of draw calls. Sizes follow the book. */
-const CREATURES=[];const MAXC=44;
+const CREATURES=[];const MAXC=56;
 const glowMat=new THREE.PointsMaterial({size:.22,sizeAttenuation:true,color:new THREE.Color(.55,1.6,1.3),transparent:true,opacity:.95,depthWrite:false,blending:THREE.AdditiveBlending});
+const orbMat=new THREE.PointsMaterial({size:7,sizeAttenuation:true,color:new THREE.Color(2.2,2,1.4),transparent:true,opacity:.85,depthWrite:false,blending:THREE.AdditiveBlending});
+const glowBodyMat=new THREE.MeshBasicMaterial({vertexColors:true});
 const dustMat=new THREE.PointsMaterial({size:.9,sizeAttenuation:true,color:new THREE.Color(.75,.62,.42),transparent:true,opacity:.35,depthWrite:false});
 const E=(rx,ry,rz,x,y,z,c,rotZ=0,rotY=0)=>({g:new THREE.SphereGeometry(1,16,12),m:new THREE.Matrix4().compose(new THREE.Vector3(x,y,z),new THREE.Quaternion().setFromEuler(new THREE.Euler(0,rotY,rotZ)),new THREE.Vector3(rx,ry,rz)),c});
 const C=(r0,r1,len,x,y,z,c,rx=0,ry=0,rz=0,seg=8)=>({g:new THREE.CylinderGeometry(r1,r0,len,seg),m:M4(x,y,z,rx,ry,rz),c});
@@ -1018,7 +1025,9 @@ const K=(r,len,x,y,z,c,rx=0,ry=0,rz=0,seg=8)=>({g:new THREE.ConeGeometry(r,len,s
 function taper(pts,r0,r1,c,seg=14,rad=10){const curve=new THREE.CatmullRomCurve3(pts.map(p=>new THREE.Vector3(...p)));const g=new THREE.TubeGeometry(curve,seg,1,rad,false);const pos=g.attributes.position;
   for(let i=0;i<=seg;i++){const ctr=curve.getPointAt(i/seg);const r=r0+(r1-r0)*(i/seg);for(let j=0;j<=rad;j++){const k=i*(rad+1)+j;pos.setXYZ(k,ctr.x+(pos.getX(k)-ctr.x)*r,ctr.y+(pos.getY(k)-ctr.y)*r,ctr.z+(pos.getZ(k)-ctr.z)*r);}}
   g.computeVertexNormals();return {g,c};}
-const body=parts=>merge(parts.map(p=>({...p,c:[p.c[0]*.55,p.c[1]*.55,p.c[2]*.55]}))).solid;
+/* darker back, lighter belly, faint mottling — reads as skin instead of plastic */
+function shadeGeo(g){const c=g.attributes.color,n=g.attributes.normal,p=g.attributes.position;for(let i=0;i<c.count;i++){const ny=n.getY(i);const f=(ny>0?1-.22*ny:1-.2*ny)*(1+.08*Math.sin(p.getX(i)*9+p.getZ(i)*7)*Math.sin(p.getY(i)*11+p.getX(i)*3));c.setXYZ(i,c.getX(i)*f,c.getY(i)*f,c.getZ(i)*f);}c.needsUpdate=true;return g;}
+const body=parts=>shadeGeo(merge(parts.map(p=>({...p,c:[p.c[0]*.55,p.c[1]*.55,p.c[2]*.55]}))).solid);
 /* a leg hangs from its hip (origin) straight down; thigh and shin taper; foot at the bottom */
 function legGeo(len,r,c,foot=1.4){return body([C(r,r*.8,len*.52,0,-len*.26,0,c),C(r*.8,r*.55,len*.5,0,-len*.73,0,c),E(r*foot,r*.5,r*foot*.9,r*.25,-len,0,c)]);}
 function wingGeo(span,chord,c){const g=new THREE.BufferGeometry();const v=[0,0,0, chord*.1,0,span*.15, -chord*.15,0,span, -chord*.7,0,span*.75, -chord*.95,0,span*.35, -chord*.55,0,0];
@@ -1080,12 +1089,55 @@ def('jelly',{n:'空水母',fly:[3,25],speed:.6,group:[1,3],swim:1,build(){const 
 def('worm',{n:'迷雾蠕虫',walk:1,burrow:1,speed:2.4,group:[1,1],build(){const c=[.38,.31,.26];return {seg:body([E(2.2,2.1,2.1,0,0,0,c)]),head:body([E(2.3,2.2,2.2,0,0,0,c),...Array.from({length:10},(_,k)=>K(.25,1.4,1.9,Math.cos(k*.63)*1.4,Math.sin(k*.63)*1.4,[.92,.86,.7],0,0,-1.57,5))])};}});
 def('moths',{n:'记忆蛾',swarm:'glow',fly:[1,5],speed:.8,group:[1,1]});
 def('dust',{n:'尘魔',swarm:'dust',fly:[0,0],speed:2.5,group:[1,1]});
+// ---- 更多物种（体型按原著描述） ----
+def('deepbus',{n:'深沙巴士',walk:1,speed:1.6,group:[1,1],build(){const c=[.62,.52,.36],d=tone(c,.75);const parts=[E(13.5,1.4,4.2,0,1.6,0,c),E(11,1,3.4,0,2.4,0,tone(c,1.08))];
+  for(let k=0;k<9;k++)parts.push({g:new THREE.TorusGeometry(1,.12,6,24,Math.PI),m:new THREE.Matrix4().compose(new THREE.Vector3(10-k*2.5,1.6,0),new THREE.Quaternion().setFromEuler(new THREE.Euler(0,1.5708,0)),new THREE.Vector3(4.1-Math.abs(k-4)*.2,2.4,1)),c:d});
+  const coil=[];for(let i=0;i<=24;i++){const t=i/24;coil.push([-13-t*6,1.6+Math.sin(t*12.6)*1.1,Math.cos(t*12.6)*1.1]);}parts.push(taper(coil,.8,.25,c,48,8));
+  return {body:body(parts),legs:Array.from({length:10},(_,i)=>[1,-1].map(s=>({geo:legGeo(1.8,.22,d),x:10-i*2.2,y:1.4,z:3.6*s,splay:.6*s}))).flat()};}});
+def('silverbeetle',{n:'银甲虫',walk:1,speed:.9,group:[4,8],build(){const c=[.8,.82,.86],d=[.25,.25,.28];
+  return {body:body([E(.32,.15,.2,0,.2,0,c),E(.1,.08,.1,.33,.18,0,d),K(.015,.25,.5,.25,.06,d,0,0,-1.1,4),K(.015,.25,.5,.25,-.06,d,0,0,-1.1,4)]),
+    legs:[.12,0,-.12].flatMap(x=>[1,-1].map(s=>({geo:legGeo(.22,.015,d),x,y:.18,z:.14*s,splay:.8*s})))};}});
+def('redspider',{n:'红蛛',fly:[1,4],speed:3,group:[5,10],dart:1,build(){const c=[.78,.13,.07];const parts=[E(.12,.09,.11,0,0,0,c),E(.18,.13,.16,-.22,0,0,tone(c,.8))];
+  for(let k=0;k<4;k++)for(const s of [1,-1])parts.push(taper([[0,0,0],[.1-k*.05,.12,.22*s],[.18-k*.12,-.1,.34*s]],.015,.008,tone(c,.6),6,4));
+  return {body:body(parts),wings:[1,-1].map(s=>({geo:paint(new THREE.PlaneGeometry(.18,.35).rotateX(-1.5708).translate(0,0,s*.18),[.3,.12,.09]),x:-.05,y:.08,z:0,side:s,fast:1}))};}});
+def('dachuolong',{n:'大鸵龙',walk:1,speed:2.4,group:[2,5],build(){const c=[.58,.5,.36],b=tone(c,1.2);
+  return {body:body([E(1,.62,.55,0,1.9,0,c),E(.8,.45,.45,0,1.7,0,b),taper([[.8,2.1,0],[1.1,2.8,0],[1.25,3.4,0]],.25,.16,c),E(.34,.2,.18,1.45,3.5,0,c),K(.08,.25,1.8,3.45,0,[.8,.7,.5],0,0,-1.57),
+    taper([[-.9,1.95,0],[-1.8,1.9,0],[-2.7,1.7,0]],.3,.04,c),E(.04,.04,.04,1.6,3.58,.12,[.05,.05,.05]),E(.04,.04,.04,1.6,3.58,-.12,[.05,.05,.05])]),
+    legs:[[.1,1.75,.32],[.1,1.75,-.32]].map(([x,y,z])=>({geo:legGeo(1.75,.16,c,1.8),x,y,z}))};}});
+def('jianjia',{n:'坚甲龙',walk:1,speed:.6,group:[1,3],build(){const c=[.45,.42,.33],k=[.62,.58,.46];const parts=[E(2.6,1.1,1.65,0,1.55,0,c),E(.6,.45,.5,2.7,1.2,0,c),taper([[-2.4,1.4,0],[-3.6,1.1,0],[-4.6,.9,0]],.45,.18,c),E(.55,.4,.55,-4.8,.9,0,k)];
+  for(let i=0;i<16;i++){const a=i*2.4,r=.35+(i%4)*.2;parts.push(K(.18,.45,Math.cos(a)*2.1*r,1.55+Math.sqrt(Math.max(0,1-r*r))*1.05,Math.sin(a)*1.4*r,k,Math.sin(a)*.5,0,-Math.cos(a)*.5,6));}
+  return {body:body(parts),legs:[[1.6,1.1,1.05],[1.6,1.1,-1.05],[-1.5,1.1,1.05],[-1.5,1.1,-1.05]].map(([x,y,z])=>({geo:legGeo(1.1,.32,c,1.5),x,y,z}))};}});
+def('jingzhui',{n:'晶锥陆龟',walk:1,speed:.35,group:[1,2],build(){const c=[.4,.38,.3],s=[.35,.42,.32],k=[.62,.88,.95];
+  const parts=[{g:new THREE.SphereGeometry(1,22,12,0,6.283,0,1.6),m:new THREE.Matrix4().compose(new THREE.Vector3(0,.6,0),new THREE.Quaternion(),new THREE.Vector3(1.6,1,1.25)),c:s},E(1.55,.25,1.2,0,.62,0,c),E(.32,.26,.28,1.75,.75,0,c),E(.05,.05,.05,2,.85,.15,[.05,.05,.05]),E(.05,.05,.05,2,.85,-.15,[.05,.05,.05])];
+  for(let i=0;i<9;i++){const a=i*2.4,r=i?.35+(i%3)*.22:0;parts.push(K(.18,1.1+(i===0?.9:(3-i%3)*.25),Math.cos(a)*r*1.4,1.9+(i===0?.4:0),Math.sin(a)*r,k,Math.sin(a)*r*.6,0,-Math.cos(a)*r*.6,6));}
+  return {body:body(parts),legs:[[1,.55,.85],[1,.55,-.85],[-1,.55,.85],[-1,.55,-.85]].map(([x,y,z])=>({geo:legGeo(.55,.18,c,1.6),x,y,z}))};}});
+def('centipede',{n:'肋骨蜈蚣',walk:1,speed:1.8,group:[1,1],build(){const c=[.84,.82,.74],d=[.3,.27,.24];const parts=[];
+  for(let k=0;k<14;k++){const x=1.8-k*.3;parts.push(E(.17,.1,.16,x,.28,0,d),{g:new THREE.TorusGeometry(1,.035,5,14,Math.PI),m:new THREE.Matrix4().compose(new THREE.Vector3(x,.22,0),new THREE.Quaternion().setFromEuler(new THREE.Euler(0,1.5708,0)),new THREE.Vector3(.24,.16,1)),c});}
+  parts.push(E(.2,.12,.18,2.05,.3,0,c),taper([[2.2,.3,.08],[2.6,.45,.25],[2.9,.4,.35]],.02,.01,d,6,4),taper([[2.2,.3,-.08],[2.6,.45,-.25],[2.9,.4,-.35]],.02,.01,d,6,4));
+  return {body:body(parts),legs:Array.from({length:7},(_,i)=>[1,-1].map(s=>({geo:legGeo(.32,.02,d),x:1.7-i*.55,y:.25,z:.16*s,splay:1.1*s}))).flat()};}});
+def('icespider',{n:'冰蛛',walk:1,speed:1.4,group:[1,2],build(){const c=[.5,.75,.9],d=[.25,.38,.5];const parts=[E(.8,.55,.7,-.6,1.4,0,c),E(.5,.38,.45,.35,1.3,0,d)];
+  for(let i=0;i<6;i++)parts.push(K(.08,.35,-.6+Math.cos(i)*.4,1.95,Math.sin(i)*.4,[.75,.95,1],0,0,0,5));
+  parts.push(E(.06,.06,.06,.82,1.42,.12,[.9,.2,.2]),E(.06,.06,.06,.82,1.42,-.12,[.9,.2,.2]));
+  return {body:body(parts),legs:[.45,.2,-.05,-.3].flatMap(x=>[1,-1].map(s=>({geo:legGeo(1.6,.07,d),x,y:1.3,z:.35*s,splay:1.05*s})))};}});
+def('zaonao',{n:'造脑怪',walk:1,speed:.5,group:[1,1],build(){const c=[.85,.72,.25];
+  return {body:body([E(1.5,.9,1.1,0,1.3,0,c),E(.6,.55,.6,1.5,1.4,0,tone(c,.9)),E(.08,.08,.08,2.05,1.55,.22,[.1,.08,.05]),E(.08,.08,.08,2.05,1.55,-.22,[.1,.08,.05])]),
+    legs:[.9,.3,-.3,-.9].flatMap(x=>[1,-1].map(s=>({geo:legGeo(1,.13,tone(c,.8)),x,y:.95,z:.85*s,splay:.5*s})))};}});
+def('yalong',{n:'亚龙',fly:[80,240],speed:13,group:[1,2],build(){const c=[.25,.35,.28],m=[.35,.45,.36];
+  return {body:body([E(3,.8,.85,0,0,0,c),taper([[2.5,.2,0],[4.2,.9,0],[5.2,1,0]],.55,.38,c),E(.95,.5,.45,5.8,.95,0,c),K(.2,1,6.8,.95,0,m,0,0,-1.57),taper([[-2.7,0,0],[-6,-.4,0],[-9.5,-.3,0]],.6,.06,c)]),
+    wings:[1,-1].map(s=>({geo:wingGeo(9.5,5.5,m),x:.7,y:.45,z:.6*s,side:s}))};}});
+def('guanglong',{n:'光龙',fly:[280,520],speed:16,group:[1,1],glow:1,build(){const pts=[];for(let i=0;i<=20;i++){const t=i/20;pts.push([-t*42,Math.sin(t*9)*2.5,Math.cos(t*7)*2]);}
+  const g=taper(pts,2.2,.15,[1,1,1],60,10).g;paint(g,[1.4,2.4,2.8]);return {body:g};}});
+def('gunlei',{n:'滚雷',swarm:'orb',fly:[180,420],speed:1.5,group:[1,1]});
+def('baoxiao',{n:'爆哮虫',walk:1,speed:.4,group:[1,2],build(){const c=[.55,.45,.38];
+  return {body:body([E(2,1.4,1.6,0,1.5,0,c),E(1,.9,1,1.8,1.4,0,tone(c,1.1)),E(.45,.35,.5,2.6,1.3,0,[.35,.12,.12]),E(.1,.1,.1,2.4,2,.45,[.05,.05,.05]),E(.1,.1,.1,2.4,2,-.45,[.05,.05,.05])]),
+    legs:[1,0,-1].flatMap(x=>[1,-1].map(s=>({geo:legGeo(.7,.2,tone(c,.8)),x,y:.6,z:1.2*s,splay:.4*s})))};}});
+
 
 function makeCreature(key,opt){const sp=SPEC[key];const g=new THREE.Group();g.userData.key=key;
-  if(sp.swarm){const n=sp.swarm==='glow'?28:220,pos=new Float32Array(n*3);for(let i=0;i<n;i++){const r=sp.swarm==='glow'?4:3+Math.random()*2;const a=Math.random()*6.283,h=sp.swarm==='glow'?Math.random()*3:Math.random()*14;pos.set([Math.cos(a)*r*Math.random(),h,Math.sin(a)*r*Math.random()],i*3);}
-    const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(pos,3));const pts=new THREE.Points(geo,sp.swarm==='glow'?glowMat:dustMat);pts.layers.set(1);pts.frustumCulled=false;g.add(pts);g.userData.pts=pts;g.userData.legs=[];g.userData.wings=[];return g;}
+  if(sp.swarm){const orb=sp.swarm==='orb';const n=sp.swarm==='glow'?28:orb?14:220,pos=new Float32Array(n*3);for(let i=0;i<n;i++){const r=sp.swarm==='glow'?4:orb?70:3+Math.random()*2;const a=Math.random()*6.283,h=sp.swarm==='glow'?Math.random()*3:orb?Math.random()*50:Math.random()*14;pos.set([Math.cos(a)*r*Math.random(),h,Math.sin(a)*r*Math.random()],i*3);}
+    const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(pos,3));const pts=new THREE.Points(geo,sp.swarm==='glow'?glowMat:orb?orbMat:dustMat);pts.layers.set(1);pts.frustumCulled=false;g.add(pts);g.userData.pts=pts;g.userData.legs=[];g.userData.wings=[];return g;}
   const ck=key+(opt&&opt.white?'w':'');const B=geoCache[ck]||(geoCache[ck]=sp.build(opt));
-  if(B.body){const m=new THREE.Mesh(B.body,plantMatS);g.add(m);g.userData.body=m;}
+  if(B.body){const m=new THREE.Mesh(B.body,sp.glow?glowBodyMat:plantMatS);if(sp.glow)m.layers.set(1);g.add(m);g.userData.body=m;}
   g.userData.legs=(B.legs||[]).map(L=>{const p=new THREE.Group();p.position.set(L.x,L.y,L.z);const m=new THREE.Mesh(L.geo,plantMatS);if(L.splay)m.rotation.x=-L.splay*.5;p.add(m);g.add(p);p.userData=L;return p;});
   g.userData.wings=(B.wings||[]).map(W=>{const p=new THREE.Group();p.position.set(W.x,W.y,W.z);const geo=W.side<0&&!W.fast?W.geo.clone().scale(1,1,-1):W.geo;const m=new THREE.Mesh(W.fast?geo:(W.side<0?geo:W.geo),plantMatS);
     if(!W.fast&&W.side<0)m.scale.z=1;p.add(m);g.add(p);p.userData=W;return p;});
@@ -1095,18 +1147,20 @@ function makeCreature(key,opt){const sp=SPEC[key];const g=new THREE.Group();g.us
 /* who lives here: weights by continent and ground */
 function speciesFor(c,night){const w=[];const add=(k,x)=>w.push([k,x]);
   if(c.h<=0)return w;
+  const near=(la,lo,r)=>T.angTo(c.n.x,c.n.y,c.n.z,T.V(la,lo))<r;
   if(night)add('moths',c.moist>.3?3:1);
-  if(c.region===0){if(c.dry>.35){add('scorpion',3);add('dragonfly',night?0:3);add('worm',.35);}
-    else{add('landshark',c.moist>.45?2:.5);add('beetle',c.moist>.5?2:.8);add('roach',1.2);add('lizard',1.5);add('dragonfly',night?0:1.5);}}
-  else if(c.region===1){if(c.dry>.35)add('maoyu',3);else{add('ceratops',c.slope<.25?3:0);add('gulong',c.moist>.45?2.5:1);add('maoyu',2.5);add('tyrant',.35);}
-    if(c.h>350)add('wyvern',1.2);if(c.h<60)add('giantJelly',.9);}
-  else if(c.region===2){if(c.dry>.35)add(night?'moths':'dust',2);if(c.h<40)add('jiangguai',2);add('jelly',.8);add('lizard',.6);}
-  else{add('jelly',1);}
+  if(c.region===0){if(c.dry>.35){add('scorpion',3);add('dragonfly',night?0:3);add('worm',.35);add('deepbus',.4);}
+    else{add('landshark',c.moist>.45?2:.5);add('beetle',c.moist>.5?2:.8);add('roach',1.2);add('lizard',1.5);add('dragonfly',night?0:1.5);add('silverbeetle',1.6);add('redspider',night?2:.4);}}
+  else if(c.region===1){if(c.dry>.35)add('maoyu',3);else{add('ceratops',c.slope<.25?3:0);add('gulong',c.moist>.45?2.5:1);add('maoyu',2.5);add('tyrant',.35);add('dachuolong',c.slope<.3?2:.3);add('jianjia',1);
+      add('centipede',c.moist>.45?1:.3);add('icespider',c.moist>.5?.9:.2);add('jingzhui',near(10,-100,.06)?3:.5);if(near(22,-94,.05))add('zaonao',2);}
+    if(c.h>350)add('wyvern',1.2);if(c.h>150||near(12,-88,.04))add('yalong',.7);if(c.h<60)add('giantJelly',.9);}
+  else if(c.region===2){if(c.dry>.35)add(night?'moths':'dust',2);if(c.h<40)add('jiangguai',2);add('jelly',.8);add('lizard',.6);add('guanglong',.5);add('gunlei',night?1.5:.5);}
+  else{add('jelly',1);add('baoxiao',2);}
   if(!night)add('jelly',.5);
   return w.filter(x=>x[1]>0);}
 function ctxAt(lat,lon){const n=fromLL(lat,lon,1);const h=T.terrain(n.x,n.y,n.z,2);const dl=3/(R*Math.cos(lat));const q=fromLL(lat,lon+dl,1);const hx=T.terrain(q.x,q.y,q.z,2);
   return {n,h,moist:T.moisture(n.x,n.y,n.z),dry:T.dryness(n.x,n.y,n.z),region:T.regionIdx(n.x,n.y,n.z),slope:Math.abs(hx-h)/3};}
-const SIZE={maoyu:[10,45],dragonfly:[12,70],gulong:[14,70],jelly:[15,90],moths:[6,35],lizard:[15,80],landshark:[15,80],scorpion:[18,90],roach:[20,100],beetle:[20,110],ceratops:[30,150],jiangguai:[40,180],tyrant:[60,220],wyvern:[80,300],giantJelly:[150,420],worm:[60,200],dust:[60,220]};
+const SIZE={deepbus:[90,260],silverbeetle:[6,30],redspider:[10,50],dachuolong:[25,120],jianjia:[30,140],jingzhui:[20,100],centipede:[10,50],icespider:[18,90],zaonao:[25,110],yalong:[120,380],guanglong:[250,600],gunlei:[150,500],baoxiao:[25,120],maoyu:[10,45],dragonfly:[12,70],gulong:[14,70],jelly:[15,90],moths:[6,35],lizard:[15,80],landshark:[15,80],scorpion:[18,90],roach:[20,100],beetle:[20,110],ceratops:[30,150],jiangguai:[40,180],tyrant:[60,220],wyvern:[80,300],giantJelly:[150,420],worm:[60,200],dust:[60,220]};
 let spawnT=0;
 function spawnNear(){if(CREATURES.length>=MAXC)return;
   const night=uni.uUp.value.dot(uni.uSun.value)<-.05;
@@ -1124,7 +1178,7 @@ function updateCreatures(dt){
   spawnT-=dt;if(spawnT<=0){spawnT=CREATURES.length<MAXC*.6?.35:1.2;spawnNear();}
   for(let i=CREATURES.length-1;i>=0;i--){const c=CREATURES[i],sp=c.sp,o=c.obj;c.t+=dt;
     const dlat=(c.lat-view.lat)*R,dlon=(c.lon-view.lon)*R*Math.cos(view.lat);const d=Math.hypot(dlat,dlon);
-    if(d>520){fauna.remove(o);o.traverse(m=>{if(m.isPoints)m.geometry.dispose();});CREATURES.splice(i,1);continue;}
+    if(d>(sp.fly&&sp.fly[1]>100?900:560)){fauna.remove(o);o.traverse(m=>{if(m.isPoints)m.geometry.dispose();});CREATURES.splice(i,1);continue;}
     // wander, sometimes stop to graze or look around; don't walk into the sea
     if(sp.walk&&!sp.burrow){if(c.pause>0)c.pause-=dt;else if(Math.random()<dt*.06)c.pause=2+Math.random()*5;}
     c.heading+=(Math.sin(c.t*.6+c.ph)*.5+(Math.random()-.5)*.8)*(sp.dart?2.5:.5)*dt;
@@ -1145,7 +1199,7 @@ function updateCreatures(dt){
     U.wings.forEach(W=>{if(W.userData.fast)W.rotation.x=Math.sin(c.t*42+(W.userData.side>0?0:1))*.5*W.userData.side;else W.rotation.x=(Math.sin(c.t*2.6+c.ph)*.7+.1)*W.userData.side;});
     if(sp.swim&&U.body){const sq=1+Math.sin(c.t*2+c.ph)*.12;U.body.scale.set(1/Math.sqrt(sq),sq,1/Math.sqrt(sq));}
     if(U.segs){const em=Math.sin(c.t*.3+c.ph);U.segs.forEach((sg,k)=>{const ph=c.t*2.4-k*.5;sg.position.y=Math.sin(ph)*1.2+(em*7-k*1.3)*(em>0?1:1.8);sg.position.z=Math.sin(ph*.5)*.8;});}
-    if(U.pts){const a=U.pts.geometry.attributes.position;const n=a.count;for(let j=0;j<n;j+=7){const k=(j+Math.floor(c.t*30))%n;const s=sp.swarm==='glow'?.04:.25;a.setXYZ(k,a.getX(k)+(Math.random()-.5)*s,a.getY(k)+(Math.random()-.5)*s*.6,a.getZ(k)+(Math.random()-.5)*s);}
+    if(U.pts){const a=U.pts.geometry.attributes.position;const n=a.count;for(let j=0;j<n;j+=7){const k=(j+Math.floor(c.t*30))%n;const s=sp.swarm==='glow'?.04:sp.swarm==='orb'?.6:.25;a.setXYZ(k,a.getX(k)+(Math.random()-.5)*s,a.getY(k)+(Math.random()-.5)*s*.6,a.getZ(k)+(Math.random()-.5)*s);}
       if(sp.swarm==='dust'){U.pts.rotation.y+=dt*1.8;}a.needsUpdate=true;}
   }
 }
@@ -1257,15 +1311,15 @@ if(isTouch){document.body.classList.add('touch');$('#hint').textContent='左下�
 const keys={};addEventListener('keydown',e=>{keys[e.code]=true;});addEventListener('keyup',e=>{keys[e.code]=false;});
 let drag=null;const pts=new Map();let pinch=null;
 canvas.addEventListener('pointerdown',e=>{pts.set(e.pointerId,{x:e.clientX,y:e.clientY});canvas.setPointerCapture(e.pointerId);
-  if(pts.size===2){const [a,b]=[...pts.values()];pinch={d:Math.hypot(a.x-b.x,a.y-b.y),alt:view.altTarget||view.alt};drag=null;return;}
+  if(pts.size===2){const [a,b]=[...pts.values()];pinch={d:Math.hypot(a.x-b.x,a.y-b.y),alt:view.altTarget||view.alt,k0:view.speedK};drag=null;return;}
   drag={id:e.pointerId,x:e.clientX,y:e.clientY,b:e.button};});
 const endPtr=e=>{pts.delete(e.pointerId);if(pts.size<2)pinch=null;if(drag&&e.pointerId===drag.id)drag=null;};
 canvas.addEventListener('pointercancel',endPtr);
 canvas.addEventListener('dblclick',()=>{if(view.mode==='ground'&&!isTouch&&!document.pointerLockElement)canvas.requestPointerLock?.();});
 canvas.addEventListener('pointermove',e=>{
   if(pts.has(e.pointerId))pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
-  if(pinch&&pts.size===2){const [a,b]=[...pts.values()];const d=Math.hypot(a.x-b.x,a.y-b.y);if(d>10){if(view.mode==='god')view.altTarget=THREE.MathUtils.clamp(pinch.alt*pinch.d/d,60,R*8);else view.speedK=THREE.MathUtils.clamp(view.speedK*(d>pinch.d?1.02:.98),.5,400);}return;}
-  if(view.mode==='ground'){if(document.pointerLockElement===canvas){look(-e.movementX,e.movementY);}else if(drag&&e.pointerId===drag.id&&(!isTouch||e.clientX>innerWidth*.4)){look((e.clientX-drag.x)*2.2,(e.clientY-drag.y)*2.2);drag.x=e.clientX;drag.y=e.clientY;}return;}
+  if(pinch&&pts.size===2){const [a,b]=[...pts.values()];const d=Math.hypot(a.x-b.x,a.y-b.y);if(d>10){if(view.mode==='god')view.altTarget=THREE.MathUtils.clamp(pinch.alt*pinch.d/d,60,R*8);else setSpeed(pinch.k0*Math.pow(d/pinch.d,1.6));}return;}
+  if(view.mode==='ground'){if(document.pointerLockElement===canvas){look(e.movementX,e.movementY);}else if(drag&&e.pointerId===drag.id&&(!isTouch||e.clientX>innerWidth*.4)){look((e.clientX-drag.x)*2.2,(e.clientY-drag.y)*2.2);drag.x=e.clientX;drag.y=e.clientY;}return;}
   if(!drag||e.pointerId!==drag.id)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;drag.x=e.clientX;drag.y=e.clientY;
   if(drag.b===2){view.heading+=dx*.004;return;}
   const k=Math.min(view.alt,R*1.2)/R*1.4/innerHeight;      // ground distance per pixel, in radians
@@ -1276,9 +1330,16 @@ canvas.addEventListener('pointermove',e=>{
 });
 canvas.addEventListener('pointerup',endPtr);
 canvas.addEventListener('contextmenu',e=>e.preventDefault());
-canvas.addEventListener('wheel',e=>{e.preventDefault();if(view.mode==='ground'){view.speedK=THREE.MathUtils.clamp(view.speedK*(e.deltaY>0?.8:1.25),.5,400);return;}
+canvas.addEventListener('wheel',e=>{e.preventDefault();if(view.mode==='ground'){const dy=e.deltaMode===1?e.deltaY*16:e.deltaMode===2?e.deltaY*400:e.deltaY;setSpeed(view.speedK*Math.exp(-THREE.MathUtils.clamp(dy,-50,50)*.0028));return;}
   view.altTarget=THREE.MathUtils.clamp((view.altTarget||view.alt)*Math.exp(THREE.MathUtils.clamp(e.deltaY,-120,120)*.0025),60,R*8);},{passive:false});
-function look(dx,dy){view.heading-=dx*.0022;view.pitch=THREE.MathUtils.clamp(view.pitch-dy*.0022,-1.45,1.45);}
+const SPEED_STEPS=[.5,1,2,4,8,16,32,64,128,256,400];let speedToastT=0;
+function setSpeed(k){k=Math.min(400,Math.max(.5,k));if(Math.abs(k-1)<.06)k=1;view.speedK=k;const t=$('#speedToast');t.textContent='移动速度 ×'+(k<10?k.toFixed(k<2?1:1).replace(/\.0$/,''):Math.round(k));t.classList.remove('off');speedToastT=1.6;
+  const sl=$('#spd');if(sl&&document.activeElement!==sl)sl.value=Math.log(k/.5)/Math.log(800);const o=$('#spdv');if(o)o.textContent='×'+(k<10?+k.toFixed(1):Math.round(k));}
+addEventListener('keydown',e=>{if(e.target&&e.target.tagName==='INPUT'&&e.target.type!=='range')return;const i=SPEED_STEPS.findIndex(v=>v>=view.speedK-1e-6);
+  if(e.key==='='||e.key==='+'||e.key===']')setSpeed(SPEED_STEPS[Math.min(SPEED_STEPS.length-1,(SPEED_STEPS[i]>view.speedK+1e-6?i:i+1))]);
+  else if(e.key==='-'||e.key==='['){let j=SPEED_STEPS.length-1;while(j>0&&SPEED_STEPS[j]>=view.speedK-1e-6)j--;setSpeed(SPEED_STEPS[j]);}
+  else if(e.key==='0')setSpeed(1);});
+function look(dx,dy){view.heading+=dx*.0022;view.pitch=THREE.MathUtils.clamp(view.pitch-dy*.0022,-1.45,1.45);}
 function moveLL(dirV,ang){ // move along surface direction by angle (radians)
   const p=new THREE.Vector3().copy(frameAt(view.lat,view.lon).up).multiplyScalar(Math.cos(ang)).addScaledVector(dirV,Math.sin(ang)).normalize();
   const ll=toLL(p.x,p.y,p.z);const dl=ll.lon-view.lon;
@@ -1317,6 +1378,7 @@ sunEl.addEventListener('input',()=>setLocalHour(+sunEl.value));
 function setSun(){}
 {const e=$('#eye');const show=()=>{$('#eyev').textContent=(view.eye<10?view.eye.toFixed(1):Math.round(view.eye))+' m';};e.value=view.eye;show();
  e.addEventListener('input',()=>{view.eye=+e.value;BODY=.25*view.eye/1.6+.3;show();try{localStorage.setItem('rqw-eye',String(view.eye));}catch(x){}});BODY=.25*view.eye/1.6+.3;}
+$('#spd').addEventListener('input',e=>setSpeed(.5*Math.pow(800,+e.target.value)));
 coverEl.addEventListener('input',()=>{uni.uCover.value=+coverEl.value;$('#coverv').textContent=Math.round(coverEl.value*100)+'%';});
 $('#q').addEventListener('change',e=>{qmode=e.target.value;applyQuality();});
 {const b=$('#bSet'),p=$('#settings');const close=()=>{p.hidden=true;b.setAttribute('aria-expanded','false');};
@@ -1621,6 +1683,7 @@ function tick(now,force){
   if(mapEl.hidden)resolveCollisions();
   if(curtain){curtain.t+=dt;if((curtain.t>.6&&busy===0&&queue.length===0)||curtain.t>curtain.max){$('#load').classList.add('off');curtain=null;}}
   updateSun(dt);
+  if(speedToastT>0){speedToastT-=dt;if(speedToastT<=0)$('#speedToast').classList.add('off');}
   plaqueT+=dt;if(plaqueT>.5||force){plaqueT=0;updatePlaque();if(MUSIC.on)musicMood();}
   if(!mapEl.hidden){mapT+=dt;if(mapT>1||force){mapT=0;updateMapLive();}if(!force){requestAnimationFrame(tick);return;}}   // the chart covers the view: skip 3D work
   applyCamera();camera.updateMatrixWorld();frameNo++;updateTree();floraLOD();placeMeshes();updateCreatures(dt);
