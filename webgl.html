@@ -1,0 +1,1765 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="小说《进化的四十六亿重奏》里绒球的可游览 3D 世界：真实尺度、昼夜与月相、按原著布局的地貌、植物与生物。">
+<title>绒球世界</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@500;600;700&family=Noto+Sans+SC:wght@400;500&display=swap">
+<style>
+/* Layout: the world fills the screen. A location plaque sits top-left like a museum label; two round instruments sit top-right
+   (map, settings). The map opens as a full-screen chart with a gazetteer beside it. Single dark look on purpose: the chrome is a
+   quiet ink frame around a lit or unlit planet. */
+:root{
+  --ink:#070a11;--glass:rgba(9,13,21,.56);--glass-hi:rgba(13,18,29,.86);--line:rgba(220,228,242,.12);--line-hi:rgba(233,207,152,.42);
+  --text:#eef1f6;--dim:#9aa4b5;--faint:#687286;--gold:#e9cf98;--gold-dim:#b9a271;--cyan:#8fd3ff;--sea:#0a1727;
+  --serif:"Noto Serif SC","Songti SC",Georgia,serif;
+  --sans:"Noto Sans SC",-apple-system,"PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0;background:var(--ink);color:var(--text);font-family:var(--sans);overflow:hidden;-webkit-tap-highlight-color:transparent}
+body{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:crosshair}
+
+/* location plaque */
+#plaque{position:fixed;top:calc(16px + env(safe-area-inset-top,0px));left:max(18px,env(safe-area-inset-left,0px));pointer-events:none;
+  padding:12px 16px 12px 15px;border-left:1px solid var(--line-hi);background:linear-gradient(90deg,rgba(7,10,17,.55),rgba(7,10,17,0));max-width:min(74vw,420px)}
+#plaque .brand{font-family:var(--serif);font-size:11px;letter-spacing:.42em;color:var(--gold-dim);margin-bottom:8px}
+#plaque .region{font-size:11px;letter-spacing:.22em;color:var(--dim)}
+#plaque .name{font-family:var(--serif);font-weight:600;font-size:24px;letter-spacing:.06em;line-height:1.3;color:var(--text);text-shadow:0 1px 12px rgba(0,0,0,.6);margin-top:2px;text-wrap:balance}
+#plaque .sub{font-size:12px;color:var(--dim);margin-top:3px;font-variant-numeric:tabular-nums;text-shadow:0 1px 6px rgba(0,0,0,.8)}
+#plaque .clock{display:flex;align-items:center;gap:9px;margin-top:10px;font-variant-numeric:tabular-nums}
+#plaque .clock svg{width:30px;height:30px;flex:none}
+#plaque .clock b{font-family:var(--serif);font-weight:500;font-size:17px;letter-spacing:.04em}
+#plaque .clock span{font-size:12px;color:var(--dim);letter-spacing:.12em}
+
+/* top-right instruments */
+#tools{position:fixed;top:calc(16px + env(safe-area-inset-top,0px));right:max(16px,env(safe-area-inset-right,0px));display:flex;gap:10px;z-index:5}
+.tool{width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:var(--glass);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  display:grid;place-items:center;cursor:pointer;color:var(--text);transition:border-color .2s,background .2s}
+.tool:hover,.tool[aria-expanded=true]{border-color:var(--line-hi);background:var(--glass-hi)}
+.tool svg{width:21px;height:21px}
+.tool.muted .w,.tool:not(.muted) .s{display:none}
+.tool.muted{color:var(--dim)}
+#settings{position:fixed;top:calc(70px + env(safe-area-inset-top,0px));right:max(16px,env(safe-area-inset-right,0px));width:min(300px,calc(100vw - 32px));z-index:6;
+  background:var(--glass-hi);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid var(--line);border-radius:14px;padding:16px 18px 14px}
+#settings[hidden]{display:none}
+#settings h2{font-family:var(--serif);font-weight:500;font-size:15px;letter-spacing:.2em;margin:0 0 12px;color:var(--gold)}
+.field{display:grid;grid-template-columns:3em 1fr 3.4em;align-items:center;gap:10px;margin:10px 0;font-size:12px}
+.field>span{color:var(--dim);letter-spacing:.1em}
+.field output{text-align:right;color:var(--text);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;margin:0;accent-color:var(--gold);height:22px}
+select{width:100%;background:rgba(255,255,255,.05);color:var(--text);border:1px solid var(--line);border-radius:8px;font:inherit;font-size:12px;padding:5px 8px}
+.note{font-size:11px;color:var(--faint);margin:-4px 0 10px 4.1em;line-height:1.5}
+.keys{border-top:1px solid var(--line);margin-top:12px;padding-top:11px;display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:11.5px;color:var(--dim);align-items:center}
+.keys kbd{font-family:var(--sans);font-size:10.5px;color:var(--text);border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:1px 6px;justify-self:start;white-space:nowrap}
+
+/* hint toast */
+#hint{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);padding:9px 18px;border-radius:999px;background:var(--glass);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--line);font-size:12px;color:var(--dim);letter-spacing:.06em;white-space:nowrap;pointer-events:none;transition:opacity 1.2s;max-width:calc(100vw - 32px);overflow:hidden;text-overflow:ellipsis}
+#hint.off{opacity:0}
+#speedToast{position:fixed;left:50%;top:calc(22px + env(safe-area-inset-top,0px));transform:translateX(-50%);padding:7px 16px;border-radius:999px;background:var(--glass-hi);border:1px solid var(--line-hi);color:var(--gold);font-family:var(--serif);font-size:14px;letter-spacing:.12em;pointer-events:none;transition:opacity .5s;font-variant-numeric:tabular-nums;z-index:7}
+#speedToast.off{opacity:0}
+
+/* touch stick */
+#stick{position:fixed;left:max(28px,env(safe-area-inset-left,0px));bottom:calc(36px + env(safe-area-inset-bottom,0px));width:112px;height:112px;border-radius:50%;
+  border:1px solid var(--line);background:radial-gradient(circle,rgba(233,207,152,.06),rgba(9,13,21,.35));display:none;touch-action:none}
+#stick i{position:absolute;left:36px;top:36px;width:40px;height:40px;border-radius:50%;background:rgba(233,207,152,.32);border:1px solid var(--line-hi)}
+body.touch #stick{display:block}
+#flyBtn{position:fixed;right:max(28px,env(safe-area-inset-right,0px));bottom:calc(48px + env(safe-area-inset-bottom,0px));width:72px;height:72px;border-radius:50%;border:1px solid var(--line);background:radial-gradient(circle,rgba(233,207,152,.1),rgba(9,13,21,.4));color:#e9cf98;font:500 15px/72px inherit;text-align:center;display:none;touch-action:none;user-select:none;-webkit-user-select:none}
+#flyBtn.on{background:radial-gradient(circle,rgba(233,207,152,.35),rgba(9,13,21,.4))}
+body.touch #flyBtn{display:block}
+body.touch #hint{bottom:calc(160px + env(safe-area-inset-bottom,0px))}
+
+/* loading + errors */
+#load{position:fixed;inset:0;display:grid;place-items:center;background:radial-gradient(ellipse at 50% 60%,#101826,var(--ink) 70%);font-family:var(--serif);letter-spacing:.5em;color:var(--gold-dim);font-size:14px;transition:opacity 1s;z-index:30}
+#load.off{opacity:0;pointer-events:none}
+#err{position:fixed;left:50%;top:40%;transform:translate(-50%,-50%);max-width:34em;background:var(--glass-hi);border:1px solid var(--line);padding:16px 20px;border-radius:10px;line-height:1.6;font-size:13px;z-index:31}
+
+/* ---------- map ---------- */
+#map{position:fixed;inset:0;z-index:20;background:rgba(5,8,14,.9);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:flex;flex-direction:column;
+  padding:calc(14px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) calc(14px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+#map[hidden]{display:none}
+.mh{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;padding-bottom:12px;border-bottom:1px solid var(--line);margin-bottom:12px}
+.mh h2{font-family:var(--serif);font-weight:600;font-size:22px;letter-spacing:.32em;margin:0;color:var(--gold)}
+.mh p{margin:4px 0 0;font-size:12px;color:var(--dim);letter-spacing:.06em;font-variant-numeric:tabular-nums}
+.mctl{display:flex;gap:8px;flex:none}
+.mctl button{width:38px;height:38px;border-radius:50%;border:1px solid var(--line);background:rgba(255,255,255,.03);cursor:pointer;display:grid;place-items:center}
+.mctl button:hover{border-color:var(--line-hi)}
+.mctl svg{width:17px;height:17px}
+.mbody{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px}
+.stage{position:relative;overflow:hidden;min-width:0;border-radius:10px;background:var(--sea);border:1px solid var(--line);touch-action:none;cursor:grab;min-height:0}
+.stage.drag{cursor:grabbing}
+.world{position:absolute;left:0;top:0;transform-origin:0 0;--iz:1}
+.world canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+#night{mix-blend-mode:normal;pointer-events:none}
+#mapLoading[hidden]{display:none}
+#mapLoading{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--serif);letter-spacing:.4em;color:var(--gold-dim);font-size:13px;pointer-events:none}
+.pin{width:0;height:0}
+.ovl{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.ovl>*{position:absolute;left:0;top:0;will-change:transform}
+.pin>.in{position:absolute;left:0;top:0;pointer-events:none}
+.pin i{position:absolute;left:-4px;top:-4px;width:8px;height:8px;border-radius:50%;background:var(--gold);border:1.5px solid rgba(7,10,17,.9);box-shadow:0 0 0 3px rgba(233,207,152,.12);pointer-events:auto;cursor:pointer}
+.pin span{position:absolute;left:9px;top:-10px;white-space:nowrap;font-size:12.5px;color:#f3efe6;letter-spacing:.04em;pointer-events:auto;cursor:pointer;
+  text-shadow:0 0 3px #071019,0 0 6px #071019,0 1px 2px #071019}
+.pin.t1 i{display:none}
+.pin.t1 span{left:0;top:0;transform:translate(-50%,-50%);font-family:var(--serif);font-weight:600;font-size:19px;letter-spacing:.38em;color:rgba(240,226,190,.9)}
+.pin.sel i{background:#fff;box-shadow:0 0 0 5px rgba(233,207,152,.35)}
+.pin.sel span{color:var(--gold);font-weight:500}
+.ovl[data-z="1"] .pin.t2 span,.ovl[data-z="1"] .pin.t3 span,.ovl[data-z="2"] .pin.t3 span{display:none}
+.ovl .pin.sel span{display:block!important}
+.mk{width:0;height:0}
+.mk>.in{position:absolute;left:0;top:0;pointer-events:none}
+.mk.sun .in::before{content:"";position:absolute;left:-9px;top:-9px;width:18px;height:18px;border-radius:50%;background:radial-gradient(circle,#fff6d8 0 35%,rgba(255,214,120,.55) 36% 60%,rgba(255,200,90,0) 61%)}
+.mk.moon .in::before{content:"";position:absolute;left:-6px;top:-6px;width:12px;height:12px;border-radius:50%;background:#dfe6f2;box-shadow:inset -4px -2px 0 rgba(20,30,50,.75),0 0 8px rgba(200,215,255,.6)}
+#me{width:0;height:0}
+#me>.in{position:absolute;left:0;top:0;pointer-events:none}
+#me .ring{position:absolute;left:-13px;top:-13px;width:26px;height:26px;border-radius:50%;border:1.5px solid rgba(143,211,255,.8);animation:ping 2.4s ease-out infinite}
+#me .arrow{position:absolute;left:-9px;top:-11px;width:18px;height:22px;transform-origin:9px 11px}
+@keyframes ping{0%{transform:scale(.5);opacity:1}100%{transform:scale(1.7);opacity:0}}
+@media (prefers-reduced-motion:reduce){#me .ring{animation:none}#load,#hint{transition:none}}
+.legend{position:absolute;left:10px;bottom:10px;display:flex;flex-wrap:wrap;gap:4px 10px;padding:7px 10px;border-radius:8px;background:rgba(7,10,17,.72);font-size:10.5px;color:var(--dim);pointer-events:none;max-width:calc(100% - 20px)}
+.legend b{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+.gaz{display:flex;flex-direction:column;min-height:0;min-width:0;gap:10px}
+.gaz input{width:100%;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:10px;color:var(--text);font:inherit;font-size:13px;padding:9px 12px}
+.gaz input::placeholder{color:var(--faint)}
+#card{border:1px solid var(--line-hi);border-radius:12px;padding:14px 16px;background:linear-gradient(160deg,rgba(233,207,152,.08),rgba(233,207,152,.02))}
+#card[hidden]{display:none}
+#card .cr{font-size:11px;letter-spacing:.2em;color:var(--dim)}
+#card h3{font-family:var(--serif);font-weight:600;font-size:20px;letter-spacing:.08em;margin:3px 0 6px;color:var(--gold)}
+#card p{margin:0;font-size:12.5px;line-height:1.75;color:var(--text)}
+#card .cm{margin-top:8px;font-size:11px;color:var(--faint);font-variant-numeric:tabular-nums}
+#card .go{margin-top:12px;width:100%;padding:10px;border-radius:9px;border:1px solid var(--line-hi);background:rgba(233,207,152,.14);color:var(--gold);letter-spacing:.3em;cursor:pointer;font-size:13px}
+#card .go:hover{background:rgba(233,207,152,.24)}
+#gazList{overflow:auto;min-height:0;flex:1;padding-right:4px;scrollbar-width:thin}
+#gazList h4{font-family:var(--serif);font-weight:500;font-size:13px;letter-spacing:.24em;color:var(--gold-dim);margin:14px 0 6px;display:flex;justify-content:space-between}
+#gazList h4:first-child{margin-top:2px}
+#gazList h4 span{font-family:var(--sans);letter-spacing:0;color:var(--faint);font-size:11px}
+.gi{display:block;width:100%;text-align:left;background:none;border:0;border-radius:8px;padding:7px 9px;cursor:pointer;color:var(--text);font-size:13px}
+.gi small{display:block;color:var(--faint);font-size:11px;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gi:hover,.gi.sel{background:rgba(233,207,152,.08)}
+.gi.sel{color:var(--gold)}
+@media (max-width:760px){
+  .mbody{grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr)}
+  .stage{aspect-ratio:2/1;width:100%}
+  .mh h2{font-size:18px}
+  .mh p{font-size:11px}
+  .legend{display:none}
+  #plaque{padding:10px 12px}
+  #plaque .name{font-size:19px}
+  #plaque .brand{display:none}
+}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="plaque" aria-live="polite">
+  <div class="brand">绒球世界</div>
+  <div class="region" id="pRegion">—</div>
+  <div class="name" id="pName">—</div>
+  <div class="sub" id="pSub">—</div>
+  <div class="clock">
+    <svg viewBox="0 0 36 36" aria-hidden="true"><defs><clipPath id="up"><rect x="0" y="0" width="36" height="18"/></clipPath></defs>
+      <circle cx="18" cy="18" r="13" fill="rgba(143,211,255,.08)" clip-path="url(#up)"/>
+      <circle cx="18" cy="18" r="13" fill="none" stroke="rgba(220,228,242,.25)" stroke-width="1"/>
+      <line x1="2" y1="18" x2="34" y2="18" stroke="rgba(233,207,152,.45)" stroke-width="1"/>
+      <circle id="dialDot" cx="18" cy="5" r="3.2" fill="#e9cf98"/></svg>
+    <b id="pTime">--:--</b><span id="pPhase"></span>
+  </div>
+</div>
+<div id="tools">
+  <button type="button" class="tool" id="bMap" aria-label="打开地图（M）" title="地图（M）"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M3 6.5 9 4l6 2.5L21 4v13.5L15 20l-6-2.5L3 20z"/><path d="M9 4v13.5M15 6.5V20"/></svg></button>
+  <button type="button" class="tool muted" id="bSnd" aria-pressed="false" aria-label="音乐" title="打开音乐"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><g class="w"><path d="M15.5 9a4 4 0 0 1 0 6"/><path d="M18 6.5a7.5 7.5 0 0 1 0 11"/></g><path class="s" d="M16 9.5l5 5M21 9.5l-5 5"/></svg></button>
+  <button type="button" class="tool" id="bSet" aria-label="观测设置" aria-expanded="false" aria-controls="settings" title="观测设置"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 7h9M18 7h2M4 17h3M12 17h8"/><circle cx="15.5" cy="7" r="2.3"/><circle cx="9.5" cy="17" r="2.3"/></svg></button>
+</div>
+<div id="settings" hidden>
+  <h2>观测设置</h2>
+  <label class="field"><span>时间</span><input id="sun" type="range" min="0" max="24" step="0.05" value="7"><output id="sunv">07:00</output></label>
+  <p class="note">绒球上的一天约等于现实中的 24 分钟</p>
+  <label class="field"><span>身高</span><input id="eye" type="range" min="1.5" max="12" step="0.1" value="3"><output id="eyev">3 m</output></label>
+  <label class="field"><span>速度</span><input id="spd" type="range" min="0" max="1" step="0.001" value="0.1037"><output id="spdv">×1</output></label>
+  <label class="field"><span>音乐</span><input id="vol" type="range" min="0" max="1" step="0.01" value="0.7"><output id="volv">70%</output></label>
+  <label class="field"><span>云量</span><input id="cover" type="range" min="0" max="1" step="0.01" value="0.5"><output id="coverv">50%</output></label>
+  <label class="field"><span>画质</span><select id="q"><option value="auto">自动</option><option value="high">高</option><option value="mid">中</option><option value="low">低</option></select><output id="qv"></output></label>
+  <div class="keys" id="keys">
+    <kbd>拖动</kbd><span>转头（双击锁定鼠标，Esc 释放）</span>
+    <kbd>W A S D</kbd><span>行走</span>
+    <kbd>Shift</kbd><span>奔跑</span>
+    <kbd>− / =</kbd><span>按档减速 / 加速（0 回到正常）</span>
+    <kbd>滚轮</kbd><span>无级调速（最高 400 倍）</span>
+    <kbd>M</kbd><span>打开地图</span>
+  </div>
+</div>
+<div id="speedToast" class="off" aria-live="polite"></div>
+<div id="hint">拖动画面转头 · WASD 行走 · Shift 奔跑 · 按住空格飞行 · 滚轮调速 · M 打开地图</div>
+<div id="stick" aria-hidden="true"><i></i></div>
+<div id="flyBtn" aria-hidden="true">飞</div>
+<div id="map" hidden role="dialog" aria-modal="true" aria-label="绒球全图">
+  <header class="mh">
+    <div><h2>绒球全图</h2><p id="mapSub">晨昏线随时间移动</p></div>
+    <div class="mctl">
+      <button type="button" id="zIn" aria-label="放大"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+      <button type="button" id="zOut" aria-label="缩小"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M5 12h14"/></svg></button>
+      <button type="button" id="zMe" aria-label="回到我的位置"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="3.5"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4" stroke-linecap="round"/></svg></button>
+      <button type="button" id="mapClose" aria-label="关闭地图"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    </div>
+  </header>
+  <div class="mbody">
+    <div class="stage" id="stage">
+      <div class="world" id="world" data-z="1">
+        <canvas id="mapc" width="1440" height="720"></canvas>
+        <canvas id="night" width="360" height="180"></canvas>
+      </div>
+      <div class="ovl" id="ovl" data-z="1">
+        <div id="pins"></div>
+        <div class="mk sun" id="sunMk"><div class="in"></div></div>
+        <div class="mk moon" id="moonMk"><div class="in"></div></div>
+        <div id="me"><div class="in"><div class="ring"></div><svg class="arrow" viewBox="0 0 18 22"><path d="M9 1 16 20 9 15.5 2 20z" fill="#8fd3ff" stroke="#071019" stroke-width="1.2" stroke-linejoin="round"/></svg></div></div>
+      </div>
+      <div id="mapLoading">正在测绘全图</div>
+      <div class="legend"><span><b style="background:#123651"></b>深海</span><span><b style="background:#3f8a96"></b>浅海</span><span><b style="background:#5f7d3e"></b>平原</span><span><b style="background:#335c34"></b>森林</span><span><b style="background:#c9ad78"></b>荒漠</span><span><b style="background:#8f7a5c"></b>山地</span><span><b style="background:#e9eef3"></b>冰雪</span></div>
+    </div>
+    <aside class="gaz">
+      <input id="search" type="search" placeholder="搜索地名" aria-label="搜索地名" autocomplete="off">
+      <div id="card" hidden>
+        <div class="cr" id="cRegion"></div>
+        <h3 id="cName"></h3>
+        <p id="cDesc"></p>
+        <div class="cm" id="cMeta"></div>
+        <button type="button" class="go" id="cGo">前往此地</button>
+      </div>
+      <div id="gazList"></div>
+    </aside>
+  </div>
+</div>
+<div id="load">正在生成绒球</div>
+
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
+import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
+import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
+import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
+import {ShaderPass} from 'three/addons/postprocessing/ShaderPass.js';
+import {FXAAShader} from 'three/addons/shaders/FXAAShader.js';
+import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
+
+const $=s=>document.querySelector(s);
+/* ===== world constants (meters) ===== */
+const R=6371000;            // planet radius
+const ATM_H=100000;         // atmosphere top above surface
+const CLD0=R+1800, CLD1=R+4200;   // cloud shell
+const SEG=32;               // tile segments
+const MAXL=18;              // deepest quadtree level: tile ≈ 38 m, vertex ≈ 1.2 m
+
+/* ===== terrain source: one definition, runs on the main thread (for the walker) and inside workers (for tiles) ===== */
+const TERRAIN_SRC=`
+const F2=x=>x-Math.floor(x);
+function hash3(ix,iy,iz){let h=(ix*374761393+iy*668265263+iz*2147483647)|0;h=(h^(h>>>13))*1274126177|0;h=h^(h>>>16);return (h&1023)/1023*2-1;}
+const PERM=new Uint8Array(512);{let s=71;for(let i=0;i<256;i++)PERM[i]=i;for(let i=255;i>0;i--){s=(s*16807)%2147483647;const j=s%(i+1);const t=PERM[i];PERM[i]=PERM[j];PERM[j]=t;}for(let i=0;i<256;i++)PERM[256+i]=PERM[i];}
+const GR=[[1,1,0],[-1,1,0],[1,-1,0],[-1,-1,0],[1,0,1],[-1,0,1],[1,0,-1],[-1,0,-1],[0,1,1],[0,-1,1],[0,1,-1],[0,-1,-1],[1,1,0],[-1,1,0],[0,-1,1],[0,-1,-1]];
+const fade=t=>t*t*t*(t*(t*6-15)+10);
+function pn(x,y,z){ // 3D Perlin, wraps every 256 units of noise space
+  const X=Math.floor(x),Y=Math.floor(y),Z=Math.floor(z);x-=X;y-=Y;z-=Z;const xi=X&255,yi=Y&255,zi=Z&255;
+  const u=fade(x),v=fade(y),w=fade(z);
+  const A=PERM[xi]+yi,AA=PERM[A]+zi,AB=PERM[A+1]+zi,B=PERM[xi+1]+yi,BA=PERM[B]+zi,BB=PERM[B+1]+zi;
+  const g=(h,x,y,z)=>{const q=GR[h&15];return q[0]*x+q[1]*y+q[2]*z;};
+  const l=(a,b,t)=>a+t*(b-a);
+  return l(l(l(g(PERM[AA],x,y,z),g(PERM[BA],x-1,y,z),u),l(g(PERM[AB],x,y-1,z),g(PERM[BB],x-1,y-1,z),u),v),
+           l(l(g(PERM[AA+1],x,y,z-1),g(PERM[BA+1],x-1,y,z-1),u),l(g(PERM[AB+1],x,y-1,z-1),g(PERM[BB+1],x-1,y-1,z-1),u),v),w);
+}
+function fbm(x,y,z,oct){let a=.5,s=0,n=0;for(let i=0;i<oct;i++){s+=a*pn(x,y,z);n+=a;const nx=x*2.03+13.7,ny=y*2.03+7.1,nz=z*2.03+3.3;x=nx;y=ny;z=nz;a*=.5;}return s/n;}
+function ridge(x,y,z,oct){let a=.5,s=0,w=1,n=0;for(let i=0;i<oct;i++){let v=1-Math.abs(pn(x,y,z));v*=v;s+=a*v*w;n+=a;w=Math.min(Math.max(v*2,0),1);const nx=x*2.1+5.2,ny=y*2.1+1.3,nz=z*2.1+8.7;x=nx;y=ny;z=nz;a*=.5;}return s/n;}
+const sm=(a,b,x)=>{x=Math.min(Math.max((x-a)/(b-a),0),1);return x*x*(3-2*x);};
+/* height in meters above sea level for unit direction (nx,ny,nz); detail = smallest feature size wanted in meters */
+/* the novel's map: continents as (lat°, lon°, angular radius°), coastlines roughened by noise */
+const D2R=Math.PI/180;
+const REG=[[30,2,27],[6,-76,28],[-12,70,24],[-52,-18,18]].map(([la,lo,r])=>[Math.cos(la*D2R)*Math.cos(lo*D2R),Math.sin(la*D2R),-Math.cos(la*D2R)*Math.sin(lo*D2R),r*D2R]);
+const PEAKS=[[36,15,1.1,1500],[22,-94,1.0,1400],[-6.2,66.2,.9,1600]].map(([la,lo,r,hh])=>[Math.cos(la*D2R)*Math.cos(lo*D2R),Math.sin(la*D2R),-Math.cos(la*D2R)*Math.sin(lo*D2R),r*D2R,hh]);
+/* islands of the book: 骷髅岛/回音之岛、双子岛、真菌之岛（五岛）、白骸龙之岛、只有骨架的岛屿、迷雾之海群岛 */
+const ISL=[[8,-33,.9],[1,-46.6,.45],[1.3,-45.3,.45],[30,-104,.3],[30.6,-103.3,.25],[29.4,-103.4,.25],[30.4,-104.8,.22],[29.5,-104.6,.2],[4,-112,.7],[12,-44,.3],[12,-22,.25],[11.2,-21.1,.2],[13,-23,.18]].map(([la,lo,r])=>[Math.cos(la*D2R)*Math.cos(lo*D2R),Math.sin(la*D2R),-Math.cos(la*D2R)*Math.sin(lo*D2R),r*D2R]);
+function regionMask(nx,ny,nz){
+  const rough=1+.42*fbm(nx*3.3+4,ny*3.3-2,nz*3.3+7,4)+.12*fbm(nx*14,ny*14,nz*14,3)+.05*fbm(nx*60+3,ny*60,nz*60,3)+.02*fbm(nx*300,ny*300+1,nz*300,2);
+  let m=0;
+  for(const r of REG){const d=Math.max(-1,Math.min(1,nx*r[0]+ny*r[1]+nz*r[2]));const ang=Math.acos(d)*rough;m=Math.max(m,sm(r[3]*1.22,r[3]*.72,ang));}
+  for(const r of ISL){const d=nx*r[0]+ny*r[1]+nz*r[2];if(d<.999)continue;const ang=Math.acos(Math.min(1,d))*(rough*.6+.4);m=Math.max(m,sm(r[3]*1.12,r[3]*.55,ang));}
+  return m;
+}
+function terrain(nx,ny,nz,detail){
+  const c=fbm(nx*1.6+2.3,ny*1.6+.7,nz*1.6-1.2,5);
+  const isl=sm(.22,.4,c);                                        // scattered islands
+  const m=Math.max(regionMask(nx,ny,nz),isl*.8);
+  const mw=m+(detail<60000?.035*fbm(nx*20000+7,ny*20000,nz*20000+2,3)+.012*fbm(nx*150000,ny*150000+1,nz*150000,2):0);
+  const shelf=sm(.15,.45,m),coast=sm(.47,.53,mw),land=sm(.5,.7,m);
+  let h=-2600*(1-shelf)-120*(1-coast)*shelf+coast*(18+(m-.5)*900+fbm(nx*6+1,ny*6,nz*6+3,4)*650*land);
+  const mRidge=ridge(nx*5.5+.5,ny*5.5+.5,nz*5.5+.5,6);
+  const mMask=sm(.3,.8,fbm(nx*3.1+9,ny*3.1,nz*3.1+4,3)*.5+.5)*land;  // mountain belts
+  h+=mRidge*4800*mMask;
+  if(detail<30000){h+=ridge(nx*1200+2,ny*1200,nz*1200+1,4)*420*(mMask*.7+.3)*coast;}      // 5 km ridges
+  if(detail<6000){h+=ridge(nx*6000,ny*6000+3,nz*6000,3)*90*(mMask*.6+.4)*coast+fbm(nx*4000+1,ny*4000,nz*4000,3)*60*coast;}
+  if(detail<800){h+=fbm(nx*25000,ny*25000+2,nz*25000,3)*14*coast;}
+  if(detail<150){h+=fbm(nx*100000+1,ny*100000,nz*100000,2)*1.6;}
+  for(const p of PEAKS){const d=Math.max(-1,Math.min(1,nx*p[0]+ny*p[1]+nz*p[2]));const ang=Math.acos(d)/p[3];if(ang<1.5){const g=Math.exp(-ang*ang*2.2);h+=g*p[4]*(0.7+0.6*mRidge);}}
+  h+=fbm(nx*40+1,ny*40,nz*40+2,4)*380*land;                     // hills
+  if(detail<80000){h+=ridge(nx*220,ny*220,nz*220,4)*140*(mMask*.8+.2)*coast;}
+  if(detail<40){h+=fbm(nx*400000,ny*400000,nz*400000,2)*.3;}
+  h=features(nx,ny,nz,h,detail,coast,mMask);
+  return h;
+}
+/* named places with a definite shape in the book */
+const V=(la,lo)=>[Math.cos(la*D2R)*Math.cos(lo*D2R),Math.sin(la*D2R),-Math.cos(la*D2R)*Math.sin(lo*D2R)];
+const angTo=(nx,ny,nz,c)=>Math.acos(Math.max(-1,Math.min(1,nx*c[0]+ny*c[1]+nz*c[2])));
+/* distance (rad) from a point to a great-circle segment a→b */
+function segDist(nx,ny,nz,a,b){const ax=a[0],ay=a[1],az=a[2],bx=b[0],by=b[1],bz=b[2];
+  let gx=ay*bz-az*by,gy=az*bx-ax*bz,gz=ax*by-ay*bx;const gl=Math.hypot(gx,gy,gz);gx/=gl;gy/=gl;gz/=gl;
+  const side=nx*gx+ny*gy+nz*gz;const dPlane=Math.asin(Math.max(-1,Math.min(1,side)));
+  // projection onto the circle, then check it lies within the arc
+  let px=nx-side*gx,py=ny-side*gy,pz=nz-side*gz;const pl=Math.hypot(px,py,pz);px/=pl;py/=pl;pz/=pl;
+  const ab=Math.acos(Math.max(-1,Math.min(1,ax*bx+ay*by+az*bz)));
+  const pa=Math.acos(Math.max(-1,Math.min(1,px*ax+py*ay+pz*az))),pb=Math.acos(Math.max(-1,Math.min(1,px*bx+py*by+pz*bz)));
+  if(pa<=ab+1e-9&&pb<=ab+1e-9)return Math.abs(dPlane);
+  return Math.min(angTo(nx,ny,nz,a),angTo(nx,ny,nz,b));}
+const F_CANYON=[V(12,6),V(50,7)];          // 峡谷之海：贯穿北之大陆南北的海水峡谷
+const F_RIFT=[V(10,-63),V(19,-56)];         // 大裂谷：深两千米、迷雾弥漫
+const F_PIT=V(20,-13), F_DESERT=V(25,-5), F_SALT=V(4,-72), F_CRYSTAL=V(71,34), F_OASIS=V(27,-11), F_LAKE=V(-17,75);
+function features(nx,ny,nz,h,detail,coast,mMask){
+  const km=1/6371;
+  // 峡谷之海：宽约 25 km，深到海面下 150 m，两壁陡峭
+  let d=segDist(nx,ny,nz,F_CANYON[0],F_CANYON[1]);
+  if(d<40*km){const w=(12+6*fbm(nx*900,ny*900,nz*900,3))*km;const t=sm(w,w*.55,d);h=h*(1-t)+(-150-60*fbm(nx*3000,ny*3000,nz*3000,2))*t;}
+  // 大裂谷：宽约 18 km，比周围低 2000 m
+  d=segDist(nx,ny,nz,F_RIFT[0],F_RIFT[1]);
+  if(d<30*km){const w=(9+3*fbm(nx*1200,ny*1200,nz*1200,3))*km;const t=sm(w,w*.5,d);h-=t*(1900+150*fbm(nx*5000,ny*5000,nz*5000,2));}
+  // 印加巨坑：直径约 30 km 的巨坑，坑壁有阶梯
+  d=angTo(nx,ny,nz,F_PIT);
+  if(d<22*km){const r=d/(15*km);const steps=Math.floor(r*5)/5;const prof=sm(1.05,.75,r)*(1-.4*r)*(1-.15*(r-steps)*5);h-=prof*850;}
+  // 无尽荒漠：平坦，沙丘
+  d=angTo(nx,ny,nz,F_DESERT);
+  if(d<.17){const t=sm(.17,.1,d);const dune=detail<400?ridge(nx*60000,ny*60000+1,nz*60000,3)*28+fbm(nx*250000,ny*250000,nz*250000,2)*1.5:0;h=h*(1-t)+(Math.max(h,0)*.25+260+dune)*t;}
+  // 中转站·绿洲湖：荒漠里直径几十米的湖（做成浅洼地）
+  d=angTo(nx,ny,nz,F_OASIS);if(d<.0001){h-=sm(.0001,.00003,d)*(h+1-(-3));}
+  // 盐地·白色荒漠：干涸的咸水湖，极平
+  d=angTo(nx,ny,nz,F_SALT);
+  if(d<.075){const t=sm(.075,.045,d);h=h*(1-t)+(90+(detail<400?fbm(nx*300000,ny*300000,nz*300000,2)*.4:0))*t;}
+  // 结晶之山：从深海一直长出冰面的巨大结晶
+  d=angTo(nx,ny,nz,F_CRYSTAL);
+  if(d<.02){const t=sm(.02,.0,d);h+=t*t*2600*(1+.3*ridge(nx*8000,ny*8000,nz*8000,3));}
+  // 扭曲丛林、尖柱林、龙栖木之林：低地（把山脉带压下去）
+  for(const [c,rad,base,k] of [[V(33,11),.06,220,.12],[V(15,-1),.04,160,.3],[V(-4,-86),.05,120,.15]]){d=angTo(nx,ny,nz,c);if(d<rad){const t=sm(rad,rad*.45,d);if(h>0)h=h*(1-t)+(base+h*k)*t;}}
+  // 地眼之湖：沙漠中心的绿洲巨湖
+  d=angTo(nx,ny,nz,F_LAKE);if(d<.012){const t=sm(.012,.007,d);h=h*(1-t)+(-8)*t;}
+  return h;
+}
+function dryness(nx,ny,nz){return Math.max(sm(.16,.09,angTo(nx,ny,nz,F_DESERT)),sm(.07,.03,angTo(nx,ny,nz,F_SALT)),sm(.12,.06,angTo(nx,ny,nz,V(-17,75))));}
+function faceUV(d){const ax=Math.abs(d[0]),ay=Math.abs(d[1]),az=Math.abs(d[2]);let f,u,v;
+  if(ax>=ay&&ax>=az){if(d[0]>0){f=0;u=-d[2]/ax;v=d[1]/ax;}else{f=1;u=d[2]/ax;v=d[1]/ax;}}
+  else if(ay>=ax&&ay>=az){if(d[1]>0){f=2;u=d[0]/ay;v=-d[2]/ay;}else{f=3;u=d[0]/ay;v=d[2]/ay;}}
+  else{if(d[2]>0){f=4;u=d[0]/az;v=d[1]/az;}else{f=5;u=-d[0]/az;v=d[1]/az;}}
+  return [f,Math.atan(u)/(Math.PI/4),Math.atan(v)/(Math.PI/4)];}
+/* fixed landmarks: [lat, lon, kind, [[east m, north m, scale, lift m, yaw], ...]] */
+const LANDMARKS=[
+  [32,8.3,'hometree',[[0,0,1,0,0]]],                                   // 家园树：三百多米高的空心巨木
+  [40,6,'deadGiant',[[0,0,1,0,0],[260,-180,.9,0,1],[-320,120,1.1,0,2],[90,420,.85,0,.5]]],   // 冰河上的巨树
+  [-12,-78,'pyramid',Array.from({length:10},(_,i)=>[(i-4.5)*140,0,1,0,0])],          // 立蝎之城：十座一字排开的金字塔
+  [12,-88,'eggRock',Array.from({length:14},(_,i)=>[Math.cos(i*2.4)*(300+i*60),Math.sin(i*2.4)*(300+i*60),.7+(i%4)*.25,0,i])],  // 翡翠龙之城：巨蛋石
+  [34,10,'floatIsle',[[0,0,1,520,0],[700,300,.8,640,1],[-600,500,1.2,480,2],[300,-800,.9,700,.5],[-900,-400,.7,580,1.5],[1100,-200,1,450,2.5]]],   // 空中群岛
+  [13,12.2,'house',Array.from({length:24},(_,i)=>[(i%6-2.5)*60+((i/6|0)%2)*20,(i/6|0)*55-80,.8+(i%3)*.3,0,0])],  // 翡翠港
+  [-4,56,'tower',Array.from({length:12},(_,i)=>[Math.cos(i*.52)*(180+i*25),Math.sin(i*.52)*(180+i*25),.8+(i%3)*.4,0,i])],   // 银之城
+  [-14,63,'tower',Array.from({length:20},(_,i)=>[(i%5-2)*90,(i/5|0)*90-135,1+(i%4)*.35,0,0])],  // 创造之城
+  [71,34,'crystalPeak',[[0,0,1,0,0],[400,300,.6,0,1],[-500,200,.5,0,2]]]
+];
+function regionIdx(nx,ny,nz){let b=0,k=-1;REG.forEach((r,i)=>{const m=sm(r[3]*1.22,r[3]*.72,angTo(nx,ny,nz,r));if(m>b){b=m;k=i;}});return b>.5?k:-1;}
+function moisture(nx,ny,nz){return fbm(nx*7+11,ny*7,nz*7+5,3)*.5+.5;}
+`;
+const T=new Function(TERRAIN_SRC+';return {terrain,moisture,dryness,fbm,pn,angTo,V,regionIdx,LANDMARKS};')();
+
+/* ===== tile worker ===== */
+const WORKER_SRC=TERRAIN_SRC+`
+const SEG=${SEG},R=${R};
+function cubeDir(f,u,v){ // u,v in [-1,1], equal-angle mapping
+  const a=Math.tan(u*Math.PI/4),b=Math.tan(v*Math.PI/4);let x,y,z;
+  switch(f){case 0:x=1;y=b;z=-a;break;case 1:x=-1;y=b;z=a;break;case 2:x=a;y=1;z=-b;break;case 3:x=a;y=-1;z=b;break;case 4:x=a;y=b;z=1;break;default:x=-a;y=b;z=-1;}
+  const l=Math.sqrt(x*x+y*y+z*z);return [x/l,y/l,z/l];
+}
+onmessage=e=>{
+  const {id,f,u0,v0,size,level}=e.data;
+  const N=SEG+3;                       // +1 for closing, +2 ring for normals
+  const span=size*Math.PI/2*R/2;       // approx tile width in meters (size in cube units of 2)
+  const detail=span/SEG;
+  const P=new Float64Array(N*N*3),H=new Float64Array(N*N);
+  for(let j=0;j<N;j++)for(let i=0;i<N;i++){
+    const u=u0+(i-1)/SEG*size,v=v0+(j-1)/SEG*size;const d=cubeDir(f,u,v);
+    const h=terrain(d[0],d[1],d[2],detail);const r=R+Math.max(h,0);
+    const k=(j*N+i);P[k*3]=d[0]*r;P[k*3+1]=d[1]*r;P[k*3+2]=d[2]*r;H[k]=h;
+  }
+  // tile center (double) = center vertex
+  const cc=((SEG/2+1)*N+(SEG/2+1))*3;const cx=P[cc],cy=P[cc+1],cz=P[cc+2];
+  const M=SEG+1,VN=M*M+M*4;            // + skirt
+  const pos=new Float32Array(VN*3),nor=new Float32Array(VN*3),dir=new Float32Array(VN*3),hgt=new Float32Array(VN);
+  const gi=(i,j)=>((j+1)*N+(i+1));
+  let o=0;
+  const put=(i,j,drop)=>{const k=gi(i,j);let x=P[k*3],y=P[k*3+1],z=P[k*3+2];const l=Math.sqrt(x*x+y*y+z*z);
+    dir[o*3]=x/l;dir[o*3+1]=y/l;dir[o*3+2]=z/l;
+    if(drop){x-=x/l*drop;y-=y/l*drop;z-=z/l*drop;}
+    pos[o*3]=x-cx;pos[o*3+1]=y-cy;pos[o*3+2]=z-cz;hgt[o]=H[k];
+    // normal from neighbours
+    const a=gi(i+1,j),b=gi(i-1,j),c=gi(i,j+1),d=gi(i,j-1);
+    const ex=P[a*3]-P[b*3],ey=P[a*3+1]-P[b*3+1],ez=P[a*3+2]-P[b*3+2];const fx=P[c*3]-P[d*3],fy=P[c*3+1]-P[d*3+1],fz=P[c*3+2]-P[d*3+2];
+    let nx=ey*fz-ez*fy,ny=ez*fx-ex*fz,nz=ex*fy-ey*fx;const nl=Math.sqrt(nx*nx+ny*ny+nz*nz)||1;nx/=nl;ny/=nl;nz/=nl;
+    if(nx*x+ny*y+nz*z<0){nx=-nx;ny=-ny;nz=-nz;}
+    nor[o*3]=nx;nor[o*3+1]=ny;nor[o*3+2]=nz;o++;};
+  for(let j=0;j<M;j++)for(let i=0;i<M;i++)put(i,j,0);
+  const drop=span*.06+2;
+  for(let i=0;i<M;i++)put(i,0,drop);for(let i=0;i<M;i++)put(i,SEG,drop);for(let j=0;j<M;j++)put(0,j,drop);for(let j=0;j<M;j++)put(SEG,j,drop);
+  const idx=[];const vi=(i,j)=>j*M+i;
+  for(let j=0;j<SEG;j++)for(let i=0;i<SEG;i++){const a=vi(i,j),b=vi(i+1,j),c=vi(i,j+1),d=vi(i+1,j+1);idx.push(a,c,b,b,c,d);}
+  const s0=M*M,s1=s0+M,s2=s1+M,s3=s2+M;
+  for(let i=0;i<SEG;i++){idx.push(vi(i,0),vi(i+1,0),s0+i,s0+i,vi(i+1,0),s0+i+1);idx.push(vi(i+1,SEG),vi(i,SEG),s1+i,s1+i+1,vi(i+1,SEG),s1+i);}
+  for(let j=0;j<SEG;j++){idx.push(vi(0,j+1),vi(0,j),s2+j,s2+j+1,vi(0,j+1),s2+j);idx.push(vi(SEG,j),vi(SEG,j+1),s3+j,s3+j,vi(SEG,j+1),s3+j+1);}
+  idx.push(vi(0,0),s0,s2, vi(SEG,0),s3,s0+SEG, vi(0,SEG),s2+SEG,s1, vi(SEG,SEG),s1+SEG,s3+SEG);
+  const index=new Uint32Array(idx);
+  let minH=1e9,maxH=-1e9;for(let k=0;k<hgt.length;k++){if(hgt[k]<minH)minH=hgt[k];if(hgt[k]>maxH)maxH=hgt[k];}
+  /* horizon map: for 9x9 points, the highest terrain angle in 8 directions -> soft sun shadows + sky occlusion for any sun */
+  const G=7,HZ=new Float32Array(G*G*8);
+  {const dists=[];for(let k=0;k<7;k++)dists.push(Math.max(2*detail,4)*Math.pow(6000/Math.max(2*detail,4),k/6));
+   for(let j=0;j<G;j++)for(let i=0;i<G;i++){const u=u0+i/(G-1)*size,v=v0+j/(G-1)*size;const d=cubeDir(f,u,v);
+     const h0=Math.max(terrain(d[0],d[1],d[2],detail),0)+1.5;
+     const ex=-d[2],ez=d[0];const el=Math.hypot(ex,ez)||1;const E=[ex/el,0,ez/el];const Nn=[d[1]*E[2]-d[2]*E[1],d[2]*E[0]-d[0]*E[2],d[0]*E[1]-d[1]*E[0]];
+     for(let a=0;a<8;a++){const az=a*Math.PI/4,ca=Math.cos(az),sa=Math.sin(az);let best=0;
+       for(const sd of dists){const t=sd/R;let px=d[0]+(E[0]*ca+Nn[0]*sa)*t,py=d[1]+(E[1]*ca+Nn[1]*sa)*t,pz=d[2]+(E[2]*ca+Nn[2]*sa)*t;const l=Math.hypot(px,py,pz);px/=l;py/=l;pz/=l;
+         const hk=Math.max(terrain(px,py,pz,Math.max(sd/3,detail)),0);const ang=Math.atan2(hk-h0-sd*sd/(2*R),sd);if(ang>best)best=ang;}
+       HZ[(j*G+i)*8+a]=best;}}}
+  const hz0=new Float32Array(VN*4),hz1=new Float32Array(VN*4);
+  {let o=0;const fill=(i,j)=>{const gx=i/SEG*(G-1),gy=j/SEG*(G-1);const x0=Math.min(Math.floor(gx),G-2),y0=Math.min(Math.floor(gy),G-2);const fx=gx-x0,fy=gy-y0;
+     for(let a=0;a<8;a++){const q=(x,y)=>HZ[(y*G+x)*8+a];const v=(q(x0,y0)*(1-fx)+q(x0+1,y0)*fx)*(1-fy)+(q(x0,y0+1)*(1-fx)+q(x0+1,y0+1)*fx)*fy;if(a<4)hz0[o*4+a]=v;else hz1[o*4+a-4]=v;}o++;};
+   for(let j=0;j<M;j++)for(let i=0;i<M;i++)fill(i,j);
+   for(let i=0;i<M;i++)fill(i,0);for(let i=0;i<M;i++)fill(i,SEG);for(let j=0;j<M;j++)fill(0,j);for(let j=0;j<M;j++)fill(SEG,j);}
+  /* flora: scattered plants for mid-size tiles (level 14 ≈ 610 m) and giants for level 12 (≈ 2.4 km) */
+  let flora=null;
+  if(level===14||level===12||level===16){
+    let sd=id*7919+13;const rnd=()=>{sd=(sd*16807)%2147483647;return sd/2147483647;};
+    const lists={};const add=(k,x,y,z,ux,uy,uz,sc,yaw)=>{(lists[k]=lists[k]||[]).push(x-cx,y-cy,z-cz,ux,uy,uz,sc,yaw);};
+    const hAt=(i,j)=>{const x0=Math.min(Math.floor(i),SEG-1),y0=Math.min(Math.floor(j),SEG-1);const fx=i-x0,fy=j-y0;const q=(a,b)=>H[gi(a,b)];return (q(x0,y0)*(1-fx)+q(x0+1,y0)*fx)*(1-fy)+(q(x0,y0+1)*(1-fx)+q(x0+1,y0+1)*fx)*fy;};
+    const cc=cubeDir(f,u0+size/2,v0+size/2);
+    const zone={jungle:angTo(cc[0],cc[1],cc[2],V(33,11)),spires:angTo(cc[0],cc[1],cc[2],V(15,-1)),crystal:angTo(cc[0],cc[1],cc[2],V(10,-100)),heaven:angTo(cc[0],cc[1],cc[2],V(-10,88)),glow:angTo(cc[0],cc[1],cc[2],V(29,8)),longqi:angTo(cc[0],cc[1],cc[2],V(-4,-86)),xueqiu:angTo(cc[0],cc[1],cc[2],V(-22,81)),deathspike:angTo(cc[0],cc[1],cc[2],V(26,-6)),fungus:angTo(cc[0],cc[1],cc[2],V(30,-104)),tianguo:angTo(cc[0],cc[1],cc[2],V(-10,88)),moss:angTo(cc[0],cc[1],cc[2],V(-22,81))};
+    let region=-1,rb=0;REG.forEach((r,k)=>{const m=sm(r[3]*1.22,r[3]*.72,angTo(cc[0],cc[1],cc[2],r));if(m>rb){rb=m;region=k;}});
+    if(level===12){ // fixed landmarks that fall inside this tile
+      for(const L of LANDMARKS){const [la,lo,kind,items]=L;const p=V(la,lo);
+        // is the landmark centre inside this tile? (compare cube face uv)
+        const fu=faceUV(p);if(fu[0]!==f||fu[1]<u0||fu[1]>=u0+size||fu[2]<v0||fu[2]>=v0+size)continue;
+        const ex=-p[2],ez=p[0];const el=Math.hypot(ex,ez)||1;const E=[ex/el,0,ez/el];const Nn=[p[1]*E[2]-p[2]*E[1],p[2]*E[0]-p[0]*E[2],p[0]*E[1]-p[1]*E[0]];
+        for(const it of items){const [ox,oz,sc,lift,yaw]=it;let dx=p[0]+(E[0]*ox+Nn[0]*oz)/R,dy=p[1]+(E[1]*ox+Nn[1]*oz)/R,dz=p[2]+(E[2]*ox+Nn[2]*oz)/R;const l=Math.hypot(dx,dy,dz);dx/=l;dy/=l;dz/=l;
+          const h=Math.max(terrain(dx,dy,dz,2),0)+lift;const r=R+h;add(kind,dx*r,dy*r,dz*r,dx,dy,dz,sc,yaw||0);}}
+    }
+    const N=level===14?1400:level===16?3400:260;let trees=0;
+    for(let n=0;n<N;n++){
+      const i=rnd()*SEG,j=rnd()*SEG;const h=hAt(i,j);if(h<1.2)continue;
+      const u=u0+i/SEG*size,v=v0+j/SEG*size;const d=cubeDir(f,u,v);
+      const sl=Math.hypot(hAt(Math.min(i+1,SEG),j)-hAt(Math.max(i-1,0),j),hAt(i,Math.min(j+1,SEG))-hAt(i,Math.max(j-1,0)))/(2*detail);if(sl>1.1)continue;
+      const lat=Math.abs(d[1]);if(h>4300-3600*lat*lat)continue;
+      const moist=moisture(d[0],d[1],d[2]),dry=dryness(d[0],d[1],d[2]);
+      const r=R+h;const x=d[0]*r,y=d[1]*r,z=d[2]*r;const yaw=rnd()*6.283;
+      if(level===16){ // dense ground cover only
+        if(rnd()<.04&&h>1){add('rock',x,y,z,d[0],d[1],d[2],.3+rnd()*1.2,yaw);continue;}
+        if(dry>.4||h<2.5)continue;
+        if(moist>.25)add(rnd()<.92?'grass':'fern',x,y,z,d[0],d[1],d[2],.5+rnd()*.7,yaw);continue;}
+      if(level===12){
+        if(zone.spires<.026&&rnd()<.9){add('spire',x,y,z,d[0],d[1],d[2],.8+rnd()*1.4,yaw);continue;}
+        if(zone.jungle<.05&&rnd()<.08){add('platformTree',x,y,z,d[0],d[1],d[2],1+rnd()*.5,yaw);continue;}
+        if(zone.crystal<.026&&rnd()<.5){add('crystalTree',x,y,z,d[0],d[1],d[2],2+rnd()*2,yaw);continue;}
+        if(zone.tianguo<.04&&rnd()<.12){add('ancientTree',x,y,z,d[0],d[1],d[2],1+rnd()*.8,yaw);continue;}
+        continue;}
+      if(rnd()<.03&&h>1){add('rock',x,y,z,d[0],d[1],d[2],1+rnd()*3,yaw);continue;}
+      if(zone.deathspike<.02&&rnd()<.35){add('deathSpike',x,y,z,d[0],d[1],d[2],.8+rnd()*.8,yaw);continue;}
+      if(zone.fungus<.012&&rnd()<.5){add('mushroom',x,y,z,d[0],d[1],d[2],.6+rnd()*1.6,yaw);continue;}
+      if(dry>.4){if(rnd()<.06*(1-dry)+.01)add('fern',x,y,z,d[0],d[1],d[2],.7+rnd()*.8,yaw);continue;}
+      if(zone.xueqiu<.03&&rnd()<.25){add('bloodTree',x,y,z,d[0],d[1],d[2],.8+rnd()*.6,yaw);continue;}
+      if(h<3){if(rnd()<.3)add('grass',x,y,z,d[0],d[1],d[2],.6+rnd()*.6,yaw);continue;}
+      const forest=(zone.jungle<.05||zone.glow<.03)?.95:moist>.5?.75:moist>.35?.3:.05;
+      if(rnd()<forest&&trees<380&&sl<.8){trees++;
+        if(region===0||zone.jungle<.06)add('twistTree',x,y,z,d[0],d[1],d[2],.7+rnd()*.7,yaw);
+        else if(region===1)add(zone.longqi<.04?'longqi':'bigTree',x,y,z,d[0],d[1],d[2],.7+rnd()*.7,yaw);
+        else add(zone.heaven<.05?'bigTree':'twistTree',x,y,z,d[0],d[1],d[2],.6+rnd()*.7,yaw);
+      }else if(rnd()<.02&&region===1)add('spikeBall',x,y,z,d[0],d[1],d[2],.8+rnd()*.5,yaw);
+      else if(moist>.25&&rnd()<.5)add('grass',x,y,z,d[0],d[1],d[2],.9+rnd()*.9,yaw);
+      if(moist>.6&&rnd()<.3)add('fern',x,y,z,d[0],d[1],d[2],.5+rnd()*.5,yaw);
+    }
+    flora={};for(const k in lists)flora[k]=new Float32Array(lists[k]);
+  }
+  const tr=[pos.buffer,nor.buffer,dir.buffer,hgt.buffer,index.buffer,hz0.buffer,hz1.buffer];if(flora)for(const k in flora)tr.push(flora[k].buffer);
+  postMessage({id,cx,cy,cz,pos,nor,dir,hgt,index,minH,maxH,span,hz0,hz1,flora},tr);
+};`;
+const workerURL=URL.createObjectURL(new Blob([WORKER_SRC],{type:'text/javascript'}));
+const NW=Math.min(4,Math.max(2,(navigator.hardwareConcurrency||4)-1));
+const workers=[],pending=new Map();let busy=0;
+for(let i=0;i<NW;i++){const w=new Worker(workerURL);w.free=true;w.onmessage=e=>{w.free=false;busy--;const cb=pending.get(e.data.id);pending.delete(e.data.id);w.free=true;if(cb)cb(e.data);pump();};workers.push(w);}
+const queue=[];
+function pump(){queue.sort((a,b)=>a.prio-b.prio);for(const w of workers){if(!w.free||!queue.length)continue;const job=queue.shift();if(job.node.dead||frameNo-job.node.lastUse>90){job.node.state=0;continue;}w.free=false;busy++;pending.set(job.node.id,job.cb);w.postMessage(job.msg);}}
+
+/* ===== shaders ===== */
+const GLSL_COMMON=/* glsl */`
+#ifndef PI
+#define PI 3.14159265
+#endif
+uniform float uR,uSunI,uAtm,uTime,uCover;
+uniform vec3 uSun,uMoon,uCenter,uUp;uniform float uAlt,uMoonI;
+const float Hr=8500.,Hm=1200.;
+const vec3 betaR=vec3(5.8e-6,13.5e-6,33.1e-6);
+const float betaM=21e-6;
+float AR(){return uR+${ATM_H}.;}
+vec2 rsi(vec3 ro,vec3 rd,float r){float b=dot(ro,rd);float c=dot(ro,ro)-r*r;float d=b*b-c;if(d<0.)return vec2(1e9,-1e9);d=sqrt(d);return vec2(-b-d,-b+d);}
+/* stable version for the camera: c passed in, computed from altitude */
+vec2 rsiC(vec3 ro,vec3 rd,float c){float b=dot(ro,rd);float d=b*b-c;if(d<0.)return vec2(1e9,-1e9);d=sqrt(d);float q=(b<0.)?-(b-d):-(b+d);float t0=q,t1=c/q;return (t0<t1)?vec2(t0,t1):vec2(t1,t0);}
+float cPlanet(){return uAlt*(2.*uR+uAlt);}
+float cSphere(float r){float h=r-uR;return (uAlt-h)*(2.*uR+uAlt+h);}
+bool shadowed(vec3 p,float r,vec3 L){vec2 s=rsi(p,L,r);return s.y>0.&&s.x>0.;}
+vec2 odSun(vec3 p,vec3 L){vec2 li=rsi(p,L,AR());float dl=max(li.y,0.)/3.;float tl=dl*.5;vec2 od=vec2(0.);
+  for(int j=0;j<3;j++){vec3 q=p+L*tl;float hh=max(length(q)-uR,0.);od+=vec2(exp(-hh/Hr),exp(-hh/Hm))*dl;tl+=dl;}return od;}
+vec3 sunTrans(vec3 p,vec3 L){if(shadowed(p,uR*.9995,L))return vec3(0.);vec2 od=odSun(p,L);return exp(-(betaR*od.x+betaM*1.1*od.y)*uAtm);}
+void scatterL(vec3 ro,vec3 rd,float len,int steps,vec3 L,float I,out vec3 ins,out vec3 tr){
+  float ds=len/float(steps);float t=ds*.5;vec3 sumR=vec3(0.),sumM=vec3(0.);float odR=0.,odM=0.;
+  for(int i=0;i<24;i++){if(i>=steps)break;
+    vec3 p=ro+rd*t;float h=max(length(p)-uR,0.);float hr=exp(-h/Hr)*ds,hm=exp(-h/Hm)*ds;odR+=hr;odM+=hm;
+    if(!shadowed(p,uR*.999,L)){vec2 odl=odSun(p,L);vec3 tau=(betaR*(odR+odl.x)+betaM*1.1*(odM+odl.y))*uAtm;vec3 att=exp(-tau);sumR+=att*hr;sumM+=att*hm;}
+    t+=ds;}
+  float mu=dot(rd,L);float phR=3./(16.*PI)*(1.+mu*mu);float g=.76;
+  float phM=3./(8.*PI)*((1.-g*g)*(1.+mu*mu))/((2.+g*g)*pow(1.+g*g-2.*g*mu,1.5));
+  ins=(sumR*betaR*phR+sumM*betaM*phM)*uAtm*I*5.;tr=exp(-(betaR*odR+betaM*1.1*odM)*uAtm);
+}
+void scatter(vec3 ro,vec3 rd,float len,int steps,out vec3 ins,out vec3 tr){scatterL(ro,rd,len,steps,uSun,uSunI,ins,tr);}
+/* camera (at origin, planet-relative ro = uUp*(uR+uAlt)) to a point at planet-relative position pe */
+void aerial(vec3 pe,int steps,out vec3 ins,out vec3 tr){
+  vec3 ro=uUp*(uR+uAlt);vec3 d=pe-ro;float len=length(d);vec3 rd=d/len;
+  vec2 a=rsiC(ro,rd,cSphere(AR()));float t0=max(a.x,0.);if(a.y<0.||t0>=len){ins=vec3(0.);tr=vec3(1.);return;}
+  scatter(ro+rd*t0,rd,len-t0,steps,ins,tr);
+}
+/* periodic gradient noise for surface detail (meters) */
+vec3 hashv(vec3 p){p=mod(p,256.);p=fract(p*vec3(.1031,.1030,.0973)+vec3(.17,.31,.53));p+=dot(p,p.yxz+33.33);return normalize(fract((p.xxy+p.yxx)*p.zyx)*2.-1.);}
+float gn(vec3 p){vec3 i=floor(p),f=fract(p);vec3 u=f*f*(3.-2.*f);
+  return mix(mix(mix(dot(hashv(i),f),dot(hashv(i+vec3(1,0,0)),f-vec3(1,0,0)),u.x),mix(dot(hashv(i+vec3(0,1,0)),f-vec3(0,1,0)),dot(hashv(i+vec3(1,1,0)),f-vec3(1,1,0)),u.x),u.y),
+             mix(mix(dot(hashv(i+vec3(0,0,1)),f-vec3(0,0,1)),dot(hashv(i+vec3(1,0,1)),f-vec3(1,0,1)),u.x),mix(dot(hashv(i+vec3(0,1,1)),f-vec3(0,1,1)),dot(hashv(i+vec3(1,1,1)),f-vec3(1,1,1)),u.x),u.y),u.z);}
+float gfbm(vec3 p){float a=.5,s=0.;for(int i=0;i<3;i++){s+=a*gn(p);p=p*2.02+vec3(5.1,1.7,9.3);a*=.5;}return s;}
+float cloudCov(vec3 n){float c=gfbm(n*3.1*7.+vec3(uTime*.003,0.,uTime*.002))*.5+.5;c+=.2*gn(n*9.*7.+vec3(uTime*.005));return smoothstep(1.-uCover,1.-uCover+.4,c);}
+`;
+
+/* ===== shadow maps around the viewer: a sharp near cascade and a wide far cascade (sun-space orthographic depth) ===== */
+const SHS=2048;
+const mkSRT=()=>new THREE.WebGLRenderTarget(SHS,SHS,{minFilter:THREE.NearestFilter,magFilter:THREE.NearestFilter});
+const shadowRT0=mkSRT(),shadowRT1=mkSRT();
+const shadowCam0=new THREE.OrthographicCamera(-60,60,60,-60,1,1600),shadowCam1=new THREE.OrthographicCamera(-520,520,520,-520,1,1600);
+shadowCam0.layers.set(0);shadowCam1.layers.set(0);
+const SHADOW_GLSL=/* glsl */`
+uniform sampler2D uShadowMap0,uShadowMap1;uniform mat4 uShadowVP0,uShadowVP1;uniform float uShadowOn,uShadowFar;
+#include <packing>
+const vec2 PD[12]=vec2[12](vec2(-.326,-.406),vec2(-.840,-.074),vec2(-.696,.457),vec2(-.203,.621),vec2(.962,-.195),vec2(.473,-.480),vec2(.519,.767),vec2(.185,-.893),vec2(.507,.064),vec2(.896,.412),vec2(-.322,-.933),vec2(-.792,-.598));
+float pcf(sampler2D m,vec3 q,float bias){float s=0.;float a=fract(sin(dot(gl_FragCoord.xy,vec2(12.9898,78.233)))*43758.55)*6.283;mat2 rot=mat2(cos(a),sin(a),-sin(a),cos(a));vec2 ts=vec2(1.7/${SHS}.);
+  for(int i=0;i<12;i++){float d=unpackRGBAToDepth(texture2D(m,q.xy+rot*PD[i]*ts));s+=step(q.z-bias,d);}
+  return s/12.;}
+uniform float uMist;
+/* bump a normal by a height that is only known per pixel (texture brightness), using screen-space derivatives */
+vec3 dbump(vec3 N,vec3 P,float h,float k){vec3 dpx=dFdx(P),dpy=dFdy(P);float dhx=dFdx(h)*k,dhy=dFdy(h)*k;vec3 r1=cross(dpy,N),r2=cross(N,dpx);float det=dot(dpx,r1);
+  if(abs(det)<1e-9)return N;vec3 g=sign(det)*(dhx*r1+dhy*r2);return normalize(abs(det)*N-g);}
+vec3 mist(vec3 col,float dist,vec3 skyAmb,vec3 sunC){float f=(1.-exp(-dist*.00045*uMist))*.85;return mix(col,skyAmb*2.4+sunC*.12,f);}
+float shadowAt(vec3 p,vec3 N){if(uShadowOn<.5)return 1.;
+  vec4 a=uShadowVP0*vec4(p+N*.06,1.);vec3 q=a.xyz/a.w*.5+.5;float e0=max(abs(q.x-.5),abs(q.y-.5));
+  float s0=1.,w0=0.;
+  if(e0<.47&&q.z<1.){s0=pcf(uShadowMap0,q,.00008);w0=smoothstep(.47,.40,e0);}
+  if(w0>=1.)return s0;
+  float s1=1.;
+  if(uShadowFar>.5){vec4 b=uShadowVP1*vec4(p+N*.45,1.);vec3 r=b.xyz/b.w*.5+.5;float e1=max(abs(r.x-.5),abs(r.y-.5));
+    if(e1<.5&&r.z<1.)s1=mix(pcf(uShadowMap1,r,.0003),1.,smoothstep(.42,.5,e1));}
+  return mix(s1,s0,w0);}`;
+
+const terrainVert=/* glsl */`
+attribute vec3 dir;attribute float hgt;attribute vec4 hz0,hz1;
+uniform vec3 uTileModA,uTileModB;
+varying vec3 vPos,vN,vDir,vDet,vDetB,vSunT,vIns,vTr;varying float vH,vCs,vMoist,vV2,vGl;varying vec4 vHz0,vHz1;
+#include <common>
+${GLSL_COMMON}
+#include <logdepthbuf_pars_vertex>
+void main(){
+  vec4 wp=modelMatrix*vec4(position,1.);
+  vPos=wp.xyz;vN=normal;vDir=dir;vH=hgt;vDet=uTileModA+position;vDetB=uTileModB+position;vHz0=hz0;vHz1=hz1;
+  vec3 n=normalize(dir);vec3 pr=wp.xyz-uCenter;
+  vSunT=sunTrans(pr,uSun);
+  vec3 ins,tr;aerial(pr,8,ins,tr);vIns=ins;vTr=tr;
+  vCs=cloudCov(normalize(n+uSun*.004));
+  float moist=gfbm(n*49.+vec3(11.,0.,5.))*.5+.5;
+  {// 无尽荒漠 (25,-5) · 盐地 (4,-72) · 东之大陆沙漠 (-17,75)
+   vec3 c0=vec3(cos(radians(25.))*cos(radians(-5.)),sin(radians(25.)),-cos(radians(25.))*sin(radians(-5.)));
+   vec3 c1=vec3(cos(radians(4.))*cos(radians(-72.)),sin(radians(4.)),-cos(radians(4.))*sin(radians(-72.)));
+   vec3 c2=vec3(cos(radians(-17.))*cos(radians(75.)),sin(radians(-17.)),-cos(radians(-17.))*sin(radians(75.)));
+   float dry=max(max(smoothstep(.16,.09,acos(clamp(dot(n,c0),-1.,1.))),smoothstep(.07,.03,acos(clamp(dot(n,c1),-1.,1.)))),smoothstep(.12,.06,acos(clamp(dot(n,c2),-1.,1.))));
+   moist=mix(moist,.05,dry*.9);}
+  vMoist=moist;vV2=gfbm(vDetB/1024.);vGl=gn(vDetB/512.);
+  gl_Position=projectionMatrix*viewMatrix*wp;
+  #include <logdepthbuf_vertex>
+}`;
+const terrainFrag=/* glsl */`
+precision highp float;
+uniform int uDbg;uniform sampler2D tGrass,tRock,tSand;
+varying vec3 vPos,vN,vDir,vDet,vDetB,vSunT,vIns,vTr;varying float vH,vCs,vMoist,vV2,vGl;varying vec4 vHz0,vHz1;
+${GLSL_COMMON}
+${SHADOW_GLSL}
+vec3 tri(sampler2D t,vec3 p,vec3 n,float sc){vec3 w=abs(n);w=w*w;w/=(w.x+w.y+w.z);return texture2D(t,p.yz*sc).rgb*w.x+texture2D(t,p.xz*sc).rgb*w.y+texture2D(t,p.xy*sc).rgb*w.z;}
+float hzAt(float k){k=mod(k,8.);int i=int(floor(k));float f=fract(k);float a[8];a[0]=vHz0.x;a[1]=vHz0.y;a[2]=vHz0.z;a[3]=vHz0.w;a[4]=vHz1.x;a[5]=vHz1.y;a[6]=vHz1.z;a[7]=vHz1.w;
+  float v0=0.,v1=0.;for(int q=0;q<8;q++){if(q==i)v0=a[q];if(q==(i+1)%8)v1=a[q];}return mix(v0,v1,f);}
+/* terrain shadow (0 = in shadow) for light L, and sky visibility, from the precomputed horizon angles */
+void horizon(vec3 n,vec3 L,out float shadow,out float skyVis){
+  vec3 E=normalize(vec3(-n.z,0.,n.x));vec3 Nn=cross(n,E);
+  float az=atan(dot(L,Nn),dot(L,E));float el=asin(clamp(dot(L,n),-1.,1.));
+  float hz=hzAt(az/(PI*.25));
+  shadow=smoothstep(hz-.015,hz+.05,el);
+  float m=(vHz0.x+vHz0.y+vHz0.z+vHz0.w+vHz1.x+vHz1.y+vHz1.z+vHz1.w)*.125;
+  skyVis=1.-clamp(m/1.3,0.,.7);
+}
+#include <logdepthbuf_pars_fragment>
+vec3 bump(vec3 q,vec3 n,float f,float k){float e=.3/f;float a=gn(q*f),bx=gn((q+vec3(e,0.,0.))*f),by=gn((q+vec3(0.,e,0.))*f),bz=gn((q+vec3(0.,0.,e))*f);
+  vec3 g=vec3(bx-a,by-a,bz-a)/e;g-=n*dot(g,n);return normalize(n-g*k);}
+void main(){
+  #include <logdepthbuf_fragment>
+  vec3 n=normalize(vDir);vec3 V=normalize(-vPos);float dist=length(vPos);
+  float sunEl=dot(n,uSun);
+  vec3 skyAmb=(vec3(.18,.3,.55)*smoothstep(-.1,.35,sunEl)+vec3(.5,.3,.15)*smoothstep(.1,-.05,sunEl)*smoothstep(-.25,.0,sunEl))*uSunI*.11;
+  float shd,skyV;horizon(n,uSun,shd,skyV);
+  float shm,skyM;horizon(n,uMoon,shm,skyM);
+  vec3 Ng=normalize(vN);
+  float smap=shadowAt(vPos,Ng);
+  float lightIsSun=step(-.03,dot(uUp,uSun));
+  vec3 sunL=vSunT*uSunI*(1.-.5*vCs)*shd*mix(1.,smap,lightIsSun);skyAmb*=skyV;
+  float moonVis=shm*mix(smap,1.,lightIsSun)*(1.-.6*vCs);
+  float night=smoothstep(.1,-.08,sunEl);
+  vec3 col;
+  float df=smoothstep(4000.,150.,dist),df2=smoothstep(60000.,2000.,dist);
+  if(vH<=0.){
+    float depth=-vH;
+    vec3 N=n;
+    if(df2>.001)N=bump(vDet+vec3(uTime*.6,0.,uTime*.4),N,1./16.,.5*df2);
+    if(df>.001){N=bump(vDet-vec3(0.,uTime*.3,uTime*.2),N,1./4.,.25*df);N=bump(vDet+vec3(uTime*.9,uTime*.2,0.),N,1.,.12*df);}
+    vec3 deep=vec3(.008,.045,.1),shal=vec3(.03,.3,.34);
+    vec3 wc=mix(shal,deep,1.-exp(-depth/35.));
+    float ndl=max(dot(N,uSun),0.);
+    vec3 H=normalize(V+uSun);float ndh=max(dot(N,H),0.);
+    float a=.1,a2=a*a;float dd=ndh*ndh*(a2-1.)+1.;float spec=a2/(PI*dd*dd)*.25;
+    float F=.02+.98*pow(1.-max(dot(N,V),0.),5.);
+    col=wc*(sunL*(ndl*.9+.1)+skyAmb)*(1.-F)+skyAmb*F*1.5+sunL*spec*F*1.2;
+    {vec3 Hm=normalize(V+uMoon);float ndhm=max(dot(N,Hm),0.);float ddm=ndhm*ndhm*(a2-1.)+1.;float specm=a2/(PI*ddm*ddm)*.25;float mv=smoothstep(-.05,.15,dot(n,uMoon))*moonVis;
+     col+=vec3(.7,.8,1.)*uMoonI*mv*(wc*max(dot(N,uMoon),0.)*.5+specm*F*1.2+.2*F);}
+    float foam=smoothstep(6.,0.,depth)*smoothstep(.0,.5,gn(vDet/8.+uTime*.15))*.6;
+    col=mix(col,vec3(.75,.8,.82)*(sunL*ndl+skyAmb),foam);
+    float ice=smoothstep(.93,.96,abs(n.y)+.03*gfbm(n*280.))*(n.y>0.?1.:.4);   // 冰封极海
+    col=mix(col,vec3(.8,.86,.92)*(sunL*max(dot(n,uSun),0.)*.9+skyAmb)*(.85+.15*gn(vDetB/256.)),ice);
+    col+=vec3(.5,.6,.8)*.004*night;
+  }else{
+    vec3 N=Ng;
+    float slope=1.-dot(N,n);
+    if(df>.001){N=bump(vDet,N,1./8.,.4*df);N=bump(vDet,N,1.,.15*df);}
+    float lat=abs(n.y);
+    float moist=vMoist;
+    float v2=vV2;float v3=gfbm(vDetB/64.);
+    vec3 sand=vec3(.7,.64,.45),grass=vec3(.17,.33,.09),forest=vec3(.045,.15,.065),dry=vec3(.47,.4,.21),rock=vec3(.27,.24,.21),snow=vec3(.88,.9,.94);
+    vec3 veg=mix(grass,forest,smoothstep(.35,.7,moist+v3*.15));
+    veg=mix(veg,dry,smoothstep(.55,.25,moist+lat*.5));
+    veg*=.85+.3*v3;
+    float sandM=1.-smoothstep(.8,4.,vH+v3*1.5);
+    col=mix(veg,sand,sandM);
+    float rk=smoothstep(.3,.55,slope+v2*.1);
+    col=mix(col,rock*(.8+.4*v2)*(.9+.2*v3),rk);
+    if(df2>.001){ // close-up surface detail: triplanar grass / rock / sand maps at two scales
+      vec3 tg=tri(tGrass,vDet,n,.5)*.5+tri(tGrass,vDet,n,2.)*.5;
+      vec3 tr_=tri(tRock,vDet,n,.25)*.5+tri(tRock,vDet,n,2.)*.5;
+      vec3 tsd=tri(tSand,vDet,n,1.);
+      vec3 det=mix(mix(tg,tr_,rk),tsd,sandM);
+      col*=mix(vec3(1.),det*1.5+.25,df2*.9);
+      N=dbump(N,vPos,dot(det,vec3(.333)),.06*df2);
+    }
+    float snowLine=4300.-3600.*lat*lat+600.*v2;
+    col=mix(col,snow,smoothstep(snowLine,snowLine+500.,vH)*smoothstep(.75,.4,slope));
+    float ndl=max(dot(N,uSun),0.);
+    float ao=.8+.2*smoothstep(0.,300.,vH);
+    vec3 moonL=vec3(.6,.7,1.)*uMoonI*max(dot(N,uMoon),0.)*smoothstep(-.05,.15,dot(n,uMoon))*moonVis;
+    col=col*(sunL*ndl+moonL+skyAmb*ao*(.6+.4*dot(N,n))+vec3(.5,.6,.9)*uMoonI*.25*smoothstep(-.05,.2,dot(n,uMoon))*skyV);
+    float glow=smoothstep(.55,.85,vGl)*smoothstep(.4,.7,moist)*smoothstep(10.,60.,vH)*smoothstep(.45,.2,slope);
+    col+=vec3(.08,.55,.6)*glow*night*2.5;
+    col+=vec3(.5,.6,.8)*.006*night*(.6+.4*dot(N,n));
+  }
+  if(uDbg==1){gl_FragColor=vec4(col,1.);return;}
+  col=mist(col,dist,skyAmb,vSunT*uSunI);
+  col=col*vTr+vIns;
+  gl_FragColor=vec4(col,1.);
+}`;
+
+const sphereVert=/* glsl */`varying vec3 vW;
+#include <common>
+#include <logdepthbuf_pars_vertex>
+void main(){vec4 wp=modelMatrix*vec4(position,1.);vW=wp.xyz;gl_Position=projectionMatrix*viewMatrix*wp;
+#include <logdepthbuf_vertex>
+}`;
+const skyFrag=/* glsl */`
+precision highp float;
+varying vec3 vW;
+${GLSL_COMMON}
+#include <logdepthbuf_pars_fragment>
+void main(){
+  #include <logdepthbuf_fragment>
+  vec3 rd=normalize(vW);vec3 ro=uUp*(uR+uAlt);
+  vec2 a=rsiC(ro,rd,cSphere(AR()));if(a.y<0.)discard;
+  float t0=max(a.x,0.),t1=a.y;
+  vec2 p=rsiC(ro,rd,cPlanet());bool hit=p.x>0.;if(hit)t1=min(t1,p.x);
+  if(t1<=t0)discard;
+  vec3 ins,tr;scatter(ro+rd*t0,rd,t1-t0,16,ins,tr);
+  if(uMoonI>.001){vec3 mi,mt;scatterL(ro+rd*t0,rd,t1-t0,6,uMoon,uMoonI*6.,mi,mt);ins+=mi;}
+  float mu=dot(rd,uSun);
+  vec3 sun=vec3(1.,.96,.9)*uSunI*smoothstep(.99965,.99995,mu)*tr*(hit?0.:1.);
+  float mm=dot(rd,uMoon);vec3 moon=vec3(.95,.95,.9)*uMoonI*55.*smoothstep(.99988,.99993,mm)*tr*(hit?0.:1.);
+  if(mm>.9998){vec3 t=normalize(rd-uMoon*mm);float lit=clamp(dot(normalize(uSun-uMoon*dot(uSun,uMoon)),t)*.5+.5+dot(uSun,uMoon)*.6,0.,1.);moon*=.15+.85*lit;}
+  gl_FragColor=vec4(ins+sun+moon,1.);
+}`;
+/* full-screen composite: low-res sky+clouds, plus sharp procedural stars dimmed by cloud cover */
+const compVert=`varying vec2 vUv;void main(){vUv=position.xy*.5+.5;gl_Position=vec4(position.xy,1.,1.);}`;
+const compFrag=`precision highp float;uniform sampler2D tSky;uniform mat4 uInvVP;uniform float uStars,uPix,uTime;varying vec2 vUv;
+vec3 h3(vec3 p){p=fract(p*vec3(.1031,.1030,.0973));p+=dot(p,p.yxz+33.33);return fract((p.xxy+p.yzz)*p.zyx);}
+void main(){vec4 s=texture2D(tSky,vUv);vec3 col=s.rgb;
+  if(uStars>.002){vec4 w=uInvVP*vec4(vUv*2.-1.,-1.,1.);vec3 d=normalize(w.xyz/w.w);vec3 a=abs(d);vec2 uv;float face;
+    if(a.x>=a.y&&a.x>=a.z){uv=d.yz/a.x;face=d.x>0.?0.:1.;}else if(a.y>=a.z){uv=d.xz/a.y;face=d.y>0.?2.:3.;}else{uv=d.xy/a.z;face=d.z>0.?4.:5.;}
+    vec2 g=(uv*.5+.5)*300.;vec2 c=floor(g);vec3 h=h3(vec3(c,face*17.1));
+    if(h.x>.982){vec2 sp=c+.3+.4*h.yz;float px=uPix*300./(2.*max(max(a.x,a.y),a.z));float r=length(g-sp)/max(px,1e-4);
+      float b=(.25+pow(h.y,6.)*3.)*(.8+.2*sin(uTime*2.3+h.z*40.));col+=b*exp(-r*r*.9)*vec3(.85+.3*h.z,.92,1.15-.3*h.z)*uStars*s.a*exp(-dot(col,vec3(.3,.6,.1))*60.);}}
+  gl_FragColor=vec4(col,1.);}`;
+const cloudFrag=/* glsl */`
+precision highp float;
+varying vec3 vW;uniform int uSteps;
+${GLSL_COMMON}
+float dens(vec3 p){
+  float r=length(p);float hgt=(r-${CLD0}.)/(${CLD1}.-${CLD0}.);
+  if(hgt<0.||hgt>1.)return 0.;
+  vec3 n=p/r;
+  float cov=cloudCov(n);if(cov<=0.)return 0.;
+  float sh1=gfbm(p/9000.+vec3(uTime*.02))*.5+.5;
+  float sh2=gfbm(p/1500.-vec3(0.,uTime*.03,0.))*.5+.5;
+  float prof=smoothstep(0.,.2,hgt)*smoothstep(1.,.45,hgt);
+  float d=cov*prof*1.1-(1.-sh1)*.4-(1.-sh2)*.2;
+  return max(d,0.)*2.5;
+}
+void main(){
+  vec3 rd=normalize(vW);vec3 ro=uUp*(uR+uAlt);
+  float Rin=${CLD0}.,Rout=${CLD1}.;
+  vec2 o=rsiC(ro,rd,cSphere(Rout));if(o.y<0.)discard;
+  float t0=max(o.x,0.),t1=o.y;
+  vec2 i=rsiC(ro,rd,cSphere(Rin));
+  if(i.x>0.){t1=min(t1,i.x);}else if(i.y>0.){t0=max(t0,i.y);}
+  if(t1<=t0)discard;
+  float len=t1-t0;float maxLen=(Rout-Rin)*8.;
+  if(len>maxLen){if(i.x>0.||uAlt<Rin-uR)t0=t1-maxLen;else t1=t0+maxLen;len=maxLen;}
+  int steps=uSteps;float ds=len/float(steps);
+  float jitter=fract(sin(dot(gl_FragCoord.xy,vec2(12.9898,78.233)))*43758.5453);
+  float t=t0+ds*jitter;
+  float sig=1.8/(Rout-Rin);
+  vec3 col=vec3(0.);float Tr=1.;
+  vec3 pm=ro+rd*(t0+len*.5);
+  vec3 nmid=normalize(pm);float el=dot(nmid,uSun);
+  vec3 sunC=sunTrans(pm,uSun)*uSunI+vec3(.7,.8,1.)*uMoonI*max(dot(nmid,uMoon)+.1,0.);
+  vec3 amb=(vec3(.2,.32,.55)*smoothstep(-.12,.3,el)+vec3(.45,.25,.12)*smoothstep(.12,-.05,el)*smoothstep(-.3,.0,el))*uSunI*.07+vec3(.003,.004,.008);
+  float mu=dot(rd,uSun);float g=.55;float ph=(1.-g*g)/(4.*PI*pow(1.+g*g-2.*g*mu,1.5));ph=mix(ph,1./(4.*PI),.45)*4.*PI;
+  for(int k=0;k<48;k++){if(k>=steps||Tr<.02)break;
+    vec3 p=ro+rd*t;float d=dens(p);
+    if(d>0.){float ls=(Rout-Rin)*.33;float od=0.;
+      for(int j=1;j<=3;j++){od+=dens(p+uSun*ls*float(j))*ls;}
+      float lt=exp(-od*sig)*(1.-exp(-od*sig*2.5-.1));
+      vec3 s=sunC*lt*ph*.9+amb*(1.-exp(-d*.8));
+      float a=1.-exp(-d*sig*ds);col+=Tr*a*s;Tr*=1.-a;}
+    t+=ds;}
+  float alpha=1.-Tr;if(alpha<.003)discard;
+  vec3 ins,tr;aerial(ro+rd*(t0+len*.4),4,ins,tr);
+  col=col*tr+ins*alpha;
+  gl_FragColor=vec4(col,alpha);
+}`;
+
+/* ===== procedural textures (drawn on canvases at start-up, nothing is downloaded) ===== */
+let tseed=5;const trnd=()=>{tseed=(tseed*16807)%2147483647;return tseed/2147483647;};
+function makeTex(size,paint,opts={}){const c=document.createElement('canvas');c.width=c.height=size;const x=c.getContext('2d');paint(x,size);const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=8;if(opts.nomip){t.generateMipmaps=true;}return t;}
+function grain(x,n,w,h,a){for(let i=0;i<n;i++){const v=Math.floor(trnd()*255);x.fillStyle=`rgba(${v},${v},${v},${a})`;x.fillRect(trnd()*w,trnd()*h,1+trnd()*3,1+trnd()*3);}}
+/* plant atlas 1024²: leaves (0,0) · grass (.5,0) · bark (0,.5) · frond (.5,.5) — each quadrant is 512 px */
+const atlas=makeTex(2048,(x,S)=>{x.scale(2,2);
+  // leaves
+  for(let i=0;i<1100;i++){const ra=Math.sqrt(trnd())*218,aa=trnd()*6.283;const px=256+Math.cos(aa)*ra*(1+.12*Math.sin(aa*5)),py=256+Math.sin(aa)*ra*(1+.12*Math.cos(aa*4));const r=(6+trnd()*13)*(1-ra/420),a=trnd()*6.28;const shade=1-ra/600;const g=(70+trnd()*90)*shade,rr=(20+trnd()*40)*shade;
+    x.save();x.translate(px,py);x.rotate(a);x.fillStyle=`rgb(${rr},${g},${30+trnd()*30})`;x.beginPath();x.ellipse(0,0,r,r*.45,0,0,6.28);x.fill();
+    x.strokeStyle=`rgba(20,50,15,.5)`;x.lineWidth=.6;x.beginPath();x.moveTo(-r,0);x.lineTo(r,0);x.stroke();x.fillStyle='rgba(220,255,170,.18)';x.beginPath();x.ellipse(-r*.2,-r*.12,r*.5,r*.14,0,0,6.28);x.fill();x.restore();}
+  // grass blades
+  for(let i=0;i<140;i++){const bx=512+trnd()*512,w=4+trnd()*6,h=160+trnd()*330,lean=(trnd()-.5)*120;const g=90+trnd()*90;
+    x.fillStyle=`rgb(${35+trnd()*40},${g},${25+trnd()*25})`;x.beginPath();x.moveTo(bx-w,512);x.quadraticCurveTo(bx+lean*.3,512-h*.6,bx+lean,512-h);x.quadraticCurveTo(bx+lean*.3,512-h*.6,bx+w,512);x.fill();}
+  for(let i=0;i<34;i++){const bx=530+trnd()*480,by=60+trnd()*260,r=3+trnd()*4.5;const pal=[[245,240,225],[250,215,90],[185,140,230],[240,150,180]][Math.floor(trnd()*4)];
+    for(let k=0;k<5;k++){x.fillStyle=`rgb(${pal[0]},${pal[1]},${pal[2]})`;x.beginPath();x.ellipse(bx+Math.cos(k*1.256)*r*.8,by+Math.sin(k*1.256)*r*.8,r*.6,r*.4,k*1.256,0,6.28);x.fill();}x.fillStyle='rgb(240,200,60)';x.beginPath();x.arc(bx,by,r*.35,0,6.28);x.fill();}
+  // bark
+  x.fillStyle='#4a3b2c';x.fillRect(0,512,512,512);
+  for(let i=0;i<900;i++){const v=40+trnd()*60;x.fillStyle=`rgba(${v},${v*.8},${v*.6},${.5+trnd()*.5})`;const bx=trnd()*512,by=512+trnd()*512;x.fillRect(bx,by,1+trnd()*4,10+trnd()*90);}
+  for(let i=0;i<300;i++){const v=90+trnd()*70;x.fillStyle=`rgba(${v},${v*.85},${v*.65},.6)`;x.fillRect(trnd()*512,512+trnd()*512,1+trnd()*2,6+trnd()*40);}
+  // fronds
+  for(let i=0;i<9;i++){const cx=512+56+i*48,top=512+40;x.strokeStyle='#4f6a22';x.lineWidth=5;x.beginPath();x.moveTo(cx,1024);x.lineTo(cx+10,top);x.stroke();
+    for(let k=0;k<26;k++){const t=k/26,y=1024-t*(1024-top);const L=(1-t*.85)*34+6;x.fillStyle=`rgb(${60+trnd()*30},${120+trnd()*60},${30+trnd()*20})`;
+      for(const sgn of [1,-1]){x.beginPath();x.moveTo(cx+t*10,y);x.quadraticCurveTo(cx+t*10+sgn*L*.6,y-8,cx+t*10+sgn*L,y-2);x.quadraticCurveTo(cx+t*10+sgn*L*.6,y+6,cx+t*10,y+3);x.fill();}}}
+});
+const gTex=(kind)=>makeTex(1024,(x,S)=>{x.scale(2,2);S=512;x.fillStyle='#808080';x.fillRect(0,0,S,S);
+  if(kind==='grass'){grain(x,9000,S,S,.35);for(let i=0;i<2600;i++){const v=100+trnd()*120;x.strokeStyle=`rgba(${v},${v},${v},.7)`;x.lineWidth=1+trnd();const bx=trnd()*S,by=trnd()*S;x.beginPath();x.moveTo(bx,by);x.lineTo(bx+(trnd()-.5)*8,by-6-trnd()*14);x.stroke();}}
+  if(kind==='rock'){grain(x,12000,S,S,.4);x.strokeStyle='rgba(40,40,40,.8)';for(let i=0;i<70;i++){x.lineWidth=1+trnd()*2;let px=trnd()*S,py=trnd()*S;x.beginPath();x.moveTo(px,py);for(let k=0;k<8;k++){px+=(trnd()-.5)*60;py+=(trnd()-.5)*60;x.lineTo(px,py);}x.stroke();}
+    for(let i=0;i<300;i++){const v=110+trnd()*90;x.fillStyle=`rgba(${v},${v},${v},.5)`;x.beginPath();x.ellipse(trnd()*S,trnd()*S,4+trnd()*20,3+trnd()*12,trnd()*3,0,6.28);x.fill();}}
+  if(kind==='sand'){grain(x,6000,S,S,.25);for(let y=0;y<S;y+=7){x.strokeStyle='rgba(60,60,60,.35)';x.lineWidth=2;x.beginPath();for(let xx=0;xx<=S;xx+=8){x.lineTo(xx,y+Math.sin(xx*.05+y*.3)*3);}x.stroke();x.strokeStyle='rgba(200,200,200,.3)';x.beginPath();for(let xx=0;xx<=S;xx+=8){x.lineTo(xx,y+3+Math.sin(xx*.05+y*.3)*3);}x.stroke();}}
+});
+const texGrass=gTex('grass'),texRock=gTex('rock'),texSand=gTex('sand');
+
+/* ===== renderer / scene ===== */
+const canvas=$('#c');
+let renderer;
+try{renderer=new THREE.WebGLRenderer({canvas,antialias:false,powerPreference:'high-performance',logarithmicDepthBuffer:true});}
+catch(e){fail('这个浏览器没有可用的 WebGL2，无法生成画面。');throw e;}
+renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.0;renderer.outputColorSpace=THREE.SRGBColorSpace;
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(50,1,0.2,3e7);
+const uni={uShadowMap0:{value:null},uShadowMap1:{value:null},uShadowVP0:{value:new THREE.Matrix4()},uShadowVP1:{value:new THREE.Matrix4()},uShadowOn:{value:0},uShadowFar:{value:0},uR:{value:R},uSunI:{value:2.3},uAtm:{value:1.0},uTime:{value:0},uCover:{value:.5},uSun:{value:new THREE.Vector3(1,0,0)},uMist:{value:0},uMoon:{value:new THREE.Vector3(-1,0,0)},uMoonI:{value:0},uCenter:{value:new THREE.Vector3()},uUp:{value:new THREE.Vector3(0,1,0)},uAlt:{value:1e6},uSteps:{value:28}};
+const terrainMat=new THREE.ShaderMaterial({uniforms:{...uni,uTileModA:{value:new THREE.Vector3()},uTileModB:{value:new THREE.Vector3()},uDbg:{value:0},tGrass:{value:texGrass},tRock:{value:texRock},tSand:{value:texSand}},vertexShader:terrainVert,fragmentShader:terrainFrag});
+terrainMat.side=THREE.DoubleSide;
+const planet=new THREE.Group();scene.add(planet);const flora=new THREE.Group();scene.add(flora);const fauna=new THREE.Group();scene.add(fauna);
+const skyScene=new THREE.Scene();
+const sky=new THREE.Mesh(new THREE.SphereGeometry(R+ATM_H,64,40),new THREE.ShaderMaterial({uniforms:uni,vertexShader:sphereVert,fragmentShader:skyFrag,side:THREE.BackSide,depthTest:false,depthWrite:false,blending:THREE.NoBlending}));
+sky.frustumCulled=false;sky.layers.set(1);skyScene.add(sky);camera.layers.enable(1);
+const cloud=new THREE.Mesh(new THREE.SphereGeometry(CLD1,64,40),new THREE.ShaderMaterial({uniforms:uni,vertexShader:sphereVert,fragmentShader:cloudFrag,side:THREE.BackSide,transparent:true,depthTest:false,depthWrite:false,
+  blending:THREE.CustomBlending,blendEquation:THREE.AddEquation,blendSrc:THREE.OneFactor,blendDst:THREE.OneMinusSrcAlphaFactor,blendSrcAlpha:THREE.ZeroFactor,blendDstAlpha:THREE.OneMinusSrcAlphaFactor}));
+cloud.renderOrder=1;cloud.frustumCulled=false;cloud.layers.set(1);skyScene.add(cloud);
+const compMat=new THREE.ShaderMaterial({uniforms:{tSky:{value:null},uInvVP:{value:new THREE.Matrix4()},uStars:{value:0},uPix:{value:.001},uTime:uni.uTime},vertexShader:compVert,fragmentShader:compFrag,depthWrite:false,depthTest:true});
+const comp=new THREE.Mesh(new THREE.PlaneGeometry(2,2),compMat);comp.frustumCulled=false;comp.renderOrder=-10;comp.layers.set(1);scene.add(comp);
+let skyRT=null;
+function buildSkyRT(){const s=renderer.getDrawingBufferSize(new THREE.Vector2());if(skyRT)skyRT.dispose();
+  skyRT=new THREE.WebGLRenderTarget(Math.max(2,Math.round(s.x*quality.sky)),Math.max(2,Math.round(s.y*quality.sky)),{type:THREE.HalfFloatType,depthBuffer:false});compMat.uniforms.tSky.value=skyRT.texture;}
+
+/* ===== plants & creatures: one lit material (vertex colours), procedural geometry ===== */
+const plantVert=/* glsl */`
+varying vec3 vPos,vN,vCol,vSunT,vIns,vTr;varying vec2 vUv;varying float vCs,vSunEl;
+#include <common>
+${GLSL_COMMON}
+#include <logdepthbuf_pars_vertex>
+void main(){vUv=uv;
+  #ifdef USE_INSTANCING
+  mat4 m=modelMatrix*instanceMatrix;
+  #else
+  mat4 m=modelMatrix;
+  #endif
+  vec4 base=m*vec4(0.,0.,0.,1.);
+  float ph=dot(base.xyz,vec3(.013,.011,.017))+uTime*1.1;
+  #ifdef NOSWAY
+  vec3 off=vec3(0.);
+  #else
+  float sy=clamp(position.y,0.,40.);vec3 off=vec3(sin(ph),0.,cos(ph*.73))*min(sy*sy*.0009,.45);
+  #endif
+  vec4 wp=m*vec4(position+off,1.);
+  vPos=wp.xyz;vN=normalize(mat3(m)*normal);vCol=color;
+  #ifdef USE_INSTANCING_COLOR
+  vCol*=instanceColor;
+  #endif
+  vec3 bp=base.xyz-uCenter;vec3 bn=normalize(bp);
+  vSunT=sunTrans(bp,uSun);vSunEl=dot(bn,uSun);vCs=cloudCov(normalize(bn+uSun*.004));
+  vec3 ins,tr;aerial(bp,4,ins,tr);vIns=ins;vTr=tr;
+  gl_Position=projectionMatrix*viewMatrix*wp;
+  #include <logdepthbuf_vertex>
+}`;
+const plantFrag=/* glsl */`
+precision highp float;
+varying vec3 vPos,vN,vCol,vSunT,vIns,vTr;varying vec2 vUv;varying float vCs,vSunEl;
+#ifdef TEXTURED
+uniform sampler2D map;
+#endif
+${GLSL_COMMON}
+${SHADOW_GLSL}
+#include <logdepthbuf_pars_fragment>
+void main(){
+  #include <logdepthbuf_fragment>
+  vec3 tint=vec3(1.);
+  #ifdef TEXTURED
+  vec4 tx=texture2D(map,vUv);if(tx.a<.45)discard;tint=tx.rgb*1.6;
+  #endif
+  vec3 pr=vPos-uCenter;vec3 n=normalize(pr);vec3 N=normalize(vN);if(!gl_FrontFacing)N=-N;
+  #ifdef TEXTURED
+  N=dbump(N,vPos,dot(tx.rgb,vec3(.333)),.05);
+  #endif
+  float sunEl=vSunEl;
+  vec3 skyAmb=(vec3(.18,.3,.55)*smoothstep(-.1,.35,sunEl)+vec3(.5,.3,.15)*smoothstep(.1,-.05,sunEl)*smoothstep(-.25,.0,sunEl))*uSunI*.11;
+  float smap=shadowAt(vPos,N);
+  float lightIsSun=step(-.03,dot(uUp,uSun));
+  vec3 sunL=vSunT*uSunI*(1.-.5*vCs)*mix(1.,smap,lightIsSun);
+  float ndl=dot(N,uSun);float wrap=clamp((ndl+.35)/1.35,0.,1.);
+  vec3 moonL=vec3(.6,.7,1.)*uMoonI*(max(dot(N,uMoon),0.)*.8*mix(smap,1.,lightIsSun)+.25)*smoothstep(-.05,.15,dot(n,uMoon));
+  vec3 col=vCol*tint*(sunL*wrap*.95+moonL+skyAmb*(.55+.45*dot(N,n)));
+  #ifdef TEXTURED
+  {float back=pow(max(dot(normalize(vPos),uSun),0.),5.);col+=vCol*tint*vec3(1.,1.05,.7)*sunL*back*.5;}   // light glowing through leaves and grass
+  #endif
+  float night=smoothstep(.1,-.08,sunEl);col+=vCol*vec3(.5,.6,.8)*.006*night;
+  col=mist(col,length(vPos),skyAmb,vSunT*uSunI);
+  col=col*vTr+vIns;
+  gl_FragColor=vec4(col,1.);
+}`;
+const plantMat=new THREE.ShaderMaterial({uniforms:uni,vertexShader:plantVert,fragmentShader:plantFrag,vertexColors:true,side:THREE.DoubleSide});
+const plantMatS=new THREE.ShaderMaterial({uniforms:uni,defines:{NOSWAY:1},vertexShader:plantVert,fragmentShader:plantFrag,vertexColors:true,side:THREE.DoubleSide});
+const leafMatS=new THREE.ShaderMaterial({uniforms:{...uni,map:{value:atlas}},defines:{TEXTURED:1,NOSWAY:1},vertexShader:plantVert,fragmentShader:plantFrag,vertexColors:true,side:THREE.DoubleSide});
+const STATIC=new Set(['hometree','deadGiant','pyramid','eggRock','floatIsle','house','tower','crystalPeak','spire','rock','crystalTree','mushroom']);
+const leafMat=new THREE.ShaderMaterial({uniforms:{...uni,map:{value:atlas}},defines:{TEXTURED:1},vertexShader:plantVert,fragmentShader:plantFrag,vertexColors:true,side:THREE.DoubleSide});
+
+/* geometry helpers */
+const paint=(g,c)=>{const n=g.attributes.position.count,a=new Float32Array(n*3);for(let i=0;i<n;i++){a[i*3]=c[0];a[i*3+1]=c[1];a[i*3+2]=c[2];}g.setAttribute('color',new THREE.BufferAttribute(a,3));return g;};
+const ATL={leaf:[0,.5],grass:[.5,.5],bark:[0,0],frond:[.5,0]};
+const uvRemap=(g,q)=>{const uv=g.attributes.uv;for(let i=0;i<uv.count;i++){uv.setXY(i,q[0]+uv.getX(i)*.5,q[1]+uv.getY(i)*.5);}return g;};
+const merge=(parts,ao=true)=>{const prep=p=>{let g=p.g.index?p.g.toNonIndexed():p.g.clone();if(p.m)g.applyMatrix4(p.m);if(p.t)uvRemap(g,ATL[p.t]);return paint(g,p.t==='bark'?[1.1,1.0,.9]:p.t==='grass'||p.t==='frond'?[1.05,1.1,.95]:p.c);};
+  const sol=parts.filter(p=>!p.t),tex=parts.filter(p=>p.t);
+  const out={solid:sol.length?mergeGeometries(sol.map(prep),false):null,tex:tex.length?mergeGeometries(tex.map(prep),false):null};parts.forEach(p=>p.g.dispose());
+  if(ao){let ymax=.01;for(const g of [out.solid,out.tex])if(g){const P=g.attributes.position;for(let i=0;i<P.count;i++)ymax=Math.max(ymax,P.getY(i));}
+    for(const g of [out.solid,out.tex])if(g){const P=g.attributes.position,Cc=g.attributes.color;for(let i=0;i<P.count;i++){const f=.52+.48*Math.min(1,Math.max(0,P.getY(i)/ymax))**.7;Cc.setXYZ(i,Cc.getX(i)*f,Cc.getY(i)*f,Cc.getZ(i)*f);}}}
+  return out;};
+/* a leaf cluster: three crossed textured cards plus a small dark core so it never looks hollow */
+const blob=(r,x,y,z,c)=>{const o=[{g:new THREE.IcosahedronGeometry(r*.45,0),m:M4(x,y,z),c:[c[0]*.6,c[1]*.6,c[2]*.6]}];const lc=[.8+c[0]*2,.85+c[1]*1.2,.8+c[2]*2];for(let k=0;k<3;k++){const g=new THREE.PlaneGeometry(r*2.2,r*2.2).applyMatrix4(M4(x,y,z,(k%2)*.6+grnd()*.4,k*1.05+grnd(),0));
+    // point the card normals out from the crown centre (biased up) so a crown shades like a round mass instead of flat flickering cards
+    const P=g.attributes.position,Nn=g.attributes.normal;for(let i=0;i<P.count;i++){const dx=P.getX(i)-x,dy=P.getY(i)-y+r*.35,dz=P.getZ(i)-z,l=Math.hypot(dx,dy,dz)||1;Nn.setXYZ(i,dx/l,dy/l,dz/l);}
+    o.push({g,c:lc,t:'leaf'});}return o;};
+const M4=(x=0,y=0,z=0,rx=0,ry=0,rz=0,s=1)=>new THREE.Matrix4().compose(new THREE.Vector3(x,y,z),new THREE.Quaternion().setFromEuler(new THREE.Euler(rx,ry,rz)),new THREE.Vector3(s,s,s));
+let gseed=11;const grnd=()=>{gseed=(gseed*16807)%2147483647;return gseed/2147483647;};
+function twistedTrunk(H,r0,turns,wob){const pts=[];for(let i=0;i<=14;i++){const t=i/14;const a=t*turns*6.283+wob;const rad=(1.6*(1-t)+.25)*r0;pts.push(new THREE.Vector3(Math.cos(a)*rad+Math.sin(t*9+wob)*.3,t*H,Math.sin(a)*rad));}
+  return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),14,.55*r0,5,false);}
+const GEOS={},GEOS_LO={};
+function buildGeos(){
+  const trunk=[.28,.22,.16],leaf=[.07,.26,.09],leaf2=[.12,.32,.1];
+  // 扭曲树：树干像触手一样卷绕，长高后盘成平台
+  GEOS.twistTree=merge([{g:twistedTrunk(24,1,1.6,0),c:trunk,t:'bark'},{g:twistedTrunk(20,.7,-1.2,2),c:[.3,.25,.18],t:'bark'},
+    {g:new THREE.CylinderGeometry(.12,.35,9,5),m:M4(2.2,14,.5,.2,0,-1.1),c:trunk},{g:new THREE.CylinderGeometry(.1,.3,8,5),m:M4(-2,17,-1,.3,0,1.2),c:trunk},...blob(2,5.5,16.5,1,leaf2),...blob(1.8,-5,19.5,-1.6,leaf),...blob(3.4,1.2,23,0,leaf),...blob(2.8,-1.6,21,1.4,leaf2),...blob(2.6,.4,19.5,-2,leaf),
+    {g:new THREE.CylinderGeometry(5.5,4.5,.5,9),m:M4(0,24.6,0),c:[.14,.3,.12]}]);
+  GEOS.platformTree=merge([{g:twistedTrunk(36,1.8,2.2,1),c:trunk,t:'bark'},{g:twistedTrunk(34,1.3,-1.7,3),c:[.3,.25,.18],t:'bark'},
+    {g:new THREE.CylinderGeometry(13,10,.9,12),m:M4(0,36.5,0),c:[.15,.32,.13]},...blob(4.5,5,38,2,leaf),...blob(4,-6,38,-3,leaf2),...blob(3.5,1,39.5,-6,leaf)]);
+  // 蔓藤蕨：三十多厘米粗、歪歪扭扭长到十多米
+  {const pts=[];for(let i=0;i<=8;i++){const t=i/8;pts.push(new THREE.Vector3(Math.sin(t*5.1)*.7*t,t*11,Math.cos(t*3.7)*.6*t));}
+   const parts=[{g:new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),16,.16,5,false),c:[.36,.42,.17]}];
+   for(let k=0;k<5;k++)parts.push({g:new THREE.PlaneGeometry(1.6,3.6),m:M4(0,12.4,0,-.9,k*1.26,0),c:[.5,.7,.3],t:'frond'});
+   GEOS.fern=merge(parts);}
+  // 尖柱：覆盖苔藓的空心石柱
+  GEOS.spire=merge([{g:new THREE.CylinderGeometry(1.5,3.4,42,7,1,false),m:M4(0,21,0),c:[.2,.36,.14]},{g:new THREE.CircleGeometry(1.3,7),m:M4(0,42.1,0,-Math.PI/2),c:[.04,.06,.04]}]);
+  GEOS.bigTree=merge([{g:new THREE.CylinderGeometry(.45,.9,17,7),m:M4(0,8.5,0),c:trunk,t:'bark'},{g:new THREE.CylinderGeometry(.15,.3,6,5),m:M4(1.6,13,.4,.3,0,-1),c:trunk,t:'bark'},{g:new THREE.CylinderGeometry(.15,.3,6,5),m:M4(-1.5,14,-.6,-.3,0,1.1),c:trunk,t:'bark'},...blob(4.4,0,19,0,leaf),...blob(3.6,2.8,17,1.5,leaf2),...blob(3.4,-2.6,17.5,-1.8,leaf),...blob(2.6,3.6,13.5,.8,leaf2),...blob(2.4,-3.4,14.6,-1.2,leaf)]);
+  // 龙栖木：骸龙的森林城市，树上有住处
+  {const parts=[{g:new THREE.CylinderGeometry(1.1,2,30,8),m:M4(0,15,0),c:[.3,.24,.18],t:'bark'},...blob(7,0,32,0,leaf),...blob(5.5,5,28,3,leaf2),...blob(5.5,-5,29,-3,leaf)];
+   for(let k=0;k<4;k++){const a=k*1.57+.5;parts.push({g:new THREE.BoxGeometry(2.4,1.6,2.4),m:M4(Math.cos(a)*2.6,8+k*4.5,Math.sin(a)*2.6,0,-a,0),c:[.42,.34,.22]});}
+   GEOS.longqi=merge(parts);}
+  // 结晶树：被咬碎时会尖叫
+  {const parts=[];for(let k=0;k<6;k++){const a=k*1.05;parts.push({g:new THREE.ConeGeometry(.5,5+k%3,5),m:M4(Math.cos(a)*.7,2.5,Math.sin(a)*.7,Math.sin(a)*.35,0,-Math.cos(a)*.35),c:[.62,.86,.9]});}parts.push({g:new THREE.ConeGeometry(.7,7,6),m:M4(0,3.5,0),c:[.7,.9,.95]});GEOS.crystalTree=merge(parts);}
+  // 血球树
+  GEOS.bloodTree=merge([{g:new THREE.CylinderGeometry(.25,.45,4,6),m:M4(0,2,0),c:[.2,.1,.08]},{g:new THREE.IcosahedronGeometry(1.3,1),m:M4(0,4.8,0),c:[.6,.07,.07]},{g:new THREE.IcosahedronGeometry(.9,1),m:M4(1,4.2,.4),c:[.5,.06,.08]},{g:new THREE.IcosahedronGeometry(.8,1),m:M4(-.8,4.4,-.6),c:[.55,.08,.07]}]);
+  GEOS.grass=merge([0,1.05].map(a=>({g:new THREE.PlaneGeometry(1,.62),m:M4(0,.31,0,0,a,0),c:[.5,.65,.3],t:'grass'})));
+  // 岩石
+  GEOS.rock=merge([{g:new THREE.IcosahedronGeometry(1,1),m:new THREE.Matrix4().makeScale(1.3,.7,1).premultiply(M4(0,.15,0)),c:[.23,.22,.2]}]);
+  // 死亡尖刺：印加种成围墙的肉食植物
+  {const parts=[{g:new THREE.CylinderGeometry(.5,.9,2.5,6),m:M4(0,1.25,0),c:[.25,.12,.1]}];for(let k=0;k<7;k++){const a=k*.9;parts.push({g:new THREE.ConeGeometry(.22,4,5),m:M4(Math.cos(a)*.5,3.5,Math.sin(a)*.5,Math.sin(a)*.5,0,-Math.cos(a)*.5),c:[.5,.15,.12]});}GEOS.deathSpike=merge(parts);}
+  // 瘟疫真菌：真菌之岛的巨型蘑菇
+  GEOS.mushroom=merge([{g:new THREE.CylinderGeometry(.8,1.3,9,8),m:M4(0,4.5,0),c:[.6,.5,.42]},{g:new THREE.SphereGeometry(6,12,6,0,6.283,0,1.3),m:M4(0,8.5,0),c:[.55,.3,.5]},{g:new THREE.CylinderGeometry(5.2,5.9,.6,12),m:M4(0,8.4,0),c:[.3,.15,.25]}]);
+  // 天国之林：远古丛林的巨树
+  {const parts=[{g:new THREE.CylinderGeometry(3,6,70,10),m:M4(0,35,0),c:[.3,.24,.17]}];for(let k=0;k<6;k++){const a=k*1.05;parts.push({g:new THREE.CylinderGeometry(.6,1.4,22,6),m:M4(Math.cos(a)*9,52+k*2,Math.sin(a)*9,Math.sin(a)*1.1,0,-Math.cos(a)*1.1),c:[.3,.24,.17]});parts.push(...blob(9,Math.cos(a)*17,58+k*2,Math.sin(a)*17,k%2?leaf:leaf2));}parts.push(...blob(12,0,74,0,leaf));GEOS.ancientTree=merge(parts);}
+  // 家园树：三百多米高的空心巨木，发光的树洞
+  {const parts=[{g:new THREE.CylinderGeometry(22,48,300,14,1,true),m:M4(0,150,0),c:[.32,.26,.18]},{g:new THREE.CylinderGeometry(22,22,2,14),m:M4(0,300,0),c:[.1,.08,.06]}];
+   for(let k=0;k<9;k++){const a=k*2.3,yy=40+k*28;parts.push({g:new THREE.SphereGeometry(5,6,5),m:M4(Math.cos(a)*(45-yy*.08),yy,Math.sin(a)*(45-yy*.08)),c:[1.5,1.1,.4]});}
+   for(let k=0;k<7;k++){const a=k*.9+.3;parts.push({g:new THREE.CylinderGeometry(2,6,110,7),m:M4(Math.cos(a)*30,250,Math.sin(a)*30,Math.sin(a)*1.0,0,-Math.cos(a)*1.0),c:[.3,.24,.17]});parts.push(...blob(28,Math.cos(a)*78,290,Math.sin(a)*78,k%2?leaf:leaf2));}
+   GEOS.hometree=merge(parts);}
+  // 冰河上的巨树：冻死的家园树
+  {const parts=[{g:new THREE.CylinderGeometry(16,40,310,12,1,true),m:M4(0,155,0),c:[.55,.58,.62]}];for(let k=0;k<8;k++){const a=k*.8;parts.push({g:new THREE.CylinderGeometry(1,5,120,6),m:M4(Math.cos(a)*24,240,Math.sin(a)*24,Math.sin(a)*1.1,0,-Math.cos(a)*1.1),c:[.6,.62,.66]});}GEOS.deadGiant=merge(parts);}
+  // 立蝎之城：五十米金字塔
+  GEOS.pyramid=merge([{g:new THREE.ConeGeometry(42,50,4),m:M4(0,25,0,0,.785,0),c:[.55,.48,.38]}]);
+  // 翡翠龙之城：巨蛋石
+  GEOS.eggRock=merge([{g:new THREE.SphereGeometry(45,14,10),m:new THREE.Matrix4().makeScale(1,1.5,1).premultiply(M4(0,55,0)),c:[.45,.42,.38]}]);
+  // 空中群岛：倒挂着扭曲树林的鸣石岛
+  {const parts=[{g:new THREE.ConeGeometry(120,160,9),m:M4(0,-80,0,3.1416,0,0),c:[.38,.34,.3]},{g:new THREE.CylinderGeometry(120,120,14,9),m:M4(0,7,0),c:[.2,.36,.14]}];
+   for(let k=0;k<7;k++){const a=k*.9,r=40+k*9;parts.push({g:twistedTrunk(30,1.2,1.5,k),m:M4(Math.cos(a)*r,14,Math.sin(a)*r),c:[.28,.22,.16]});parts.push(...blob(7,Math.cos(a)*r,44,Math.sin(a)*r,leaf));
+     parts.push({g:twistedTrunk(26,1,-1.5,k+3),m:M4(Math.cos(a+.4)*r*.8,-20,Math.sin(a+.4)*r*.8,3.1416,0,0),c:[.28,.22,.16]});parts.push(...blob(6,Math.cos(a+.4)*r*.8,-46,Math.sin(a+.4)*r*.8,leaf2));}
+   GEOS.floatIsle=merge(parts);}
+  // 翡翠港的房屋、银甲龙的金属塔
+  GEOS.house=merge([{g:new THREE.BoxGeometry(14,8,12),m:M4(0,4,0),c:[.6,.52,.4]},{g:new THREE.ConeGeometry(10,6,4),m:M4(0,11,0,0,.785,0),c:[.35,.22,.16]}]);
+  GEOS.tower=merge([{g:new THREE.CylinderGeometry(6,9,60,8),m:M4(0,30,0),c:[.7,.72,.76]},{g:new THREE.CylinderGeometry(3,6,25,8),m:M4(0,72,0),c:[.78,.8,.85]},{g:new THREE.ConeGeometry(3,10,8),m:M4(0,89,0),c:[.9,.9,.95]}]);
+  // 结晶之山顶部的巨型结晶
+  {const parts=[];for(let k=0;k<7;k++){const a=k*.9;parts.push({g:new THREE.ConeGeometry(25+k*4,220+k*40,6),m:M4(Math.cos(a)*40,110,Math.sin(a)*40,Math.sin(a)*.25,0,-Math.cos(a)*.25),c:[.7,.88,.95]});}GEOS.crystalPeak=merge(parts);}
+  // 爆炸尖球
+  {const parts=[{g:new THREE.IcosahedronGeometry(.8,1),m:M4(0,.85,0),c:[.12,.3,.1]}];for(let k=0;k<10;k++){const a=k*.63,b=(k%3-1)*.7;parts.push({g:new THREE.ConeGeometry(.08,1,4),m:M4(Math.cos(a)*Math.cos(b)*.9,.85+Math.sin(b)*.9,Math.sin(a)*Math.cos(b)*.9,Math.sin(b)>0?-Math.cos(a)*.9:Math.cos(a)*.9,0,0),c:[.3,.5,.2]});}GEOS.spikeBall=merge(parts);}
+}
+buildGeos();
+/* far versions: a few sides of trunk and two crossed leaf cards, ~40 vertices instead of hundreds */
+{const lf=[1.1,1.2,1.05],bk=[.28,.22,.16];
+ const cards=(w,h,y)=>[{g:new THREE.PlaneGeometry(w,h),m:M4(0,y,0),c:lf,t:'leaf'},{g:new THREE.PlaneGeometry(w,h),m:M4(0,y,0,0,1.5708,0),c:lf,t:'leaf'},{g:new THREE.PlaneGeometry(w,w),m:M4(0,y+h*.2,0,-1.5708,0,0),c:lf,t:'leaf'}];
+ GEOS_LO.twistTree=merge([{g:new THREE.CylinderGeometry(.7,1.4,22,5),m:M4(0,11,0),c:bk,t:'bark'},...cards(13,9,21)]);
+ GEOS_LO.platformTree=merge([{g:new THREE.CylinderGeometry(1.4,2.2,36,5),m:M4(0,18,0),c:bk,t:'bark'},{g:new THREE.CylinderGeometry(13,10,.9,8),m:M4(0,36.5,0),c:[.15,.32,.13]},...cards(18,8,38.5)]);
+ GEOS_LO.bigTree=merge([{g:new THREE.CylinderGeometry(.45,.9,17,4),m:M4(0,8.5,0),c:bk,t:'bark'},...cards(12,11,17)]);
+ GEOS_LO.longqi=merge([{g:new THREE.CylinderGeometry(1.1,2,30,5),m:M4(0,15,0),c:bk,t:'bark'},...cards(17,14,30)]);
+ GEOS_LO.fern=merge([{g:new THREE.PlaneGeometry(3,13),m:M4(0,6.5,0),c:[1.05,1.1,.95],t:'frond'},{g:new THREE.PlaneGeometry(3,13),m:M4(0,6.5,0,0,1.5708,0),c:[1.05,1.1,.95],t:'frond'}]);}
+const NEAR_ONLY=new Set(['grass','rock','spikeBall','deathSpike','bloodTree','mushroom']);
+const _q=new THREE.Quaternion(),_qy=new THREE.Quaternion(),_m=new THREE.Matrix4(),_p=new THREE.Vector3(),_s=new THREE.Vector3(),_up=new THREE.Vector3(),_Y=new THREE.Vector3(0,1,0);
+function buildFlora(data,span){
+  const g=new THREE.Group();let any=false;
+  for(const k in data){const geos=GEOS[k];if(!geos)continue;const a=data[k];const n=a.length/8;if(!n)continue;
+   const st=STATIC.has(k);for(const [geo,mat] of [[geos.solid,st?plantMatS:plantMat],[geos.tex,st?leafMatS:leafMat]]){if(!geo)continue;
+    const im=new THREE.InstancedMesh(geo,mat,n);im.userData.k=k;im.userData.hi=geo;im.userData.lo=GEOS_LO[k]?(mat.defines&&mat.defines.TEXTURED?GEOS_LO[k].tex:GEOS_LO[k].solid):undefined;
+    for(let i=0;i<n;i++){const o=i*8;_p.set(a[o],a[o+1],a[o+2]);_up.set(a[o+3],a[o+4],a[o+5]);_q.setFromUnitVectors(_Y,_up);_qy.setFromAxisAngle(_Y,a[o+7]);_q.multiply(_qy);const sc=a[o+6];_s.set(sc,sc,sc);_m.compose(_p,_q,_s);im.setMatrixAt(i,_m);}
+    {let sd=n*31+7;const rn=()=>{sd=(sd*16807)%2147483647;return sd/2147483647;};const col=new Float32Array(n*3);for(let i=0;i<n;i++){const t=.82+rn()*.36,w=.95+rn()*.1;col[i*3]=t*w;col[i*3+1]=t;col[i*3+2]=t*(2-w);}im.instanceColor=new THREE.InstancedBufferAttribute(col,3);}
+    im.instanceMatrix.needsUpdate=true;im.computeBoundingSphere();im.frustumCulled=true;g.add(im);any=true;}}
+  return any?g:null;
+}
+
+/* ===== solid things you cannot walk through: trunk / footprint radius in metres at scale 1 ===== */
+const COLL={twistTree:2,platformTree:3.6,bigTree:.9,longqi:2.1,ancientTree:6.5,crystalTree:1.3,spire:3.4,mushroom:1.3,deathSpike:1.1,bloodTree:.45,spikeBall:1,rock:1.25,
+  hometree:49,deadGiant:40,pyramid:36,eggRock:45,house:9,tower:9,crystalPeak:80};
+function makeColliders(data){const out=[];for(const k in data){const r0=COLL[k];if(!r0)continue;const a=data[k];
+  for(let i=0;i<a.length;i+=8){const sc=a[i+6];if(k==='rock'&&sc<.6)continue;out.push(a[i],a[i+1],a[i+2],r0*sc);}}return out.length?new Float32Array(out):null;}
+let BODY=.55;
+/* push the viewer out of any trunk, rock or building it overlaps (run every frame, so trees that stream in late still work) */
+function resolveCollisions(){const h=ground(view.lat,view.lon);const p=fromLL(view.lat,view.lon,R+h);let px=p.x,py=p.y,pz=p.z;const l=R+h;const ux=px/l,uy=py/l,uz=pz/l;let hit=false;
+  for(const g of flora.children){if(!g.visible)continue;const n=g.userData.node;if(!n||!n.coll||(g.userData.d||0)>90)continue;const c=n.coll;
+    for(let i=0;i<c.length;i+=4){const dx=px-(n.cx+c[i]),dy=py-(n.cy+c[i+1]),dz=pz-(n.cz+c[i+2]);const rr=c[i+3]+BODY;
+      if(Math.abs(dx)>rr+20||Math.abs(dy)>rr+20||Math.abs(dz)>rr+20)continue;
+      const v=dx*ux+dy*uy+dz*uz;let hx=dx-v*ux,hy=dy-v*uy,hz=dz-v*uz;let dd=Math.hypot(hx,hy,hz);if(dd>=rr)continue;
+      if(dd<1e-3){const {east,north}=frameAt(view.lat,view.lon);hx=-(north.x*Math.cos(view.heading)+east.x*Math.sin(view.heading));hy=-(north.y*Math.cos(view.heading)+east.y*Math.sin(view.heading));hz=-(north.z*Math.cos(view.heading)+east.z*Math.sin(view.heading));dd=1;}
+      const k=(rr-dd)/dd;px+=hx*k;py+=hy*k;pz+=hz*k;hit=true;}}
+  if(hit){const ll=toLL(px,py,pz);view.lat=ll.lat;view.lon=ll.lon;}}
+/* landmark framing for travel: where each landmark item stands, and how far back to stand to see it whole */
+const LM_VIEW={hometree:{r:49,h:330,v:250},deadGiant:{r:40,h:310,v:340},pyramid:{r:36,h:50,v:380},eggRock:{r:45,h:130,v:300},floatIsle:{r:0,h:0,v:950},house:{r:9,h:14,v:110},tower:{r:9,h:95,v:240},crystalPeak:{r:80,h:450,v:560}};
+function landmarkItems(){const out=[];for(const [la,lo,kind,items] of T.LANDMARKS){const p=T.V(la,lo);const ex=-p[2],ez=p[0];const el=Math.hypot(ex,ez)||1;const E=[ex/el,0,ez/el];const N=[p[1]*E[2]-p[2]*E[1],p[2]*E[0]-p[0]*E[2],p[0]*E[1]-p[1]*E[0]];
+  for(const [ox,oz,sc,lift] of items){let x=p[0]+(E[0]*ox+N[0]*oz)/R,y=p[1]+(E[1]*ox+N[1]*oz)/R,z=p[2]+(E[2]*ox+N[2]*oz)/R;const l=Math.hypot(x,y,z);out.push({kind,x:x/l,y:y/l,z:z/l,sc,lift});}}return out;}
+const LM_ITEMS=landmarkItems();
+function frameLandmark(lat,lon){const q=fromLL(lat,lon,1);let best=null,bd=1e9;
+  for(const it of LM_ITEMS){const d=Math.acos(Math.min(1,q.x*it.x+q.y*it.y+q.z*it.z))*R;if(d<bd){bd=d;best=it;}}
+  if(!best||bd>3000)return false;const info=LM_VIEW[best.kind];const ll=toLL(best.x,best.y,best.z);const {east,north}=frameAt(ll.lat,ll.lon);const vd=info.v*(best.kind==='floatIsle'?1:best.sc);
+  for(let k=0;k<16;k++){const a=k*Math.PI/8+(best.kind==='pyramid'?Math.PI:0);const dir=new THREE.Vector3().copy(north).multiplyScalar(Math.cos(a)).addScaledVector(east,Math.sin(a));
+    const c=new THREE.Vector3(best.x,best.y,best.z).multiplyScalar(Math.cos(vd/R)).addScaledVector(dir,Math.sin(vd/R)).normalize();const cl=toLL(c.x,c.y,c.z);
+    if(ground(cl.lat,cl.lon)<2)continue;
+    if(LM_ITEMS.some(o=>o.kind!=='floatIsle'&&Math.acos(Math.min(1,c.x*o.x+c.y*o.y+c.z*o.z))*R<LM_VIEW[o.kind].r*o.sc+15))continue;
+    view.lat=cl.lat;view.lon=cl.lon;view.heading=a+Math.PI;
+    const top=best.kind==='floatIsle'?best.lift:info.h*best.sc*.42;const dh=ground(ll.lat,ll.lon)-ground(cl.lat,cl.lon);view.pitch=Math.max(-.15,Math.min(.65,Math.atan2(top+dh,vd)));return true;}
+  return false;}
+
+/* ===== creatures =====
+   Each species is built once from smooth primitives into a few shared geometries: one merged body, plus separate legs /
+   wings / tail so they can move. A creature on screen is therefore only a handful of draw calls. Sizes follow the book. */
+const CREATURES=[];const MAXC=56;
+const glowMat=new THREE.PointsMaterial({size:.22,sizeAttenuation:true,color:new THREE.Color(.55,1.6,1.3),transparent:true,opacity:.95,depthWrite:false,blending:THREE.AdditiveBlending});
+const orbMat=new THREE.PointsMaterial({size:7,sizeAttenuation:true,color:new THREE.Color(2.2,2,1.4),transparent:true,opacity:.85,depthWrite:false,blending:THREE.AdditiveBlending});
+const glowBodyMat=new THREE.MeshBasicMaterial({vertexColors:true});
+const dustMat=new THREE.PointsMaterial({size:.9,sizeAttenuation:true,color:new THREE.Color(.75,.62,.42),transparent:true,opacity:.35,depthWrite:false});
+const E=(rx,ry,rz,x,y,z,c,rotZ=0,rotY=0)=>({g:new THREE.SphereGeometry(1,16,12),m:new THREE.Matrix4().compose(new THREE.Vector3(x,y,z),new THREE.Quaternion().setFromEuler(new THREE.Euler(0,rotY,rotZ)),new THREE.Vector3(rx,ry,rz)),c});
+const C=(r0,r1,len,x,y,z,c,rx=0,ry=0,rz=0,seg=8)=>({g:new THREE.CylinderGeometry(r1,r0,len,seg),m:M4(x,y,z,rx,ry,rz),c});
+const K=(r,len,x,y,z,c,rx=0,ry=0,rz=0,seg=8)=>({g:new THREE.ConeGeometry(r,len,seg),m:M4(x,y,z,rx,ry,rz),c});
+/* a tube along points whose radius tapers from r0 to r1: tails, necks, worm bodies */
+function taper(pts,r0,r1,c,seg=14,rad=10){const curve=new THREE.CatmullRomCurve3(pts.map(p=>new THREE.Vector3(...p)));const g=new THREE.TubeGeometry(curve,seg,1,rad,false);const pos=g.attributes.position;
+  for(let i=0;i<=seg;i++){const ctr=curve.getPointAt(i/seg);const r=r0+(r1-r0)*(i/seg);for(let j=0;j<=rad;j++){const k=i*(rad+1)+j;pos.setXYZ(k,ctr.x+(pos.getX(k)-ctr.x)*r,ctr.y+(pos.getY(k)-ctr.y)*r,ctr.z+(pos.getZ(k)-ctr.z)*r);}}
+  g.computeVertexNormals();return {g,c};}
+/* darker back, lighter belly, faint mottling — reads as skin instead of plastic */
+function shadeGeo(g){const c=g.attributes.color,n=g.attributes.normal,p=g.attributes.position;for(let i=0;i<c.count;i++){const ny=n.getY(i);const f=(ny>0?1-.22*ny:1-.2*ny)*(1+.08*Math.sin(p.getX(i)*9+p.getZ(i)*7)*Math.sin(p.getY(i)*11+p.getX(i)*3));c.setXYZ(i,c.getX(i)*f,c.getY(i)*f,c.getZ(i)*f);}c.needsUpdate=true;return g;}
+const body=parts=>shadeGeo(merge(parts.map(p=>({...p,c:[p.c[0]*.55,p.c[1]*.55,p.c[2]*.55]})),false).solid);
+/* a leg hangs from its hip (origin) straight down; thigh and shin taper; foot at the bottom */
+function legGeo(len,r,c,foot=1.4){return body([C(r,r*.8,len*.52,0,-len*.26,0,c),C(r*.8,r*.55,len*.5,0,-len*.73,0,c),E(r*foot,r*.5,r*foot*.9,r*.25,-len,0,c)]);}
+function wingGeo(span,chord,c){const g=new THREE.BufferGeometry();const v=[0,0,0, chord*.1,0,span*.15, -chord*.15,0,span, -chord*.7,0,span*.75, -chord*.95,0,span*.35, -chord*.55,0,0];
+  const idx=[0,1,5,1,4,5,1,2,3,1,3,4];g.setAttribute('position',new THREE.Float32BufferAttribute(v,3));g.setIndex(idx);g.computeVertexNormals();return paint(g.toNonIndexed(),[c[0]*.55,c[1]*.55,c[2]*.55]);}
+const SPEC={};const geoCache={};
+function def(key,o){SPEC[key]=o;}
+const tone=(c,k)=>[c[0]*k,c[1]*k,c[2]*k];
+// ---- 西之大陆 ----
+def('ceratops',{n:'角龙',walk:1,speed:1.2,group:[4,8],build(){const c=[.43,.45,.32],b=tone(c,1.25),d=[.08,.07,.06];
+  return {body:body([E(1.55,.85,.8,0,1.45,0,c),E(1.2,.6,.65,-.1,1.15,0,b),E(.55,.48,.45,1.25,1.5,0,c,-.3),E(.58,.44,.42,1.85,1.42,0,c,-.15),K(.2,.45,2.35,1.35,0,[.75,.7,.6],0,0,-1.57),
+    {g:new THREE.CylinderGeometry(1,1,.1,20),m:new THREE.Matrix4().compose(new THREE.Vector3(1.5,1.85,0),new THREE.Quaternion().setFromEuler(new THREE.Euler(0,0,1.25)),new THREE.Vector3(.95,1,1.05)),c:[.62,.4,.28]},
+    K(.1,1.15,2.25,1.95,0,[.9,.86,.75],0,0,-1.05),E(.07,.07,.07,2.02,1.6,.3,d),E(.07,.07,.07,2.02,1.6,-.3,d),taper([[-1.4,1.4,0],[-2.3,1.15,0],[-3.2,.85,0]],.42,.05,c)]),
+    legs:[[1,1.15,.5],[1,1.15,-.5],[-1,1.15,.52],[-1,1.15,-.52]].map(([x,y,z])=>({geo:legGeo(1.15,.2,c),x,y,z}))};}});
+def('gulong',{n:'骸龙',walk:1,speed:1.5,group:[2,5],build(){const c=[.5,.5,.48],w=[.86,.86,.82];const parts=[E(.85,.28,.32,0,.6,0,c),E(.32,.18,.2,1.05,.72,0,c),taper([[.6,.62,0],[.85,.7,0],[1,.72,0]],.18,.15,c),taper([[-.75,.58,0],[-1.6,.45,0],[-2.4,.3,0]],.22,.03,c)];
+  for(let k=0;k<6;k++)parts.push({g:new THREE.TorusGeometry(1,.035,5,16),m:new THREE.Matrix4().compose(new THREE.Vector3(.55-k*.24,.6,0),new THREE.Quaternion().setFromEuler(new THREE.Euler(0,1.5708,0)),new THREE.Vector3(.33-k*.012,.3-k*.01,1)),c:w});
+  parts.push(E(.035,.035,.035,1.28,.78,.11,[.9,.8,.2]),E(.035,.035,.035,1.28,.78,-.11,[.9,.8,.2]));
+  return {body:body(parts),legs:[[.55,.55,.28],[.55,.55,-.28],[-.5,.55,.28],[-.5,.55,-.28]].map(([x,y,z])=>({geo:legGeo(.55,.07,c),x,y,z,splay:.5}))};}});
+def('maoyu',{n:'毛玉',walk:1,hop:1,speed:1,group:[3,7],build(o){const c=o&&o.white?[.95,.95,.93]:[.74,.6,.45];
+  return {body:body([E(.22,.2,.21,0,.22,0,c),E(.13,.12,.12,.17,.3,0,c),K(.045,.12,.16,.45,.07,c,0,0,.25),K(.045,.12,.16,.45,-.07,c,0,0,.25),E(.025,.025,.025,.29,.33,.06,[.05,.04,.04]),E(.025,.025,.025,.29,.33,-.06,[.05,.04,.04]),E(.08,.08,.08,-.22,.3,0,tone(c,1.1))])};}});
+def('tyrant',{n:'暴君巨蜥',walk:1,speed:1.8,group:[1,1],build(){const c=[.44,.13,.1],b=[.6,.35,.28];
+  return {body:body([E(2.6,1.35,1.15,0,3.8,0,c,.12),E(1.8,.9,.9,.3,3.3,0,b,.12),taper([[2,4.2,0],[3,4.7,0],[3.6,4.8,0]],.9,.7,c),E(1.35,.75,.7,4.2,4.75,0,c,-.1),E(1.1,.3,.55,4.3,4.2,0,b,-.15),
+    E(.12,.12,.12,4.9,5.1,.48,[.95,.75,.2]),E(.12,.12,.12,4.9,5.1,-.48,[.95,.75,.2]),taper([[-2.3,3.8,0],[-4.5,3.3,0],[-7.2,2.6,0]],1.05,.08,c),C(.14,.1,.9,1.8,3.1,.7,c,0,0,.6),C(.14,.1,.9,1.8,3.1,-.7,c,0,0,.6)]),
+    legs:[[.3,3.4,.95],[.3,3.4,-.95]].map(([x,y,z])=>({geo:legGeo(3.4,.55,c,1.6),x,y,z}))};}});
+def('wyvern',{n:'飞龙',fly:[50,180],speed:10,group:[1,3],build(){const c=[.34,.21,.16],m=[.5,.32,.24];
+  return {body:body([E(1.7,.45,.5,0,0,0,c),taper([[1.4,.1,0],[2.3,.4,0],[2.8,.45,0]],.32,.22,c),E(.55,.28,.26,3.15,.42,0,c),K(.12,.6,3.75,.42,0,m,0,0,-1.57),taper([[-1.5,0,0],[-3.5,-.2,0],[-5.5,-.15,0]],.35,.04,c)]),
+    wings:[1,-1].map(s=>({geo:wingGeo(5.2,3.2,m),x:.4,y:.25,z:.35*s,side:s}))};}});
+def('giantJelly',{n:'海空水母',fly:[60,160],speed:1.2,group:[1,2],swim:1,build(){const c=[.42,.58,.9];const parts=[{g:new THREE.SphereGeometry(22,24,14,0,6.283,0,1.45),m:null,c},{g:new THREE.SphereGeometry(16,20,10,0,6.283,0,1.35),m:M4(0,-3,0),c:[.55,.72,.95]}];
+  for(let k=0;k<16;k++){const a=k*.39;parts.push(taper([[Math.cos(a)*13,-2,Math.sin(a)*13],[Math.cos(a)*12,-18,Math.sin(a)*12],[Math.cos(a+.3)*10,-42,Math.sin(a+.3)*10]],.5,.12,[.45,.55,.85],10,5));}
+  return {body:body(parts)};}});
+// ---- 北之大陆 ----
+def('dragonfly',{n:'巨脉蜻蜓',fly:[1.5,9],speed:4.5,group:[5,10],dart:1,build(){const c=[.18,.32,.22];
+  return {body:body([taper([[-.75,0,0],[0,0,0],[.25,0,0]],.035,.07,c),E(.1,.08,.09,.3,0,0,c),E(.06,.06,.06,.36,.03,.06,[.3,.6,.8]),E(.06,.06,.06,.36,.03,-.06,[.3,.6,.8])]),
+    wings:[[.18,.42],[.18,-.42],[.02,.4],[.02,-.4]].map(([x,z],i)=>({geo:paint(new THREE.PlaneGeometry(.2,.95).rotateX(-1.5708).translate(0,0,Math.sign(z)*.48),[.5,.54,.58]),x,y:.04,z:0,side:Math.sign(z),fast:1}))};}});
+def('landshark',{n:'陆行鲨',walk:1,speed:1.4,group:[1,3],build(){const c=[.42,.47,.5],b=[.75,.77,.78];
+  return {body:body([taper([[-1.2,.5,0],[-.2,.62,0],[.7,.6,0],[1.1,.5,0]],.25,.18,c,16,12),E(1.05,.35,.3,0,.55,0,c),E(.8,.18,.25,.1,.32,0,b),K(.2,.5,.1,1.05,0,c,0,0,-.3,4),
+    {g:new THREE.PlaneGeometry(.6,.7),m:M4(-1.35,.6,0,0,0,.4),c},E(.04,.04,.04,.95,.62,.2,[.05,.05,.05]),E(.04,.04,.04,.95,.62,-.2,[.05,.05,.05])]),
+    legs:[[.45,.4,.32],[.45,.4,-.32]].map(([x,y,z])=>({geo:body([{g:new THREE.PlaneGeometry(.55,.32),m:M4(.05,-.14,0,1.5708,0,0),c}]),x,y,z,fin:1}))};}});
+def('beetle',{n:'鳞甲虫',walk:1,speed:.7,group:[1,3],build(){const c=[.3,.33,.24],d=tone(c,.7);const parts=[E(2,.95,1.3,0,1.3,0,c),E(.6,.5,.6,2.05,1.1,0,d),K(.25,.7,2.6,.85,0,[.35,.33,.25],0,0,-2.1)];
+  for(let k=0;k<6;k++)parts.push({g:new THREE.SphereGeometry(1,16,8,0,6.283,0,1.2),m:new THREE.Matrix4().compose(new THREE.Vector3(1.2-k*.5,1.55,0),new THREE.Quaternion(),new THREE.Vector3(.5,.5,1.25)),c:k%2?c:tone(c,1.15)});
+  return {body:body(parts),legs:[1.1,0,-1.1].flatMap(x=>[1,-1].map(s=>({geo:legGeo(1.3,.1,d),x,y:1,z:1.1*s,splay:.7*s})))};}});
+def('scorpion',{n:'沙漠蝎',walk:1,speed:1.1,group:[1,2],build(){const c=[.55,.42,.24],d=tone(c,.75);const parts=[E(1.1,.4,.75,0,.7,0,c),E(.5,.32,.55,1.1,.7,0,c)];
+  for(let k=0;k<5;k++)parts.push(E(.32-k*.03,.26-k*.02,.3-k*.03,-1-k*.45,.75+k*k*.06,0,c));
+  for(const s of [1,-1])parts.push(C(.12,.1,1.2,1.9,.72,.7*s,d,0,0,1.57),E(.42,.2,.26,2.7,.72,.75*s,c));
+  return {body:body(parts),legs:[.6,.2,-.2,-.6].flatMap(x=>[1,-1].map(s=>({geo:legGeo(.9,.06,d),x,y:.65,z:.6*s,splay:.9*s})))};}});
+def('lizard',{n:'晶鳞蜥蜴',walk:1,speed:1.6,group:[1,2],build(){const c=[.36,.5,.48],k=[.65,.9,.95];const parts=[E(1.1,.35,.42,0,.6,0,c),E(.45,.25,.28,1.3,.66,0,c),taper([[-1,.58,0],[-2,.45,0],[-3,.3,0]],.32,.04,c)];
+  for(let i=0;i<9;i++)parts.push(K(.08,.35-i*.02,.9-i*.35,.95-i*.02,0,k,0,0,(i%2?.25:-.25)));
+  return {body:body(parts),legs:[[.7,.55,.4],[.7,.55,-.4],[-.6,.55,.4],[-.6,.55,-.4]].map(([x,y,z])=>({geo:legGeo(.55,.09,c),x,y,z,splay:.6*Math.sign(z)}))};}});
+def('roach',{n:'黑角巨蠊',walk:1,speed:1.3,group:[1,2],build(){const c=[.07,.06,.06],h=[.2,.15,.12];
+  return {body:body([E(2.4,.6,1.45,0,1.1,0,c),E(.7,.4,.9,2.3,1,0,c),taper([[2.8,1.1,.3],[3.8,1.6,1],[4.8,1.5,1.8]],.05,.02,h,8,4),taper([[2.8,1.1,-.3],[3.8,1.6,-1],[4.8,1.5,-1.8]],.05,.02,h,8,4)]),
+    legs:[1.3,0,-1.3].flatMap(x=>[1,-1].map(s=>({geo:legGeo(1.5,.09,h),x,y:.95,z:1.2*s,splay:.8*s})))};}});
+// ---- 东之大陆 ----
+def('jiangguai',{n:'僵怪',walk:1,speed:.9,group:[1,2],build(){const c=[.62,.66,.6];
+  return {body:body([E(.95,1.6,.8,0,4.4,0,c),E(.7,.85,.65,0,6.3,0,c),C(.22,.15,2.6,0,4.4,1.05,c,0,0,0),C(.22,.15,2.6,0,4.4,-1.05,c,0,0,0)]),
+    legs:[[0,3,.45],[0,3,-.45]].map(([x,y,z])=>({geo:legGeo(3,.32,c,2.4),x,y,z}))};}});
+// ---- 到处都有 ----
+def('jelly',{n:'空水母',fly:[3,25],speed:.6,group:[1,3],swim:1,build(){const c=[.66,.78,.95];const parts=[{g:new THREE.SphereGeometry(1.1,16,10,0,6.283,0,1.6),m:null,c}];
+  for(let k=0;k<8;k++){const a=k*.785;parts.push(taper([[Math.cos(a)*.6,0,Math.sin(a)*.6],[Math.cos(a)*.55,-1.5,Math.sin(a)*.55],[Math.cos(a+.4)*.4,-3.2,Math.sin(a+.4)*.4]],.04,.01,[.6,.7,.9],8,4));}
+  return {body:body(parts)};}});
+def('worm',{n:'迷雾蠕虫',walk:1,burrow:1,speed:2.4,group:[1,1],build(){const c=[.38,.31,.26];return {seg:body([E(2.2,2.1,2.1,0,0,0,c)]),head:body([E(2.3,2.2,2.2,0,0,0,c),...Array.from({length:10},(_,k)=>K(.25,1.4,1.9,Math.cos(k*.63)*1.4,Math.sin(k*.63)*1.4,[.92,.86,.7],0,0,-1.57,5))])};}});
+def('moths',{n:'记忆蛾',swarm:'glow',fly:[1,5],speed:.8,group:[1,1]});
+def('dust',{n:'尘魔',swarm:'dust',fly:[0,0],speed:2.5,group:[1,1]});
+// ---- 更多物种（体型按原著描述） ----
+def('deepbus',{n:'深沙巴士',walk:1,speed:1.6,group:[1,1],build(){const c=[.62,.52,.36],d=tone(c,.75);const parts=[E(13.5,1.4,4.2,0,1.6,0,c),E(11,1,3.4,0,2.4,0,tone(c,1.08))];
+  for(let k=0;k<9;k++)parts.push({g:new THREE.TorusGeometry(1,.12,6,24,Math.PI),m:new THREE.Matrix4().compose(new THREE.Vector3(10-k*2.5,1.6,0),new THREE.Quaternion().setFromEuler(new THREE.Euler(0,1.5708,0)),new THREE.Vector3(4.1-Math.abs(k-4)*.2,2.4,1)),c:d});
+  const coil=[];for(let i=0;i<=24;i++){const t=i/24;coil.push([-13-t*6,1.6+Math.sin(t*12.6)*1.1,Math.cos(t*12.6)*1.1]);}parts.push(taper(coil,.8,.25,c,48,8));
+  return {body:body(parts),legs:Array.from({length:10},(_,i)=>[1,-1].map(s=>({geo:legGeo(1.8,.22,d),x:10-i*2.2,y:1.4,z:3.6*s,splay:.6*s}))).flat()};}});
+def('silverbeetle',{n:'银甲虫',walk:1,speed:.9,group:[4,8],build(){const c=[.8,.82,.86],d=[.25,.25,.28];
+  return {body:body([E(.32,.15,.2,0,.2,0,c),E(.1,.08,.1,.33,.18,0,d),K(.015,.25,.5,.25,.06,d,0,0,-1.1,4),K(.015,.25,.5,.25,-.06,d,0,0,-1.1,4)]),
+    legs:[.12,0,-.12].flatMap(x=>[1,-1].map(s=>({geo:legGeo(.22,.015,d),x,y:.18,z:.14*s,splay:.8*s})))};}});
+def('redspider',{n:'红蛛',fly:[1,4],speed:3,group:[5,10],dart:1,build(){const c=[.78,.13,.07];const parts=[E(.12,.09,.11,0,0,0,c),E(.18,.13,.16,-.22,0,0,tone(c,.8))];
+  for(let k=0;k<4;k++)for(const s of [1,-1])parts.push(taper([[0,0,0],[.1-k*.05,.12,.22*s],[.18-k*.12,-.1,.34*s]],.015,.008,tone(c,.6),6,4));
+  return {body:body(parts),wings:[1,-1].map(s=>({geo:paint(new THREE.PlaneGeometry(.18,.35).rotateX(-1.5708).translate(0,0,s*.18),[.3,.12,.09]),x:-.05,y:.08,z:0,side:s,fast:1}))};}});
+def('dachuolong',{n:'大鸵龙',walk:1,speed:2.4,group:[2,5],build(){const c=[.58,.5,.36],b=tone(c,1.2);
+  return {body:body([E(1,.62,.55,0,1.9,0,c),E(.8,.45,.45,0,1.7,0,b),taper([[.8,2.1,0],[1.1,2.8,0],[1.25,3.4,0]],.25,.16,c),E(.34,.2,.18,1.45,3.5,0,c),K(.08,.25,1.8,3.45,0,[.8,.7,.5],0,0,-1.57),
+    taper([[-.9,1.95,0],[-1.8,1.9,0],[-2.7,1.7,0]],.3,.04,c),E(.04,.04,.04,1.6,3.58,.12,[.05,.05,.05]),E(.04,.04,.04,1.6,3.58,-.12,[.05,.05,.05])]),
+    legs:[[.1,1.75,.32],[.1,1.75,-.32]].map(([x,y,z])=>({geo:legGeo(1.75,.16,c,1.8),x,y,z}))};}});
+def('jianjia',{n:'坚甲龙',walk:1,speed:.6,group:[1,3],build(){const c=[.45,.42,.33],k=[.62,.58,.46];const parts=[E(2.6,1.1,1.65,0,1.55,0,c),E(.6,.45,.5,2.7,1.2,0,c),taper([[-2.4,1.4,0],[-3.6,1.1,0],[-4.6,.9,0]],.45,.18,c),E(.55,.4,.55,-4.8,.9,0,k)];
+  for(let i=0;i<16;i++){const a=i*2.4,r=.35+(i%4)*.2;parts.push(K(.18,.45,Math.cos(a)*2.1*r,1.55+Math.sqrt(Math.max(0,1-r*r))*1.05,Math.sin(a)*1.4*r,k,Math.sin(a)*.5,0,-Math.cos(a)*.5,6));}
+  return {body:body(parts),legs:[[1.6,1.1,1.05],[1.6,1.1,-1.05],[-1.5,1.1,1.05],[-1.5,1.1,-1.05]].map(([x,y,z])=>({geo:legGeo(1.1,.32,c,1.5),x,y,z}))};}});
+def('jingzhui',{n:'晶锥陆龟',walk:1,speed:.35,group:[1,2],build(){const c=[.4,.38,.3],s=[.35,.42,.32],k=[.62,.88,.95];
+  const parts=[{g:new THREE.SphereGeometry(1,22,12,0,6.283,0,1.6),m:new THREE.Matrix4().compose(new THREE.Vector3(0,.6,0),new THREE.Quaternion(),new THREE.Vector3(1.6,1,1.25)),c:s},E(1.55,.25,1.2,0,.62,0,c),E(.32,.26,.28,1.75,.75,0,c),E(.05,.05,.05,2,.85,.15,[.05,.05,.05]),E(.05,.05,.05,2,.85,-.15,[.05,.05,.05])];
+  for(let i=0;i<9;i++){const a=i*2.4,r=i?.35+(i%3)*.22:0;parts.push(K(.18,1.1+(i===0?.9:(3-i%3)*.25),Math.cos(a)*r*1.4,1.9+(i===0?.4:0),Math.sin(a)*r,k,Math.sin(a)*r*.6,0,-Math.cos(a)*r*.6,6));}
+  return {body:body(parts),legs:[[1,.55,.85],[1,.55,-.85],[-1,.55,.85],[-1,.55,-.85]].map(([x,y,z])=>({geo:legGeo(.55,.18,c,1.6),x,y,z}))};}});
+def('centipede',{n:'肋骨蜈蚣',walk:1,speed:1.8,group:[1,1],build(){const c=[.84,.82,.74],d=[.3,.27,.24];const parts=[];
+  for(let k=0;k<14;k++){const x=1.8-k*.3;parts.push(E(.17,.1,.16,x,.28,0,d),{g:new THREE.TorusGeometry(1,.035,5,14,Math.PI),m:new THREE.Matrix4().compose(new THREE.Vector3(x,.22,0),new THREE.Quaternion().setFromEuler(new THREE.Euler(0,1.5708,0)),new THREE.Vector3(.24,.16,1)),c});}
+  parts.push(E(.2,.12,.18,2.05,.3,0,c),taper([[2.2,.3,.08],[2.6,.45,.25],[2.9,.4,.35]],.02,.01,d,6,4),taper([[2.2,.3,-.08],[2.6,.45,-.25],[2.9,.4,-.35]],.02,.01,d,6,4));
+  return {body:body(parts),legs:Array.from({length:7},(_,i)=>[1,-1].map(s=>({geo:legGeo(.32,.02,d),x:1.7-i*.55,y:.25,z:.16*s,splay:1.1*s}))).flat()};}});
+def('icespider',{n:'冰蛛',walk:1,speed:1.4,group:[1,2],build(){const c=[.5,.75,.9],d=[.25,.38,.5];const parts=[E(.8,.55,.7,-.6,1.4,0,c),E(.5,.38,.45,.35,1.3,0,d)];
+  for(let i=0;i<6;i++)parts.push(K(.08,.35,-.6+Math.cos(i)*.4,1.95,Math.sin(i)*.4,[.75,.95,1],0,0,0,5));
+  parts.push(E(.06,.06,.06,.82,1.42,.12,[.9,.2,.2]),E(.06,.06,.06,.82,1.42,-.12,[.9,.2,.2]));
+  return {body:body(parts),legs:[.45,.2,-.05,-.3].flatMap(x=>[1,-1].map(s=>({geo:legGeo(1.6,.07,d),x,y:1.3,z:.35*s,splay:1.05*s})))};}});
+def('zaonao',{n:'造脑怪',walk:1,speed:.5,group:[1,1],build(){const c=[.85,.72,.25];
+  return {body:body([E(1.5,.9,1.1,0,1.3,0,c),E(.6,.55,.6,1.5,1.4,0,tone(c,.9)),E(.08,.08,.08,2.05,1.55,.22,[.1,.08,.05]),E(.08,.08,.08,2.05,1.55,-.22,[.1,.08,.05])]),
+    legs:[.9,.3,-.3,-.9].flatMap(x=>[1,-1].map(s=>({geo:legGeo(1,.13,tone(c,.8)),x,y:.95,z:.85*s,splay:.5*s})))};}});
+def('yalong',{n:'亚龙',fly:[80,240],speed:13,group:[1,2],build(){const c=[.25,.35,.28],m=[.35,.45,.36];
+  return {body:body([E(3,.8,.85,0,0,0,c),taper([[2.5,.2,0],[4.2,.9,0],[5.2,1,0]],.55,.38,c),E(.95,.5,.45,5.8,.95,0,c),K(.2,1,6.8,.95,0,m,0,0,-1.57),taper([[-2.7,0,0],[-6,-.4,0],[-9.5,-.3,0]],.6,.06,c)]),
+    wings:[1,-1].map(s=>({geo:wingGeo(9.5,5.5,m),x:.7,y:.45,z:.6*s,side:s}))};}});
+def('guanglong',{n:'光龙',fly:[280,520],speed:16,group:[1,1],glow:1,build(){const pts=[];for(let i=0;i<=20;i++){const t=i/20;pts.push([-t*42,Math.sin(t*9)*2.5,Math.cos(t*7)*2]);}
+  const g=taper(pts,2.2,.15,[1,1,1],60,10).g;paint(g,[1.4,2.4,2.8]);return {body:g};}});
+def('gunlei',{n:'滚雷',swarm:'orb',fly:[180,420],speed:1.5,group:[1,1]});
+def('baoxiao',{n:'爆哮虫',walk:1,speed:.4,group:[1,2],build(){const c=[.55,.45,.38];
+  return {body:body([E(2,1.4,1.6,0,1.5,0,c),E(1,.9,1,1.8,1.4,0,tone(c,1.1)),E(.45,.35,.5,2.6,1.3,0,[.35,.12,.12]),E(.1,.1,.1,2.4,2,.45,[.05,.05,.05]),E(.1,.1,.1,2.4,2,-.45,[.05,.05,.05])]),
+    legs:[1,0,-1].flatMap(x=>[1,-1].map(s=>({geo:legGeo(.7,.2,tone(c,.8)),x,y:.6,z:1.2*s,splay:.4*s})))};}});
+
+
+function makeCreature(key,opt){const sp=SPEC[key];const g=new THREE.Group();g.userData.key=key;
+  if(sp.swarm){const orb=sp.swarm==='orb';const n=sp.swarm==='glow'?28:orb?14:220,pos=new Float32Array(n*3);for(let i=0;i<n;i++){const r=sp.swarm==='glow'?4:orb?70:3+Math.random()*2;const a=Math.random()*6.283,h=sp.swarm==='glow'?Math.random()*3:orb?Math.random()*50:Math.random()*14;pos.set([Math.cos(a)*r*Math.random(),h,Math.sin(a)*r*Math.random()],i*3);}
+    const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(pos,3));const pts=new THREE.Points(geo,sp.swarm==='glow'?glowMat:orb?orbMat:dustMat);pts.layers.set(1);pts.frustumCulled=false;g.add(pts);g.userData.pts=pts;g.userData.legs=[];g.userData.wings=[];return g;}
+  const ck=key+(opt&&opt.white?'w':'');const B=geoCache[ck]||(geoCache[ck]=sp.build(opt));
+  if(B.body){const m=new THREE.Mesh(B.body,sp.glow?glowBodyMat:plantMatS);if(sp.glow)m.layers.set(1);g.add(m);g.userData.body=m;}
+  g.userData.legs=(B.legs||[]).map(L=>{const p=new THREE.Group();p.position.set(L.x,L.y,L.z);const m=new THREE.Mesh(L.geo,plantMatS);if(L.splay)m.rotation.x=-L.splay*.5;p.add(m);g.add(p);p.userData=L;return p;});
+  g.userData.wings=(B.wings||[]).map(W=>{const p=new THREE.Group();p.position.set(W.x,W.y,W.z);const geo=W.side<0&&!W.fast?W.geo.clone().scale(1,1,-1):W.geo;const m=new THREE.Mesh(W.fast?geo:(W.side<0?geo:W.geo),plantMatS);
+    if(!W.fast&&W.side<0)m.scale.z=1;p.add(m);g.add(p);p.userData=W;return p;});
+  if(B.seg){g.userData.segs=[];for(let k=0;k<14;k++){const m=new THREE.Mesh(k===0?B.head:B.seg,plantMatS);m.scale.setScalar(1-k*.035);m.position.x=-k*3.4;g.add(m);g.userData.segs.push(m);}}
+  return g;}
+
+/* who lives here: weights by continent and ground */
+function speciesFor(c,night){const w=[];const add=(k,x)=>w.push([k,x]);
+  if(c.h<=0)return w;
+  const near=(la,lo,r)=>T.angTo(c.n.x,c.n.y,c.n.z,T.V(la,lo))<r;
+  if(night)add('moths',c.moist>.3?3:1);
+  if(c.region===0){if(c.dry>.35){add('scorpion',3);add('dragonfly',night?0:3);add('worm',.35);add('deepbus',.4);}
+    else{add('landshark',c.moist>.45?2:.5);add('beetle',c.moist>.5?2:.8);add('roach',1.2);add('lizard',1.5);add('dragonfly',night?0:1.5);add('silverbeetle',1.6);add('redspider',night?2:.4);}}
+  else if(c.region===1){if(c.dry>.35)add('maoyu',3);else{add('ceratops',c.slope<.25?3:0);add('gulong',c.moist>.45?2.5:1);add('maoyu',2.5);add('tyrant',.35);add('dachuolong',c.slope<.3?2:.3);add('jianjia',1);
+      add('centipede',c.moist>.45?1:.3);add('icespider',c.moist>.5?.9:.2);add('jingzhui',near(10,-100,.06)?3:.5);if(near(22,-94,.05))add('zaonao',2);}
+    if(c.h>350)add('wyvern',1.2);if(c.h>150||near(12,-88,.04))add('yalong',.7);if(c.h<60)add('giantJelly',.9);}
+  else if(c.region===2){if(c.dry>.35)add(night?'moths':'dust',2);if(c.h<40)add('jiangguai',2);add('jelly',.8);add('lizard',.6);add('guanglong',.5);add('gunlei',night?1.5:.5);}
+  else{add('jelly',1);add('baoxiao',2);}
+  if(!night)add('jelly',.5);
+  return w.filter(x=>x[1]>0);}
+function ctxAt(lat,lon){const n=fromLL(lat,lon,1);const h=T.terrain(n.x,n.y,n.z,2);const dl=3/(R*Math.cos(lat));const q=fromLL(lat,lon+dl,1);const hx=T.terrain(q.x,q.y,q.z,2);
+  return {n,h,moist:T.moisture(n.x,n.y,n.z),dry:T.dryness(n.x,n.y,n.z),region:T.regionIdx(n.x,n.y,n.z),slope:Math.abs(hx-h)/3};}
+const SIZE={deepbus:[90,260],silverbeetle:[6,30],redspider:[10,50],dachuolong:[25,120],jianjia:[30,140],jingzhui:[20,100],centipede:[10,50],icespider:[18,90],zaonao:[25,110],yalong:[120,380],guanglong:[250,600],gunlei:[150,500],baoxiao:[25,120],maoyu:[10,45],dragonfly:[12,70],gulong:[14,70],jelly:[15,90],moths:[6,35],lizard:[15,80],landshark:[15,80],scorpion:[18,90],roach:[20,100],beetle:[20,110],ceratops:[30,150],jiangguai:[40,180],tyrant:[60,220],wyvern:[80,300],giantJelly:[150,420],worm:[60,200],dust:[60,220]};
+let spawnT=0;
+function spawnNear(){if(CREATURES.length>=MAXC)return;
+  const night=uni.uUp.value.dot(uni.uSun.value)<-.05;
+  const probe=ctxAt(view.lat,view.lon);const w=speciesFor(probe,night);if(!w.length)return;
+  let r=Math.random()*w.reduce((a,b)=>a+b[1],0),key=w[0][0];for(const [k,x] of w){r-=x;if(r<=0){key=k;break;}}
+  const sp=SPEC[key];const near=SIZE[key]||[30,160];
+  const ang=view.heading+(Math.random()-.5)*2.2,dist=(near[0]+Math.random()*(near[1]-near[0]))/R;   // mostly in front of you
+  const lat=view.lat+Math.cos(ang)*dist,lon=view.lon+Math.sin(ang)*dist/Math.cos(view.lat);
+  const c=ctxAt(lat,lon);if(c.h<=.3&&!sp.fly)return;if(CREATURES.some(o=>o.key===key&&(sp.group[1]===1||o.key==='worm'||o.key==='tyrant')&&Math.abs(o.lat-lat)*R<400))return;
+  const cnt=sp.group[0]+Math.floor(Math.random()*(sp.group[1]-sp.group[0]+1));const heading=Math.random()*6.283;const white=key==='maoyu'&&c.dry>.35;
+  for(let i=0;i<cnt&&CREATURES.length<MAXC;i++){const o=makeCreature(key,{white});fauna.add(o);
+    CREATURES.push({sp,key,obj:o,lat:lat+(Math.random()-.5)*16/R,lon:lon+(Math.random()-.5)*16/R,heading:heading+(Math.random()-.5)*.7,alt:sp.fly?sp.fly[0]+Math.random()*(sp.fly[1]-sp.fly[0]):0,ph:Math.random()*6.283,t:0,pause:0});}}
+const _fwd=new THREE.Vector3(),_rgt=new THREE.Vector3(),_mat=new THREE.Matrix4();
+function updateCreatures(dt){
+  spawnT-=dt;if(spawnT<=0){spawnT=CREATURES.length<MAXC*.6?.35:1.2;spawnNear();}
+  for(let i=CREATURES.length-1;i>=0;i--){const c=CREATURES[i],sp=c.sp,o=c.obj;c.t+=dt;
+    const dlat=(c.lat-view.lat)*R,dlon=(c.lon-view.lon)*R*Math.cos(view.lat);const d=Math.hypot(dlat,dlon);
+    if(d>(sp.fly&&sp.fly[1]>100?900:560)){fauna.remove(o);o.traverse(m=>{if(m.isPoints)m.geometry.dispose();});CREATURES.splice(i,1);continue;}
+    // wander, sometimes stop to graze or look around; don't walk into the sea
+    if(sp.walk&&!sp.burrow){if(c.pause>0)c.pause-=dt;else if(Math.random()<dt*.06)c.pause=2+Math.random()*5;}
+    c.heading+=(Math.sin(c.t*.6+c.ph)*.5+(Math.random()-.5)*.8)*(sp.dart?2.5:.5)*dt;
+    const moving=c.pause<=0;const sp2=moving?sp.speed*(sp.hop?Math.max(0,Math.sin(c.t*5+c.ph))*1.7:1):0;
+    const nl=c.lat+Math.cos(c.heading)*sp2*dt/R,nlo=c.lon+Math.sin(c.heading)*sp2*dt/R/Math.cos(c.lat);
+    const q=fromLL(nl,nlo,1);const hn=T.terrain(q.x,q.y,q.z,.5);
+    if(sp.walk&&hn<.3){c.heading+=Math.PI*.7;}else{c.lat=nl;c.lon=nlo;}
+    let h=Math.max(hn,0);
+    const {up,east,north}=frameAt(c.lat,c.lon);
+    _fwd.copy(north).multiplyScalar(Math.cos(c.heading)).addScaledVector(east,Math.sin(c.heading));
+    if(sp.fly){const want=h+c.alt;c.y=c.y===undefined?want:c.y+(want-c.y)*Math.min(1,dt*.6);h=c.y+Math.sin(c.t*1.1+c.ph)*(sp.dart?.6:.4);}
+    else if(sp.hop)h+=Math.max(0,Math.sin(c.t*5+c.ph))*.28;
+    const p=fromLL(c.lat,c.lon,R+h);o.position.set(p.x-cam.x,p.y-cam.y,p.z-cam.z);
+    _rgt.crossVectors(_fwd,up);_mat.makeBasis(_fwd,up,_rgt);o.quaternion.setFromRotationMatrix(_mat);
+    const U=o.userData,gait=moving?1:0,f=sp.speed*1.6;
+    if(U.body&&sp.walk)U.body.position.y=Math.abs(Math.sin(c.t*f*2))*.04*gait*(U.legs.length?1:0);
+    U.legs.forEach((L,k)=>{const pair=(k%2)^((k>>1)%2);if(L.userData.fin){L.rotation.y=Math.sin(c.t*6+k*3.14)*.6*gait;return;}L.rotation.z=Math.sin(c.t*f+(pair?Math.PI:0)+k*.3)*.45*gait;});
+    U.wings.forEach(W=>{if(W.userData.fast)W.rotation.x=Math.sin(c.t*42+(W.userData.side>0?0:1))*.5*W.userData.side;else W.rotation.x=(Math.sin(c.t*2.6+c.ph)*.7+.1)*W.userData.side;});
+    if(sp.swim&&U.body){const sq=1+Math.sin(c.t*2+c.ph)*.12;U.body.scale.set(1/Math.sqrt(sq),sq,1/Math.sqrt(sq));}
+    if(U.segs){const em=Math.sin(c.t*.3+c.ph);U.segs.forEach((sg,k)=>{const ph=c.t*2.4-k*.5;sg.position.y=Math.sin(ph)*1.2+(em*7-k*1.3)*(em>0?1:1.8);sg.position.z=Math.sin(ph*.5)*.8;});}
+    if(U.pts){const a=U.pts.geometry.attributes.position;const n=a.count;for(let j=0;j<n;j+=7){const k=(j+Math.floor(c.t*30))%n;const s=sp.swarm==='glow'?.04:sp.swarm==='orb'?.6:.25;a.setXYZ(k,a.getX(k)+(Math.random()-.5)*s,a.getY(k)+(Math.random()-.5)*s*.6,a.getZ(k)+(Math.random()-.5)*s);}
+      if(sp.swarm==='dust'){U.pts.rotation.y+=dt*1.8;}a.needsUpdate=true;}
+  }
+}
+
+/* ===== quadtree ===== */
+let nid=0;
+class Node{constructor(f,u0,v0,size,level,parent){this.f=f;this.u0=u0;this.v0=v0;this.size=size;this.level=level;this.parent=parent;this.id=nid++;this.kids=null;this.mesh=null;this.state=0;/*0 none,1 loading,2 ready*/this.dead=false;
+  const d=cubeDirJ(f,u0+size/2,v0+size/2);this.c=d;this.span=size*Math.PI/2*R/2;this.rad=this.span*.75;this.lastUse=0;this.hc=level<6?0:Math.max(T.terrain(d[0],d[1],d[2],Math.max(this.span/4,2)),0);}
+  request(prio){if(this.state)return;this.state=1;queue.push({prio,node:this,msg:{id:this.id,f:this.f,u0:this.u0,v0:this.v0,size:this.size,level:this.level},cb:d=>this.build(d)});pump();}
+  build(d){if(this.dead)return;const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(d.pos,3));g.setAttribute('normal',new THREE.BufferAttribute(d.nor,3));g.setAttribute('dir',new THREE.BufferAttribute(d.dir,3));g.setAttribute('hgt',new THREE.BufferAttribute(d.hgt,1));g.setAttribute('hz0',new THREE.BufferAttribute(d.hz0,4));g.setAttribute('hz1',new THREE.BufferAttribute(d.hz1,4));g.setIndex(new THREE.BufferAttribute(d.index,1));
+    g.boundingSphere=new THREE.Sphere(new THREE.Vector3(),this.span*.8+Math.max(d.maxH-d.minH,10));
+    const m=new THREE.Mesh(g,terrainMat);m.frustumCulled=true;m.userData.node=this;m.visible=false;
+    m.onBeforeRender=(r,s,c,geo,mat)=>{if(!mat.uniforms||!mat.uniforms.uTileModA)return;mat.uniforms.uTileModA.value.set(modP(this.cx,4096),modP(this.cy,4096),modP(this.cz,4096));mat.uniforms.uTileModB.value.set(modP(this.cx,262144),modP(this.cy,262144),modP(this.cz,262144));mat.uniformsNeedUpdate=true;};
+    this.cx=d.cx;this.cy=d.cy;this.cz=d.cz;this.maxH=d.maxH;this.mesh=m;planet.add(m);this.state=2;
+    if(d.flora){this.coll=makeColliders(d.flora);this.flora=buildFlora(d.flora,this.span);if(this.flora){this.flora.visible=false;this.flora.userData.node=this;flora.add(this.flora);}}}
+  split(){if(this.kids)return;const h=this.size/2;this.kids=[new Node(this.f,this.u0,this.v0,h,this.level+1,this),new Node(this.f,this.u0+h,this.v0,h,this.level+1,this),new Node(this.f,this.u0,this.v0+h,h,this.level+1,this),new Node(this.f,this.u0+h,this.v0+h,h,this.level+1,this)];}
+  dispose(){this.dead=true;if(this.mesh){planet.remove(this.mesh);this.mesh.geometry.dispose();this.mesh=null;}if(this.flora){flora.remove(this.flora);this.flora.traverse(o=>{if(o.isInstancedMesh)o.dispose();});this.flora=null;}if(this.kids){for(const k of this.kids)k.dispose();this.kids=null;}this.state=0;}
+}
+const modP=(x,p)=>x-Math.floor(x/p)*p;
+function cubeDirJ(f,u,v){const a=Math.tan(u*Math.PI/4),b=Math.tan(v*Math.PI/4);let x,y,z;switch(f){case 0:x=1;y=b;z=-a;break;case 1:x=-1;y=b;z=a;break;case 2:x=a;y=1;z=-b;break;case 3:x=a;y=-1;z=b;break;case 4:x=a;y=b;z=1;break;default:x=-a;y=b;z=-1;}const l=Math.sqrt(x*x+y*y+z*z);return [x/l,y/l,z/l];}
+const roots=[];for(let f=0;f<6;f++)roots.push(new Node(f,-1,-1,2,0,null));
+let frameNo=0,visibleTiles=0;
+/* camera position in planet frame, doubles */
+const cam={x:0,y:0,z:R*3};
+function distToNode(n){const r=R+n.hc;const dx=n.c[0]*r-cam.x,dy=n.c[1]*r-cam.y,dz=n.c[2]*r-cam.z;return Math.max(Math.sqrt(dx*dx+dy*dy+dz*dz)-n.rad,0);}
+let leafLevel=0,leafSpan=1e6,camLeafSpan=1e6;
+function updateTree(){leafLevel=0;leafSpan=1e6;
+  visibleTiles=0;const camLen=Math.sqrt(cam.x*cam.x+cam.y*cam.y+cam.z*cam.z);const horHere=Math.acos(Math.min(1,R/camLen));
+  for(const o of planet.children)o.visible=false;for(const o of flora.children)o.visible=false;
+  const visit=(n)=>{
+    n.lastUse=frameNo;
+    const d=distToNode(n);
+    // horizon: a tile is hidden when even its highest point sits below the viewer's horizon
+    if(n.level>2){const dot=Math.max(-1,Math.min(1,(n.c[0]*cam.x+n.c[1]*cam.y+n.c[2]*cam.z)/camLen));const mh=n.maxH!==undefined?Math.max(n.maxH,0)+80:9000;
+      if(Math.acos(dot)-n.span*.8/R>horHere+Math.acos(R/(R+mh)))return;}
+    if(n.flora&&d<(n.level===12?9000:n.level===14?1300:260)){n.flora.visible=true;n.flora.userData.d=d;}
+    const want=n.level<MAXL&&d<n.span*quality.lod;
+    if(!n.mesh)n.request(d);
+    if(want){n.split();let allReady=true;for(const k of n.kids){k.lastUse=frameNo;if(k.state!==2)allReady=false;}
+      if(allReady){for(const k of n.kids)visit(k);if(n.mesh)n.mesh.visible=false;return;}
+      for(const k of n.kids){if(!k.state)k.request(d*0.5+k.level);}
+    }
+    if(n.mesh){n.mesh.visible=true;visibleTiles++;if(d===0&&n.level>leafLevel){leafLevel=n.level;leafSpan=n.span;}}
+  };
+  for(const r of roots)visit(r);
+  camLeafSpan=leafSpan;
+  // prune nodes unused for a while
+  const prune=(n)=>{if(!n.kids)return;if(frameNo-n.kids[0].lastUse>240&&n.level>=1){for(const k of n.kids)k.dispose();n.kids=null;return;}for(const k of n.kids)prune(k);};
+  if(frameNo%30===0)for(const r of roots)prune(r);
+}
+function floraLOD(){
+  for(const g of flora.children){if(!g.visible)continue;const d=g.userData.d||0;const far=d>320;
+    for(const im of g.children){const k=im.userData.k;
+      if(NEAR_ONLY.has(k)){im.visible=d<(g.userData.node.level===16?400:520);continue;}
+      if(im.userData.lo!==undefined||GEOS_LO[k]){const want=far?im.userData.lo:im.userData.hi;if(want){im.visible=true;if(im.geometry!==want)im.geometry=want;}else im.visible=!far;}}}
+}
+function placeMeshes(){
+  for(const o of planet.children){const n=o.userData.node;if(n)o.position.set(n.cx-cam.x,n.cy-cam.y,n.cz-cam.z);}
+  for(const o of flora.children){if(!o.visible)continue;const n=o.userData.node;o.position.set(n.cx-cam.x,n.cy-cam.y,n.cz-cam.z);}
+  uni.uCenter.value.set(-cam.x,-cam.y,-cam.z);
+  const l=Math.sqrt(cam.x*cam.x+cam.y*cam.y+cam.z*cam.z);uni.uUp.value.set(cam.x/l,cam.y/l,cam.z/l);uni.uAlt.value=l-R;
+  sky.position.copy(uni.uCenter.value);cloud.position.copy(uni.uCenter.value);
+}
+
+/* ===== post ===== */
+let composer;
+function buildComposer(){const size=renderer.getDrawingBufferSize(new THREE.Vector2());const rt=new THREE.WebGLRenderTarget(size.x,size.y,{type:THREE.HalfFloatType,samples:quality.msaa});
+  if(composer)composer.dispose();composer=new EffectComposer(renderer,rt);composer.addPass(new RenderPass(scene,camera));if(quality.bloom)composer.addPass(new UnrealBloomPass(new THREE.Vector2(size.x/2,size.y/2),.35,.7,1.15));composer.addPass(new OutputPass());
+  fxaaPass=new ShaderPass(FXAAShader);composer.addPass(fxaaPass);gradePass=new ShaderPass(GRADE);composer.addPass(gradePass);setPostSize();}
+let fxaaPass,gradePass;
+function setPostSize(){if(!fxaaPass)return;const s=renderer.getDrawingBufferSize(new THREE.Vector2());fxaaPass.material.uniforms.resolution.value.set(1/s.x,1/s.y);gradePass.material.uniforms.uTexel.value.set(1/s.x,1/s.y);gradePass.material.uniforms.uSharp.value=.18+(1-rscale)*.55;}
+/* final grade: a touch more saturation and contrast, and a soft vignette */
+const GRADE={uniforms:{tDiffuse:{value:null},uTexel:{value:new THREE.Vector2()},uSharp:{value:.2}},vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+  fragmentShader:'uniform sampler2D tDiffuse;uniform vec2 uTexel;uniform float uSharp;varying vec2 vUv;void main(){vec3 c=texture2D(tDiffuse,vUv).rgb;'+
+  /* contrast-adaptive sharpen: restores detail lost to the lower internal resolution */
+  'vec3 a=texture2D(tDiffuse,vUv+vec2(uTexel.x,0.)).rgb,b=texture2D(tDiffuse,vUv-vec2(uTexel.x,0.)).rgb,e=texture2D(tDiffuse,vUv+vec2(0.,uTexel.y)).rgb,f=texture2D(tDiffuse,vUv-vec2(0.,uTexel.y)).rgb;'+
+  'vec3 mn=min(c,min(min(a,b),min(e,f))),mx=max(c,max(max(a,b),max(e,f)));vec3 amp=sqrt(clamp(min(mn,1.-mx)/max(mx,1e-4),0.,1.));c=clamp(c+(c*4.-a-b-e-f)*amp*uSharp,0.,1.);'+
+  'float l=dot(c,vec3(.299,.587,.114));c=mix(vec3(l),c,1.12);c=mix(c,c*c*(3.-2.*c),.18);vec2 d=vUv-.5;c*=1.-dot(d,d)*.5;gl_FragColor=vec4(c,1.);}'};
+/* tiers choose effects; the internal resolution (rscale) then adapts every second to hold the frame rate, so even slow machines keep shadows, bloom and full clouds */
+const TIERS={high:{pr:Math.min(devicePixelRatio,1.75),steps:28,msaa:0,lod:1.9,far:2,sky:.5,bloom:true,label:'高'},mid:{pr:Math.min(devicePixelRatio,1.4),steps:20,msaa:0,lod:1.7,far:3,sky:.45,bloom:true,label:'中'},low:{pr:1,steps:14,msaa:0,lod:1.5,far:4,sky:.4,bloom:true,label:'低'}};
+let rscale=1,rsHold=0;
+let quality=TIERS.high,qmode='auto',autoTier=/Mobi|Android|iPhone|iPad/.test(navigator.userAgent)?'mid':'high';
+function applyQuality(){const t=qmode==='auto'?autoTier:qmode;quality=TIERS[t];renderer.setPixelRatio(quality.pr*rscale);resize();uni.uSteps.value=quality.steps;buildComposer();buildSkyRT();$('#qv').textContent=qmode==='auto'?quality.label:'';}
+function resize(){const w=innerWidth,h=innerHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();if(composer){const s=renderer.getDrawingBufferSize(new THREE.Vector2());composer.setSize(s.x,s.y);buildSkyRT();setPostSize();}if(!$('#map').hidden)fitMap();}
+addEventListener('resize',resize);
+
+/* ===== geo helpers ===== */
+const toLL=(x,y,z)=>{const l=Math.sqrt(x*x+y*y+z*z);return {lat:Math.asin(y/l),lon:Math.atan2(-z,x),r:l};};
+const fromLL=(lat,lon,r)=>({x:r*Math.cos(lat)*Math.cos(lon),y:r*Math.sin(lat),z:-r*Math.cos(lat)*Math.sin(lon)});
+const ground=(lat,lon)=>{const p=fromLL(lat,lon,1);return Math.max(T.terrain(p.x,p.y,p.z,0.5),0);};
+function frameAt(lat,lon){const up=new THREE.Vector3(Math.cos(lat)*Math.cos(lon),Math.sin(lat),-Math.cos(lat)*Math.sin(lon));
+  const east=new THREE.Vector3(-Math.sin(lon),0,-Math.cos(lon));const north=new THREE.Vector3().crossVectors(up,east);return {up,east,north};}
+
+/* ===== view state ===== */
+const D2R=Math.PI/180;
+const view={mode:'ground',lat:3.6*D2R,lon:2*D2R,alt:0,heading:Math.PI,pitch:-.06,speedK:1,eye:3};
+try{const e=parseFloat(localStorage.getItem('rqw-eye'));if(e>=1.5&&e<=12)view.eye=e;}catch(e){}
+function setMode(m){view.mode='ground';view.alt=ground(view.lat,view.lon)+view.eye;}
+
+function applyCamera(){
+  let h=ground(view.lat,view.lon);
+  {const sp=camLeafSpan/SEG;if(sp>2.5&&sp<400){const q=fromLL(view.lat,view.lon,1);h=Math.max(h,Math.max(T.terrain(q.x,q.y,q.z,sp),0)+Math.min(sp*.15,25));}}   // the mesh under us may still be a coarse tile
+  if(view.mode==='ground'){view.alt=h+view.eye+(view.fly||0);view.altTarget=undefined;}else{if(view.altTarget!==undefined){view.alt=Math.exp(THREE.MathUtils.lerp(Math.log(view.alt),Math.log(view.altTarget),.18));if(Math.abs(view.alt-view.altTarget)<view.alt*.001)view.altTarget=undefined;}view.alt=Math.max(view.alt,h+60);}
+  const p=fromLL(view.lat,view.lon,R+view.alt);cam.x=p.x;cam.y=p.y;cam.z=p.z;
+  const {up,east,north}=frameAt(view.lat,view.lon);
+  let pitch=view.pitch;
+  if(view.mode==='god'){const a=view.alt;pitch=THREE.MathUtils.lerp(-Math.PI/2,-0.21,smooth01((Math.log10(Math.max(a,10))-6.3)/(3.0-6.3)));}
+  const fwd=new THREE.Vector3().copy(north).multiplyScalar(Math.cos(view.heading)).addScaledVector(east,Math.sin(view.heading));
+  const dir=new THREE.Vector3().copy(fwd).multiplyScalar(Math.cos(pitch)).addScaledVector(up,Math.sin(pitch));
+  const t=smooth01((-pitch-1.0)/.5);const upAxis=new THREE.Vector3().copy(up).multiplyScalar(1-t).addScaledVector(fwd,t).normalize();
+  camera.position.set(0,0,0);camera.up.copy(upAxis);camera.lookAt(dir);
+  camera.fov=view.mode==='ground'?62:50;
+  const near=view.mode==='ground'?.12:THREE.MathUtils.clamp((view.alt-h)*.01,.12,500);camera.near=near;camera.updateProjectionMatrix();
+}
+const smooth01=x=>{x=Math.min(Math.max(x,0),1);return x*x*(3-2*x);};
+
+/* ===== input ===== */
+const isTouch=matchMedia('(pointer:coarse)').matches;
+if(isTouch){document.body.classList.add('touch');$('#hint').textContent='左下摇杆行走 · 右侧拖动转头 · 按住“飞”升空 · 双指捏合调速';
+  $('#keys').innerHTML='<kbd>摇杆</kbd><span>行走（推到边缘奔跑）</span><kbd>右侧拖动</kbd><span>转头</span><kbd>双指捏合</kbd><span>调整速度</span>';}
+const keys={};addEventListener('keydown',e=>{keys[e.code]=true;if(e.code==='Space'&&!/INPUT|TEXTAREA/.test(e.target.tagName)){e.preventDefault();}});
+{const fb=$('#flyBtn');const on=v=>{keys.Fly=v;fb.classList.toggle('on',v);};fb.addEventListener('pointerdown',e=>{e.stopPropagation();fb.setPointerCapture(e.pointerId);on(true);});['pointerup','pointercancel','lostpointercapture'].forEach(t=>fb.addEventListener(t,()=>on(false)));}addEventListener('keyup',e=>{keys[e.code]=false;});
+let drag=null;const pts=new Map();let pinch=null;
+canvas.addEventListener('pointerdown',e=>{pts.set(e.pointerId,{x:e.clientX,y:e.clientY});canvas.setPointerCapture(e.pointerId);
+  if(pts.size===2){const [a,b]=[...pts.values()];pinch={d:Math.hypot(a.x-b.x,a.y-b.y),alt:view.altTarget||view.alt,k0:view.speedK};drag=null;return;}
+  drag={id:e.pointerId,x:e.clientX,y:e.clientY,b:e.button};});
+const endPtr=e=>{pts.delete(e.pointerId);if(pts.size<2)pinch=null;if(drag&&e.pointerId===drag.id)drag=null;};
+canvas.addEventListener('pointercancel',endPtr);
+canvas.addEventListener('dblclick',()=>{if(view.mode==='ground'&&!isTouch&&!document.pointerLockElement)canvas.requestPointerLock?.();});
+canvas.addEventListener('pointermove',e=>{
+  if(pts.has(e.pointerId))pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(pinch&&pts.size===2){const [a,b]=[...pts.values()];const d=Math.hypot(a.x-b.x,a.y-b.y);if(d>10){if(view.mode==='god')view.altTarget=THREE.MathUtils.clamp(pinch.alt*pinch.d/d,60,R*8);else setSpeed(pinch.k0*Math.pow(d/pinch.d,1.6));}return;}
+  if(view.mode==='ground'){if(document.pointerLockElement===canvas){look(e.movementX,e.movementY);}else if(drag&&e.pointerId===drag.id&&(!isTouch||e.clientX>innerWidth*.4)){look((e.clientX-drag.x)*2.2,(e.clientY-drag.y)*2.2);drag.x=e.clientX;drag.y=e.clientY;}return;}
+  if(!drag||e.pointerId!==drag.id)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;drag.x=e.clientX;drag.y=e.clientY;
+  if(drag.b===2){view.heading+=dx*.004;return;}
+  const k=Math.min(view.alt,R*1.2)/R*1.4/innerHeight;      // ground distance per pixel, in radians
+  const {east,north}=frameAt(view.lat,view.lon);
+  const fwd=new THREE.Vector3().copy(north).multiplyScalar(Math.cos(view.heading)).addScaledVector(east,Math.sin(view.heading));
+  const rgt=new THREE.Vector3().copy(east).multiplyScalar(Math.cos(view.heading)).addScaledVector(north,-Math.sin(view.heading));
+  moveLL(fwd,dy*k);moveLL(rgt,-dx*k);
+});
+canvas.addEventListener('pointerup',endPtr);
+canvas.addEventListener('contextmenu',e=>e.preventDefault());
+canvas.addEventListener('wheel',e=>{e.preventDefault();if(view.mode==='ground'){const dy=e.deltaMode===1?e.deltaY*16:e.deltaMode===2?e.deltaY*400:e.deltaY;setSpeed(view.speedK*Math.exp(-THREE.MathUtils.clamp(dy,-50,50)*.0028));return;}
+  view.altTarget=THREE.MathUtils.clamp((view.altTarget||view.alt)*Math.exp(THREE.MathUtils.clamp(e.deltaY,-120,120)*.0025),60,R*8);},{passive:false});
+const SPEED_STEPS=[.5,1,2,4,8,16,32,64,128,256,400];let speedToastT=0;
+function setSpeed(k){k=Math.min(400,Math.max(.5,k));if(Math.abs(k-1)<.06)k=1;view.speedK=k;const t=$('#speedToast');t.textContent='移动速度 ×'+(k<10?k.toFixed(k<2?1:1).replace(/\.0$/,''):Math.round(k));t.classList.remove('off');speedToastT=1.6;
+  const sl=$('#spd');if(sl&&document.activeElement!==sl)sl.value=Math.log(k/.5)/Math.log(800);const o=$('#spdv');if(o)o.textContent='×'+(k<10?+k.toFixed(1):Math.round(k));}
+addEventListener('keydown',e=>{if(e.target&&e.target.tagName==='INPUT'&&e.target.type!=='range')return;const i=SPEED_STEPS.findIndex(v=>v>=view.speedK-1e-6);
+  if(e.key==='='||e.key==='+'||e.key===']')setSpeed(SPEED_STEPS[Math.min(SPEED_STEPS.length-1,(SPEED_STEPS[i]>view.speedK+1e-6?i:i+1))]);
+  else if(e.key==='-'||e.key==='['){let j=SPEED_STEPS.length-1;while(j>0&&SPEED_STEPS[j]>=view.speedK-1e-6)j--;setSpeed(SPEED_STEPS[j]);}
+  else if(e.key==='0')setSpeed(1);});
+function look(dx,dy){view.heading+=dx*.0022;view.pitch=THREE.MathUtils.clamp(view.pitch-dy*.0022,-1.45,1.45);}
+function moveLL(dirV,ang){ // move along surface direction by angle (radians)
+  const p=new THREE.Vector3().copy(frameAt(view.lat,view.lon).up).multiplyScalar(Math.cos(ang)).addScaledVector(dirV,Math.sin(ang)).normalize();
+  const ll=toLL(p.x,p.y,p.z);const dl=ll.lon-view.lon;
+  // keep heading stable across the pole-free sphere by not rotating with lon wrap
+  view.lat=THREE.MathUtils.clamp(ll.lat,-1.55,1.55);view.lon=ll.lon;
+}
+// touch stick
+let stick=null;const stickEl=$('#stick'),knob=stickEl.querySelector('i');
+stickEl.addEventListener('pointerdown',e=>{stick={id:e.pointerId,x:e.clientX,y:e.clientY,dx:0,dy:0};stickEl.setPointerCapture(e.pointerId);});
+stickEl.addEventListener('pointermove',e=>{if(!stick||e.pointerId!==stick.id)return;let dx=e.clientX-stick.x,dy=e.clientY-stick.y;const l=Math.hypot(dx,dy);if(l>40){dx*=40/l;dy*=40/l;}stick.dx=dx/40;stick.dy=dy/40;knob.style.transform=`translate(${dx}px,${dy}px)`;});
+const stickEnd=e=>{if(stick&&e.pointerId===stick.id){stick=null;knob.style.transform='';}};stickEl.addEventListener('pointerup',stickEnd);stickEl.addEventListener('pointercancel',stickEnd);
+
+/* ===== UI ===== */
+const sunEl=$('#sun'),coverEl=$('#cover');
+/* time runs on its own clock: one day on 绒球 lasts 24 real minutes (one game minute per real second). The sun stands over
+   longitude 0 at 12:00; a fixed 10° tilt gives the north long days. The moon goes round in 8 days, so its phase changes over
+   an evening of play. Starts at 07:10 at the landing cliffs, near full moon. */
+const DAY_REAL=24*60;
+let gameH=7.17-2/15;try{const v=parseFloat(localStorage.getItem('rqw-gameH'));if(isFinite(v))gameH=v;}catch(e){}
+let saveT=0;
+function solar(h){const utcH=((h%24)+24)%24;const dec=10*D2R;const ls=-(utcH-12)*15*D2R;
+  const sun=new THREE.Vector3(Math.cos(dec)*Math.cos(ls),Math.sin(dec),-Math.cos(dec)*Math.sin(ls));
+  const syn=h/24/8;const ml=ls+Math.PI+syn*2*Math.PI;const mdec=5*D2R*Math.sin(syn*2*Math.PI*1.07);
+  const moon=new THREE.Vector3(Math.cos(mdec)*Math.cos(ml),Math.sin(mdec),-Math.cos(mdec)*Math.sin(ml));
+  return {sun,moon,phase:(1-sun.dot(moon))*.5,utcH};}
+const localHour=()=>((solar(gameH).utcH+view.lon/D2R/15)%24+24)%24;
+const fmtH=h=>String(Math.floor(h)).padStart(2,'0')+':'+String(Math.floor(h%1*60)).padStart(2,'0');
+function phaseWord(h){return h<4?'深夜':h<5.5?'拂晓':h<7.5?'清晨':h<11?'上午':h<13?'正午':h<17?'午后':h<19?'黄昏':h<22?'夜晚':'深夜';}
+function updateSun(dt){if(!sunEl.dragging)gameH+=dt*24/DAY_REAL;
+  const {sun,moon,phase}=solar(gameH);uni.uSun.value.copy(sun);uni.uMoon.value.copy(moon);uni.uMoonI.value=.09*Math.pow(phase,1.5);
+  const lh=localHour();if(!sunEl.dragging)sunEl.value=lh.toFixed(2);$('#sunv').textContent=fmtH(lh);
+  saveT+=dt;if(saveT>5){saveT=0;try{localStorage.setItem('rqw-gameH',String(gameH));}catch(e){}}}
+function setLocalHour(h){let d=h-localHour();d=((d+12)%24+24)%24-12;gameH+=d;updateSun(0);}
+sunEl.addEventListener('pointerdown',()=>{sunEl.dragging=true;});addEventListener('pointerup',()=>{sunEl.dragging=false;});
+sunEl.addEventListener('input',()=>setLocalHour(+sunEl.value));
+function setSun(){}
+{const e=$('#eye');const show=()=>{$('#eyev').textContent=(view.eye<10?view.eye.toFixed(1):Math.round(view.eye))+' m';};e.value=view.eye;show();
+ e.addEventListener('input',()=>{view.eye=+e.value;BODY=.25*view.eye/1.6+.3;show();try{localStorage.setItem('rqw-eye',String(view.eye));}catch(x){}});BODY=.25*view.eye/1.6+.3;}
+$('#spd').addEventListener('input',e=>setSpeed(.5*Math.pow(800,+e.target.value)));
+coverEl.addEventListener('input',()=>{uni.uCover.value=+coverEl.value;$('#coverv').textContent=Math.round(coverEl.value*100)+'%';});
+$('#q').addEventListener('change',e=>{qmode=e.target.value;applyQuality();});
+{const b=$('#bSet'),p=$('#settings');const close=()=>{p.hidden=true;b.setAttribute('aria-expanded','false');};
+ b.addEventListener('click',e=>{e.stopPropagation();p.hidden=!p.hidden;b.setAttribute('aria-expanded',String(!p.hidden));});
+ p.addEventListener('pointerdown',e=>e.stopPropagation());addEventListener('pointerdown',e=>{if(!p.hidden&&!b.contains(e.target))close();});
+ addEventListener('keydown',e=>{if(e.key==='Escape'&&!p.hidden)close();});}
+setTimeout(()=>$('#hint').classList.add('off'),9000);
+
+/* presets: find spots with the JS terrain (same function the tiles use) */
+function sunVec(deg){const a=deg*Math.PI/180;return new THREE.Vector3(Math.cos(a),0.33*Math.sin(a*.5+.4),Math.sin(a)).normalize();}
+function findSpot(kind,sunDeg,seed){
+  const sun=sunVec(sunDeg);let s=seed;const rnd=()=>{s=(s*16807)%2147483647;return s/2147483647;};let best=null,bs=-1e9;
+  for(let i=0;i<3000;i++){
+    const z=rnd()*2-1,a=rnd()*6.2832,r=Math.sqrt(1-z*z);const d=new THREE.Vector3(r*Math.cos(a),r*Math.sin(a),z);
+    const el=d.dot(sun);if(el<.3)continue;const h=T.terrain(d.x,d.y,d.z,5000);
+    const ll=toLL(d.x,d.y,d.z);if(Math.abs(ll.lat)>1.2)continue;
+    const {east,north}=frameAt(ll.lat,ll.lon);let mh=-1e9,mdir=null;
+    const rr=kind==='valley'?.0006:.004;for(let k=0;k<12;k++){const ang=k/12*6.2832;const o=d.clone().addScaledVector(east,Math.cos(ang)*rr).addScaledVector(north,Math.sin(ang)*rr).normalize();const hh=T.terrain(o.x,o.y,o.z,5000);if(hh>mh){mh=hh;mdir=o;}}
+    let sc;
+    if(kind==='shore'){if(h<-5||h>40)continue;sc=mh/500-Math.abs(el-.55)*2;}
+    else if(kind==='valley'){if(h<60||h>1200||mh-h<200)continue;sc=(mh-h)/400-Math.abs(el-.55)*2;}
+    else{if(h<300||h>1800||mh>2600)continue;sc=(mh-h)/1000-Math.abs(el-.6)*2;}
+    if(sc>bs){bs=sc;best={d,mdir,h,mh};}
+  }
+  return best;
+}
+function landNear(lat,lon){for(let r=0;r<200;r++){const rr=r*.0004;for(let a=0;a<8;a++){const la=lat+Math.cos(a*.785)*rr,lo=lon+Math.sin(a*.785)*rr;if(ground(la,lo)>2)return [la,lo];}}return [lat,lon];}
+const sunFor=lonDeg=>((lonDeg+28)%360+360)%360;   // morning light wherever you land
+const place=(la,lo,heading=0,pitch=.03)=>()=>{const [a,b]=landNear(la*D2R,lo*D2R);return {mode:'ground',lat:a,lon:b,heading,pitch,sun:sunFor(lo)};};
+const VIEWS={};
+function goView(k){const v=VIEWS[k]();view.altTarget=undefined;setMode(v.mode);view.lat=v.lat;view.lon=v.lon;if(v.alt!==undefined)view.alt=v.alt;view.heading=v.heading||0;if(v.pitch!==undefined)view.pitch=v.pitch;}
+
+
+/* ===== map ===== */
+const PLACES=[{"id":"rongqiu","n":"绒球（母星）","la":20,"lo":0,"r":"sea","s":"琳出生和长大的星球。书中直接称它为“绒球”。"},{"id":"origin","n":"起源之海","la":-4,"lo":44,"r":"sea","s":"莎琳洒下细胞的海面，琳“原来所生活的地方”。"},{"id":"abyss","n":"深渊裂口","la":-26,"lo":36,"r":"sea","s":"海底深处的裂口，有凝固的熔岩和热泉烟柱。"},{"id":"icesea","n":"冰封极海","la":74,"lo":24,"r":"pole","s":"厚冰封住的北方海域，冰晶怪在冰面上挖洞狩猎。"},{"id":"jjzs","n":"结晶之山","la":71,"lo":34,"r":"pole","s":"从深海一直长出冰面的巨大结晶，把阳光导进深渊。"},{"id":"north","n":"北之大陆","la":30,"lo":2,"r":"north","s":"琳第一次登上的大陆：峭壁、尖柱林、无尽荒漠、扭曲丛林。"},{"id":"landing","n":"南岸峭壁","la":3.6,"lo":2,"r":"north","s":"利维坦用吸盘和倒钩挂在峭壁上，扛住了海啸。"},{"id":"spires","n":"尖柱林","la":15,"lo":-1,"r":"north","s":"密密麻麻的绿色巨大尖柱，其实是覆盖苔藓的空心石头。"},{"id":"desert","n":"无尽荒漠","la":25,"lo":-5,"r":"north","s":"炙热到能瞬间杀死细胞的沙海，蠕虫像列车一样穿行。"},{"id":"oasis","n":"中转站","la":27,"lo":-11,"r":"north","s":"荒漠里一座直径数十米的湖，周围围着一圈触须般的植物。"},{"id":"inca_pit","n":"沙漠巨口","la":20,"lo":-13,"r":"north","s":"暴雨汇成的河流灌进沙漠中心的巨坑，坑壁有阶梯与洞穴。"},{"id":"under","n":"地下世界","la":24,"lo":-4,"r":"north","s":"沙漠下方的巨大空间，洞顶的发光粉末如同银河。"},{"id":"canyon","n":"峡谷之海","la":30,"lo":6,"r":"north","s":"地下世界崩塌后形成、贯穿大陆南北的海水峡谷。"},{"id":"jungle","n":"扭曲丛林","la":33,"lo":11,"r":"north","s":"树干像触手一样卷绕的森林，长到三十多米后盘成宽大平台。"},{"id":"glow","n":"闪光林地","la":29,"lo":8,"r":"north","s":"一条河分开的两半森林：地面发光的一边，与猎食者的一边。"},{"id":"crystalcave","n":"结晶虫穴","la":28,"lo":9.5,"r":"north","s":"闪光林地地下百米的结晶洞穴，奇布查虫的巢。"},{"id":"peak","n":"山峰","la":36,"lo":15,"r":"north","s":"丛林中央高逾千米的山，山中有湖、温泉和发光的闪耀鳗。"},{"id":"hometree","n":"家园树","la":32,"lo":8.3,"r":"north","s":"三百多米高的空心巨木，地面和地下都有；地面上那棵是脑袋虫的避难所。"},{"id":"isles","n":"空中群岛","la":34,"lo":10,"r":"north","s":"月接近时升空的鸣石岛，倒挂着一整片扭曲树林。"},{"id":"frozentree","n":"冰河上的巨树","la":40,"lo":6,"r":"north","s":"第二卷，好几棵三百多米高的家园树冻死在峡谷化成的冰河上，像高塔一样立着。"},{"id":"jadeport","n":"翡翠港","la":13,"lo":12.2,"r":"north","s":"第二卷，龙族在北之大陆建立的城市与港口。"},{"id":"mistsea","n":"迷雾之海","la":12,"lo":-22,"r":"sea","s":"向西航线上的浓雾海域，云里藏着伪装成云的生物。"},{"id":"echo","n":"回音之岛","la":8.9,"lo":-31.6,"r":"sea","s":"琳在这里把天空之舱里的大部分生物放了下来；它就是后来的骷髅岛。"},{"id":"skull","n":"骷髅岛","la":8,"lo":-33,"r":"sea","s":"从高空看像巨兽骸骨的浓雾之岛，上空飘着氧气球。"},{"id":"grave","n":"深渊墓场","la":4,"lo":-38,"r":"sea","s":"铺满两种生物甲壳碎片的古战场海底。"},{"id":"boneisle","n":"只有骨架的岛屿","la":12,"lo":-44,"r":"sea","s":"被风暴扫过、只剩沙砾与尸骨的岛。"},{"id":"fungus","n":"真菌之岛","la":30,"lo":-104,"r":"sea","s":"瘟疫真菌的老巢，五座岛下是深渊与被崇拜的脑。"},{"id":"twin","n":"双子岛","la":1,"lo":-46,"r":"sea","s":"恐龙大陆东海的两座半球形长岛，脑袋虫的新家。"},{"id":"west","n":"西之大陆","la":6,"lo":-76,"r":"west","s":"大型节肢类早早灭绝，爬行类与恐龙占据的大陆。"},{"id":"rift","n":"大裂谷","la":14,"lo":-60,"r":"west","s":"深两千米、迷雾弥漫的裂谷，飞龙在上方筑巢。"},{"id":"linbase","n":"北裂谷外","la":26,"lo":-66,"r":"west","s":"琳把裂谷外的荒地改造成茂密雨林，地下是复杂管道。"},{"id":"salt","n":"盐地","la":4,"lo":-72,"r":"west","s":"干涸的咸水湖，望不到边的盐与沙；地下深处藏着秘密。"},{"id":"longqimu","n":"龙栖木之林","la":-4,"lo":-86,"r":"west","s":"骸龙的森林城市，“没有争执的世界”。"},{"id":"emeraldcity","n":"翡翠龙之城","la":12,"lo":-88,"r":"west","s":"巨蛋形岩石间崛起的帝国都城，分上、中、下三区。"},{"id":"greenpool","n":"绿色深潭","la":12,"lo":-88,"r":"west","s":"创造者之脑被摧毁的地方，后来成了一潭绿水。"},{"id":"scorpion","n":"立蝎之城","la":-12,"lo":-78,"r":"west","s":"平原中央十座一字排开的五十米金字塔。"},{"id":"crystalwood","n":"结晶林地","la":10,"lo":-100,"r":"west","s":"大陆西边长满结晶树的林地，树被咬碎时会尖叫。"},{"id":"atmount","n":"亚特之山","la":22,"lo":-94,"r":"west","s":"高逾千米的山，大河从山腹的巨洞中流出，造脑怪在里面吐出分裂脑。"},{"id":"whiteisle","n":"白骸龙之岛","la":4,"lo":-112,"r":"west","s":"大陆西边的海岛，有巨大城堡、图书室和水下城市。"},{"id":"east","n":"东之大陆","la":-12,"lo":70,"r":"east","s":"银甲龙与“天国”的大陆，三层云海笼罩在它的上空。"},{"id":"silvercity","n":"银之城","la":-4,"lo":56,"r":"east","s":"丛林大道通向的银甲龙城市，两边的植物里没有一棵树。"},{"id":"capital","n":"创造之城","la":-14,"lo":63,"r":"east","s":"以创造者命名的银甲龙首都，金属轰鸣不绝。"},{"id":"cloudsea","n":"天之海","la":-8,"lo":68,"r":"east","s":"某种生物用胶质封住水和轻气做成的云，可以在上面奔跑。"},{"id":"cloudpeak","n":"云中山峰","la":-6.2,"lo":66.2,"r":"east","s":"贯穿三层云海的山峰，山顶的合金建筑就是学院。"},{"id":"dieye","n":"地眼之湖","la":-17,"lo":75,"r":"east","s":"沙漠中心的绿洲巨湖，被称为“生命的休息站”。"},{"id":"xueqiu","n":"血球树","la":-22,"lo":81,"r":"east","s":"沙漠边缘的血红植物带，之后是能抵御风暴的苔藓平原。"},{"id":"tianguo","n":"天国之林","la":-10,"lo":88,"r":"east","s":"东之大陆内陆的远古丛林，“天国”的入口。"},{"id":"south","n":"南方未探索区","la":-52,"lo":-18,"r":"south","s":"印加虫群乘空艇离开时飞去的方向。"}];
+const T1=new Set(['north','west','east','south']),TS=new Set(['origin','mistsea','icesea']);
+const T2=new Set(['landing','desert','jungle','hometree','spires','canyon','rift','emeraldcity','longqimu','scorpion','skull','fungus','silvercity','capital','tianguo','cloudpeak','whiteisle','salt','peak','isles','jadeport','dieye','twin','abyss','jjzs','inca_pit','atmount','crystalwood']);
+const GROUPS=[['north','北之大陆'],['west','西之大陆 · 恐龙大陆'],['east','东之大陆'],['sea','海洋与岛屿'],['pole','极北'],['south','南方']];
+const RNAME=Object.fromEntries(GROUPS);
+const regionOf=p=>p.r==='ud'?'north':(p.r||'sea');
+const MW=1440,MH=720;let mapReady=false;
+function renderBaseMap(){
+  const w=new Worker(URL.createObjectURL(new Blob([TERRAIN_SRC+`onmessage=()=>{const W=${MW},H=${MH};const px=new Uint8ClampedArray(W*H*4);const HH=new Float32Array(W*H);
+    for(let j=0;j<H;j++)for(let i=0;i<W;i++){const lat=(0.5-(j+.5)/H)*Math.PI,lon=((i+.5)/W-0.5)*2*Math.PI;HH[j*W+i]=terrain(Math.cos(lat)*Math.cos(lon),Math.sin(lat),-Math.cos(lat)*Math.sin(lon),30000);}
+    const L=(a,b,t)=>{t=Math.max(0,Math.min(1,t));return [a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t];};
+    const DEEP=[11,28,48],MID=[18,54,81],SHAL=[47,118,132],LOW=[96,125,63],FOR=[50,90,52],HIGH=[143,122,92],PEAK=[208,198,181],SAND=[201,173,120],SNOW=[233,238,243];
+    const at=(i,j)=>HH[Math.min(H-1,Math.max(0,j))*W+((i+W)%W)];
+    for(let j=0;j<H;j++)for(let i=0;i<W;i++){const lat=(0.5-(j+.5)/H)*Math.PI,lon=((i+.5)/W-0.5)*2*Math.PI;const x=Math.cos(lat)*Math.cos(lon),y=Math.sin(lat),z=-Math.cos(lat)*Math.sin(lon);
+      const h=HH[j*W+i];const hl=at(i-1,j),hr=at(i+1,j),hu=at(i,j-1),hd=at(i,j+1);let c;
+      if(h<=0){const d=-h;c=d<400?L(SHAL,MID,d/400):L(MID,DEEP,(d-400)/2200);const band=Math.floor(d/650)%2?.955:1;c=[c[0]*band,c[1]*band,c[2]*band];
+        if(hl>0||hr>0||hu>0||hd>0)c=L(c,[128,196,200],.5);
+        const ie=.935+.025*fbm(x*9+3,y*9,z*9+1,4);const ice=sm(ie,ie+.02,Math.abs(y))*(y>0?1:.8);if(ice>0)c=L(c,SNOW,ice*.92);}
+      else{const dry=dryness(x,y,z),m=moisture(x,y,z);const t=Math.min(1,h/4200);
+        c=t<.35?L(LOW,HIGH,t/.35):L(HIGH,PEAK,(t-.35)/.65);
+        c=L(c,FOR,Math.min(1,Math.max(0,(m-.42)*3))*Math.max(0,1-t*1.6));
+        if(dry>.2)c=L(c,SAND,(dry-.2)*2);
+        if(h>4300-3600*y*y)c=SNOW;
+        const sh=Math.max(.62,Math.min(1.38,1+((hl-hr)+(hu-hd))*.00032));c=[c[0]*sh,c[1]*sh,c[2]*sh];
+        const cl=Math.floor(h/700);if(cl!==Math.floor(hr/700)||cl!==Math.floor(hd/700))c=[c[0]*.86,c[1]*.86,c[2]*.86];
+        if(hl<=0||hr<=0||hu<=0||hd<=0)c=[c[0]*.72,c[1]*.72,c[2]*.72];}
+      const o=(j*W+i)*4;px[o]=c[0];px[o+1]=c[1];px[o+2]=c[2];px[o+3]=255;}
+    postMessage(px,[px.buffer]);};`],{type:'text/javascript'})));
+  w.onmessage=e=>{const cv=$('#mapc'),x=cv.getContext('2d');x.putImageData(new ImageData(e.data,MW,MH),0,0);
+    x.lineWidth=1;for(let la=-60;la<=60;la+=30){const y=(.5-la/180)*MH;x.strokeStyle=la===0?'rgba(233,207,152,.22)':'rgba(255,255,255,.07)';x.setLineDash(la===0?[6,6]:[]);x.beginPath();x.moveTo(0,y);x.lineTo(MW,y);x.stroke();}
+    x.setLineDash([]);x.strokeStyle='rgba(255,255,255,.07)';for(let lo=-150;lo<=150;lo+=30){const X=(lo/360+.5)*MW;x.beginPath();x.moveTo(X,0);x.lineTo(X,MH);x.stroke();}
+    mapReady=true;$('#mapLoading').hidden=true;w.terminate();};
+  w.postMessage(0);
+}
+setTimeout(renderBaseMap,1200);
+
+/* pins + gazetteer */
+const pinEls={},giEls={};let selected=null;
+{const pins=$('#pins'),list=$('#gazList');
+ for(const p of PLACES){if(p.id==='rongqiu')continue;
+   const el=document.createElement('div');el.className='pin '+(T1.has(p.id)?'t1':TS.has(p.id)?'ts':T2.has(p.id)?'t2':'t3');el.dataset.id=p.id;
+   el._ll=[p.la,p.lo];
+   el.innerHTML=`<div class="in"><i title="${p.n}"></i><span>${p.n}</span></div>`;pins.appendChild(el);pinEls[p.id]=el;}
+ for(const [g,gn] of GROUPS){const items=PLACES.filter(p=>p.id!=='rongqiu'&&regionOf(p)===g);if(!items.length)continue;
+   const sec=document.createElement('section');sec.innerHTML=`<h4>${gn}<span>${items.length}</span></h4>`;
+   for(const p of items){const b=document.createElement('button');b.type='button';b.className='gi';b.dataset.id=p.id;b.innerHTML=`${p.n}<small>${p.s||''}</small>`;
+     b.addEventListener('click',()=>selectPlace(p.id,true));sec.appendChild(b);giEls[p.id]=b;}
+   list.appendChild(sec);}
+ $('#search').addEventListener('input',e=>{const q=e.target.value.trim();for(const sec of list.children){let any=false;for(const b of sec.querySelectorAll('.gi')){const p=PLACES.find(x=>x.id===b.dataset.id);const ok=!q||p.n.includes(q)||(p.s||'').includes(q);b.hidden=!ok;if(ok)any=true;}sec.hidden=!any;}});
+}
+let target=null;
+function showCard(region,name,desc,meta){$('#cRegion').textContent=region;$('#cName').textContent=name;$('#cDesc').textContent=desc;$('#cMeta').textContent=meta;$('#card').hidden=false;}
+const fmtLL=(la,lo)=>`${Math.abs(la).toFixed(1)}°${la>=0?'N':'S'} · ${Math.abs(lo).toFixed(1)}°${lo>=0?'E':'W'}`;
+function selectPlace(id,center){const p=PLACES.find(x=>x.id===id);if(!p)return;
+  if(selected){pinEls[selected]?.classList.remove('sel');giEls[selected]?.classList.remove('sel');}
+  selected=id;pinEls[id]?.classList.add('sel');const gi=giEls[id];if(gi){gi.classList.add('sel');gi.scrollIntoView({block:'nearest'});}
+  target={la:p.la,lo:p.lo,n:p.n};showCard(RNAME[regionOf(p)]||'',p.n,p.s||'',fmtLL(p.la,p.lo));
+  if(center)centerOn(p.la,p.lo,T1.has(id)?1.6:2.6);}
+function selectSpot(la,lo){if(selected){pinEls[selected]?.classList.remove('sel');giEls[selected]?.classList.remove('sel');selected=null;}
+  const d=describe(la*D2R,lo*D2R);const np=nearestPlace(la*D2R,lo*D2R);
+  target={la,lo,n:d.terr};
+  showCard(d.region,'未标注的'+d.terr,np.dkm<1500?`距${np.p.n}约 ${Math.round(np.dkm)} km，在它的${np.dir}方。`:'远离书中记载的任何地点。',fmtLL(la,lo));}
+$('#cGo').addEventListener('click',()=>{if(target)goPlace(target);});
+
+/* pan / zoom */
+const mz={z:1,tx:0,ty:0,ww:0,wh:0,sw:0,sh:0};
+function fitMap(){const r=$('#stage').getBoundingClientRect();mz.sw=r.width;mz.sh=r.height;mz.ww=Math.min(r.width,r.height*2);mz.wh=mz.ww/2;
+  const w=$('#world');w.style.width=mz.ww+'px';w.style.height=mz.wh+'px';clampMap();applyMapT();}
+function clampMap(){const W=mz.ww*mz.z,H=mz.wh*mz.z;mz.tx=W<=mz.sw?(mz.sw-W)/2:Math.min(0,Math.max(mz.sw-W,mz.tx));mz.ty=H<=mz.sh?(mz.sh-H)/2:Math.min(0,Math.max(mz.sh-H,mz.ty));}
+function applyMapT(){const w=$('#world');w.style.transform=`translate(${mz.tx}px,${mz.ty}px) scale(${mz.z})`;$('#ovl').dataset.z=mz.z<1.7?'1':mz.z<3.2?'2':'3';
+  for(const el of $('#ovl').querySelectorAll('.pin,.mk,#me'))placeMk(el);}
+function placeMk(el){if(!el._ll)return;const x=mz.tx+(el._ll[1]/360+.5)*mz.ww*mz.z,y=mz.ty+(.5-el._ll[0]/180)*mz.wh*mz.z;el.style.transform=`translate(${x.toFixed(1)}px,${y.toFixed(1)}px)`;}
+function zoomAt(z,sx,sy){const nz=Math.min(9,Math.max(1,z));const wx=(sx-mz.tx)/mz.z,wy=(sy-mz.ty)/mz.z;mz.z=nz;mz.tx=sx-wx*nz;mz.ty=sy-wy*nz;clampMap();applyMapT();}
+function centerOn(la,lo,z){mz.z=Math.min(9,Math.max(mz.z,z||1));const wx=(lo/360+.5)*mz.ww,wy=(.5-la/180)*mz.wh;mz.tx=mz.sw/2-wx*mz.z;mz.ty=mz.sh/2-wy*mz.z;clampMap();applyMapT();}
+{const st=$('#stage');const ptrs=new Map();let down=null,pz=null;
+ st.addEventListener('pointerdown',e=>{st.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+   if(ptrs.size===2){const [a,b]=[...ptrs.values()];pz={d:Math.hypot(a.x-b.x,a.y-b.y)||1,z:mz.z};down=null;}
+   else down={x:e.clientX,y:e.clientY,tx:mz.tx,ty:mz.ty,moved:false,target:e.target};});
+ st.addEventListener('pointermove',e=>{if(!ptrs.has(e.pointerId))return;ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});const r=st.getBoundingClientRect();
+   if(pz&&ptrs.size===2){const [a,b]=[...ptrs.values()];zoomAt(pz.z*Math.hypot(a.x-b.x,a.y-b.y)/pz.d,(a.x+b.x)/2-r.left,(a.y+b.y)/2-r.top);return;}
+   if(down){const dx=e.clientX-down.x,dy=e.clientY-down.y;if(!down.moved&&Math.hypot(dx,dy)>5){down.moved=true;st.classList.add('drag');}
+     if(down.moved){mz.tx=down.tx+dx;mz.ty=down.ty+dy;clampMap();applyMapT();}}});
+ const up=e=>{ptrs.delete(e.pointerId);st.classList.remove('drag');if(ptrs.size<2)pz=null;
+   if(down&&!down.moved&&e.type==='pointerup'){const pin=down.target.closest&&down.target.closest('.pin');
+     if(pin)selectPlace(pin.dataset.id,false);
+     else{const r=$('#world').getBoundingClientRect();const lo=((e.clientX-r.left)/r.width-.5)*360,la=(.5-(e.clientY-r.top)/r.height)*180;if(Math.abs(la)<88&&Math.abs(lo)<=180)selectSpot(la,lo);}}
+   down=null;};
+ st.addEventListener('pointerup',up);st.addEventListener('pointercancel',up);
+ st.addEventListener('wheel',e=>{e.preventDefault();const r=st.getBoundingClientRect();zoomAt(mz.z*Math.exp(-Math.max(-120,Math.min(120,e.deltaY))*.0028),e.clientX-r.left,e.clientY-r.top);},{passive:false});
+ $('#zIn').addEventListener('click',()=>zoomAt(mz.z*1.5,mz.sw/2,mz.sh/2));$('#zOut').addEventListener('click',()=>zoomAt(mz.z/1.5,mz.sw/2,mz.sh/2));
+ $('#zMe').addEventListener('click',()=>centerOn(view.lat/D2R,view.lon/D2R,3));}
+
+/* live layers: night side, sun, moon, you */
+const MOON_WORDS=[[.06,'满月'],[.19,'亏凸月'],[.31,'下弦月'],[.44,'残月'],[.56,'新月'],[.69,'蛾眉月'],[.81,'上弦月'],[.94,'盈凸月'],[1.01,'满月']];
+function moonWord(){const f=((gameH/24/8)%1+1)%1;return MOON_WORDS.find(m=>f<m[0])[1];}
+const nightCv=$('#night'),nightX=nightCv.getContext('2d'),nightImg=nightX.createImageData(360,180);
+function updateMapLive(){const S=uni.uSun.value,M=uni.uMoon.value,d=nightImg.data;
+  for(let j=0;j<180;j++){const lat=(.5-(j+.5)/180)*Math.PI,cl=Math.cos(lat),sl=Math.sin(lat);
+    for(let i=0;i<360;i++){const lon=((i+.5)/360-.5)*2*Math.PI;const el=cl*Math.cos(lon)*S.x+sl*S.y-cl*Math.sin(lon)*S.z;
+      const night=Math.min(1,Math.max(0,(.03-el)/.14));const bq=(el+.01)/.035,band=Math.exp(-bq*bq)*(1-night);const o=(j*360+i)*4;
+      d[o]=230*(1-night)+3*night;d[o+1]=130*(1-night)+7*night;d[o+2]=60*(1-night)+22*night;d[o+3]=Math.max(night*.7,band*.16)*255;}}
+  nightX.putImageData(nightImg,0,0);
+  const pos=(el,v)=>{el._ll=[Math.asin(v.y)/D2R,Math.atan2(-v.z,v.x)/D2R];placeMk(el);};
+  pos($('#sunMk'),S);pos($('#moonMk'),M);
+  const me=$('#me');me._ll=[view.lat/D2R,view.lon/D2R];placeMk(me);me.querySelector('.arrow').style.transform=`rotate(${view.heading}rad)`;
+  const lh=localHour();$('#mapSub').textContent=`你所在之处 ${fmtH(lh)} ${phaseWord(lh)} · 今夜${moonWord()} · 暗面与晨昏线随时间移动`;}
+function openMap(){$('#map').hidden=false;$('#bMap').setAttribute('aria-expanded','true');fitMap();updateMapLive();if(document.pointerLockElement)document.exitPointerLock();}
+function closeMap(){$('#map').hidden=true;$('#bMap').setAttribute('aria-expanded','false');}
+$('#bMap').addEventListener('click',()=>$('#map').hidden?openMap():closeMap());$('#mapClose').addEventListener('click',closeMap);
+addEventListener('keydown',e=>{if(e.target&&e.target.tagName==='INPUT'&&e.target.type!=='range')return;if(e.key==='m'||e.key==='M'){$('#map').hidden?openMap():closeMap();}if(e.key==='Escape'&&!$('#map').hidden)closeMap();});
+function goPlace(p){view.fly=0;view.vz=0;arriveCurtain(p.n||'此地');const [a,b]=landNear(p.la*D2R,p.lo*D2R);view.lat=a;view.lon=b;view.pitch=.04;view.heading=Math.random()*6.28;frameLandmark(a,b);camLeafSpan=1e6;setMode('ground');closeMap();updatePlaque();}
+
+/* ===== where am I ===== */
+const REGION_NAMES=['北之大陆','西之大陆 · 恐龙大陆','东之大陆','南方未探索区'];
+const DIRS=['北','东北','东','东南','南','西南','西','西北'];
+function nearestPlace(lat,lon){const n=fromLL(lat,lon,1);let best=null,bd=1e9;
+  for(const p of PLACES){if(p.id==='rongqiu'||T1.has(p.id))continue;const d=T.angTo(n.x,n.y,n.z,T.V(p.la,p.lo))*R/1000;if(d<bd){bd=d;best=p;}}
+  const ang=Math.atan2((lon-best.lo*D2R)*Math.cos(lat),lat-best.la*D2R);   // from the place toward you
+  return {p:best,dkm:bd,dir:DIRS[((Math.round(ang/(Math.PI/4))%8)+8)%8]};}
+function describe(lat,lon){const n=fromLL(lat,lon,1);const ri=T.regionIdx(n.x,n.y,n.z);const h=T.terrain(n.x,n.y,n.z,2);const hp=Math.max(h,0);
+  const region=ri>=0?REGION_NAMES[ri]:Math.abs(lat)>68*D2R?'极北冰海':h>0?'海上岛屿':'大洋';
+  const dry=T.dryness(n.x,n.y,n.z),moist=T.moisture(n.x,n.y,n.z);
+  const terr=h<=0?'海面':h<12?'海岸':dry>.45?'荒漠':hp>3200?'高山':hp>1300?'山地':moist>.55?'林地':'原野';
+  return {region,terr,h:hp};}
+function updatePlaque(){const d=describe(view.lat,view.lon);const np=nearestPlace(view.lat,view.lon);
+  let name,sub;
+  if(np.dkm<3){name=np.p.n;sub=`海拔 ${Math.round(d.h)} m`;}
+  else{name=d.terr;sub=(np.dkm<600?`${np.p.n}${np.dir}方 ${np.dkm<10?np.dkm.toFixed(1):Math.round(np.dkm)} km · `:'')+`海拔 ${Math.round(d.h)} m`;}
+  if(Math.abs(view.speedK-1)>.01)sub+=` · 速度 ×${view.speedK<10?view.speedK.toFixed(1):Math.round(view.speedK)}`;
+  $('#pRegion').textContent=d.region;$('#pName').textContent=name;$('#pSub').textContent=sub;
+  const lh=localHour();$('#pTime').textContent=fmtH(lh);$('#pPhase').textContent=phaseWord(lh);
+  const th=lh/24*2*Math.PI,dot=$('#dialDot');dot.setAttribute('cx',(18-13*Math.sin(th)).toFixed(2));dot.setAttribute('cy',(18+13*Math.cos(th)).toFixed(2));
+  dot.setAttribute('fill',uni.uUp.value.dot(uni.uSun.value)>-.02?'#e9cf98':'#cfdcf2');}
+/* ===== music: a small generative score, played live with WebAudio =====
+   The direction is "curious and calm": strings or voices hold the chord, a harp, piano or koto flows in broken chords,
+   and a flute-like line asks a question (rising, ending open) and then answers it (falling home). Between phrases a
+   celesta sometimes peeks out with three notes. Each kind of land has its own mode, tempo and instruments; night slows
+   everything down, thins it out and adds reverb. */
+const MUSIC=(()=>{
+  const SC={lyd:[0,2,4,6,7,9,11],maj:[0,2,4,5,7,9,11],mix:[0,2,4,5,7,9,10],dor:[0,2,3,5,7,9,10],hij:[0,1,4,5,7,8,10],pen:[0,2,4,7,9]};
+  const MOODS={
+    forest:{root:62,sc:'lyd',bpm:76,meter:8,prog:[0,4,5,3],arp:'harp',lead:'flute',pad:'strings',arpP:'flow'},
+    plain: {root:67,sc:'maj',bpm:82,meter:8,prog:[0,5,3,4],arp:'piano',lead:'flute',pad:'strings',arpP:'wide'},
+    desert:{root:62,sc:'hij',bpm:68,meter:8,prog:[0,6,5,0],arp:'koto',lead:'ney',pad:'drone',arpP:'sparse'},
+    coast: {root:69,sc:'mix',bpm:62,meter:6,prog:[0,6,3,4],arp:'harp',lead:'flute',pad:'voices',arpP:'wave'},
+    snow:  {root:64,sc:'dor',bpm:58,meter:8,prog:[0,3,5,4],arp:'celesta',lead:'flute',pad:'glass',arpP:'sparse'},
+    east:  {root:62,sc:'pen',bpm:80,meter:8,prog:[0,3,1,4],arp:'koto',lead:'dizi',pad:'strings',arpP:'flow'}
+  };
+  let ctx=null,out,dry,wet,on=false,vol=.7,mood='plain',night=false,next=0,step=0,bar=0,timer=null,pend=null,phrase=null,rest=0;
+  const hz=m=>440*Math.pow(2,(m-69)/12);
+  function ir(sec){const n=ctx.sampleRate*sec,b=ctx.createBuffer(2,n,ctx.sampleRate);for(let c=0;c<2;c++){const d=b.getChannelData(c);for(let i=0;i<n;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/n,2.6);}return b;}
+  function init(){const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return false;try{ctx=new AC();}catch(e){return false;}graph();return true;}
+  function graph(){
+    const comp=ctx.createDynamicsCompressor();comp.threshold.value=-18;comp.ratio.value=3;comp.connect(ctx.destination);
+    out=ctx.createGain();out.gain.value=0;out.connect(comp);dry=ctx.createGain();dry.connect(out);
+    const rv=ctx.createConvolver();rv.buffer=ir(3.4);wet=ctx.createGain();wet.gain.value=.5;wet.connect(rv);rv.connect(out);}
+  /* one note through an envelope; send = how much goes to the reverb */
+  function env(t,dur,a,peak,rel,send){const g=ctx.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(peak,t+a);g.gain.setTargetAtTime(0,t+Math.max(a,dur),rel);g.connect(dry);
+    const s=ctx.createGain();s.gain.value=send;g.connect(s);s.connect(wet);return g;}
+  function osc(type,f,t,end,dest,det=0){const o=ctx.createOscillator();o.type=type;o.frequency.value=f;o.detune.value=det;o.connect(dest);o.start(t);o.stop(end);return o;}
+  const INS={
+    harp(t,m,v){const g=env(t,.05,.004,v,.55,.55),f=ctx.createBiquadFilter();f.type='lowpass';f.frequency.setValueAtTime(5200,t);f.frequency.exponentialRampToValueAtTime(900,t+1.4);f.connect(g);osc('triangle',hz(m),t,t+3,f);osc('sine',hz(m)*2,t,t+2,f).detune.value=3;},
+    piano(t,m,v){const g=env(t,.05,.006,v,.8,.45),f=ctx.createBiquadFilter();f.type='lowpass';f.frequency.setValueAtTime(3800,t);f.frequency.exponentialRampToValueAtTime(700,t+2);f.connect(g);osc('triangle',hz(m),t,t+4,f);osc('sine',hz(m)*2.001,t,t+3,f);osc('sine',hz(m)*3.003,t,t+1.5,g);},
+    koto(t,m,v){const g=env(t,.04,.003,v,.35,.4),f=ctx.createBiquadFilter();f.type='bandpass';f.Q.value=2.5;f.frequency.setValueAtTime(hz(m)*3,t);f.frequency.exponentialRampToValueAtTime(hz(m)*1.3,t+.8);f.connect(g);
+      const o=osc('sawtooth',hz(m),t,t+2.2,f);o.frequency.setValueAtTime(hz(m)*1.012,t);o.frequency.exponentialRampToValueAtTime(hz(m),t+.12);},
+    celesta(t,m,v){const g=env(t,.04,.003,v,.6,.7);osc('sine',hz(m),t,t+2.6,g);const h=ctx.createGain();h.gain.value=.25;h.connect(g);osc('sine',hz(m)*4,t,t+.8,h);},
+    flute(t,m,v,dur){const g=env(t,dur,.12,v,.25,.5);const o=osc('sine',hz(m),t,t+dur+1.2,g);const lfo=ctx.createOscillator(),ld=ctx.createGain();lfo.frequency.value=5.2;ld.gain.setValueAtTime(0,t);ld.gain.linearRampToValueAtTime(hz(m)*.006,t+.45);lfo.connect(ld);ld.connect(o.frequency);lfo.start(t);lfo.stop(t+dur+1.2);
+      const h=ctx.createGain();h.gain.value=.12;h.connect(g);osc('triangle',hz(m)*2,t,t+dur+1.2,h);},
+    ney(t,m,v,dur){INS.flute(t,m-12,v*1.1,dur);const n=ctx.createBufferSource(),b=ctx.createBuffer(1,ctx.sampleRate*.4,ctx.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*(1-i/d.length);
+      n.buffer=b;const f=ctx.createBiquadFilter();f.type='bandpass';f.frequency.value=hz(m)*1.5;f.Q.value=3;const g=env(t,.1,.05,v*.5,.15,.3);n.connect(f);f.connect(g);n.start(t);},
+    dizi(t,m,v,dur){INS.flute(t,m,v,dur);const g=env(t,.05,.01,v*.35,.08,.2);osc('triangle',hz(m)*3,t,t+.3,g);},
+    bass(t,m,v,dur){const g=env(t,dur,.25,v,.8,.15),f=ctx.createBiquadFilter();f.type='lowpass';f.frequency.value=420;f.connect(g);osc('sine',hz(m),t,t+dur+3,f);osc('triangle',hz(m),t,t+dur+3,f);},
+    strings(t,ms,v,dur,dark){const g=env(t,dur,1.6,v,1.4,.75),f=ctx.createBiquadFilter();f.type='lowpass';f.frequency.value=dark?750:1300;f.Q.value=.4;f.connect(g);for(const m of ms)for(const d of [-7,6])osc('sawtooth',hz(m),t,t+dur+5,f,d);},
+    voices(t,ms,v,dur,dark){const g=env(t,dur,2,v*1.2,1.6,.85),f=ctx.createBiquadFilter();f.type='bandpass';f.frequency.value=dark?600:900;f.Q.value=.7;f.connect(g);for(const m of ms)for(const d of [-5,5])osc('triangle',hz(m),t,t+dur+5,f,d);},
+    glass(t,ms,v,dur){const g=env(t,dur,2.2,v*.9,1.8,.9);for(const m of ms){osc('sine',hz(m+12),t,t+dur+5,g,-4);osc('sine',hz(m+12),t,t+dur+5,g,4);}},
+    drone(t,ms,v,dur){const g=env(t,dur,1.5,v*.8,1.5,.5),f=ctx.createBiquadFilter();f.type='lowpass';f.frequency.value=520;f.connect(g);osc('sawtooth',hz(ms[0]-12),t,t+dur+4,f,-4);osc('sawtooth',hz(ms[0]-5),t,t+dur+4,f,4);}
+  };
+  const M=()=>MOODS[mood];
+  function deg(d){const sc=SC[M().sc],L=sc.length,o=Math.floor(d/L);return M().root+sc[((d%L)+L)%L]+12*o;}
+  function chord(r){return [deg(r),deg(r+2),deg(r+4)];}
+  /* a question-and-answer phrase over two bars: up and open, then down and home */
+  function makePhrase(){const L=SC[M().sc].length,n=M().meter,notes=[];let d=L+[0,2,4][Math.floor(Math.random()*3)];
+    const q=[1,2,4,1,2],a=[-1,-1,-2,1,-1,-1];let t=0;
+    for(let i=0;i<4;i++){notes.push([t,d,i===3?3:Math.random()<.4?2:1]);t+=notes[notes.length-1][2];d+=q[Math.floor(Math.random()*q.length)]*(i===0?1:Math.random()<.7?1:-1);}
+    t=Math.max(t,n);d=Math.max(d,L+3);
+    for(let i=0;i<5&&t<n*2-2;i++){notes.push([t,d,i===4?4:Math.random()<.35?2:1]);t+=notes[notes.length-1][2];d+=a[Math.floor(Math.random()*a.length)];}
+    notes[notes.length-1][1]=L+[0,2][Math.floor(Math.random()*2)];return notes;}
+  function schedule(h){const m=M(),spb=60/(m.bpm*(night?.82:1))/2;   // seconds per eighth note
+    while(next<(h===undefined?ctx.currentTime+.25:h)){const t=next,n=m.meter,s=step%n;
+      if(s===0){bar++;if(pend){mood=pend.mood;night=pend.night;pend=null;}
+        const r=M().prog[bar%M().prog.length];const barLen=spb*M().meter;
+        INS[M().pad](t,chord(r),.05,barLen,night);INS.bass(t,deg(r)-12,.055,barLen*.9);
+        if(rest>0)rest--;else if(!phrase&&bar%2===0){phrase={notes:makePhrase(),start:step};}
+        if(!phrase&&Math.random()<(night?.45:.3)){const r0=M().prog[bar%M().prog.length];[7,8,11].forEach((k,i)=>INS[night||mood==='snow'?'celesta':'harp'](t+spb*(3+i*1.5),deg(r0+k),.035));}}
+      // broken chords
+      const r=M().prog[bar%M().prog.length],cs=[r,r+2,r+4,r+7,r+9];const pat=M().arpP;let play=true,d=cs[s%5];
+      if(pat==='sparse')play=s%3===0&&Math.random()<.85;else if(pat==='wave')d=cs[[0,1,2,3,2,1][s%6]];else if(pat==='wide')d=cs[[0,2,4,1,3,2,4,1][s%8]];
+      if(night&&Math.random()<.35)play=false;
+      if(play)INS[M().arp](t,deg(d),(s===0?.05:.035)*(night?.8:1));
+      // lead line
+      if(phrase){const rel=step-phrase.start;for(const [at,d2,len] of phrase.notes)if(at===rel)INS[M().lead](t,deg(d2),night?.045:.055,len*spb*1.05);
+        if(rel>=M().meter*2){phrase=null;rest=night?2:1;}}
+      step++;next+=spb;}}
+  function setMood(m,nt){if(!MOODS[m])m='plain';if(m===mood&&nt===night)return;pend={mood:m,night:nt};}
+  function start(){if(!ctx&&!init())return;if(ctx.state==='suspended')ctx.resume();if(on)return;on=true;next=ctx.currentTime+.1;
+    out.gain.cancelScheduledValues(ctx.currentTime);out.gain.setTargetAtTime(vol,ctx.currentTime,1.5);if(!timer)timer=setInterval(()=>schedule(),40);}
+  function stop(){if(!ctx||!on)return;on=false;out.gain.setTargetAtTime(0,ctx.currentTime,.4);setTimeout(()=>{if(!on){clearInterval(timer);timer=null;ctx.suspend();}},1500);}
+  function setVol(v){vol=v;if(ctx&&on)out.gain.setTargetAtTime(v,ctx.currentTime,.2);}
+  /* offline preview: render a few seconds of one mood into a buffer (used for listening tests) */
+  async function preview(sec,md,nt){const keep={ctx,out,dry,wet,mood,night,next,step,bar,phrase,rest,pend};ctx=new OfflineAudioContext(2,44100*sec,44100);graph();out.gain.value=vol;
+    mood=md;night=nt;next=.1;step=0;bar=0;phrase=null;rest=0;pend=null;schedule(sec-1);const buf=await ctx.startRendering();({ctx,out,dry,wet,mood,night,next,step,bar,phrase,rest,pend}=keep);return buf;}
+  return {start,stop,setMood,setVol,preview,get on(){return on;},get mood(){return mood;}};
+})();
+{let pref=true;try{pref=localStorage.getItem('rqw-music')!=='off';}catch(e){}
+ const btn=$('#bSnd'),volEl=$('#vol');
+ const paint=()=>{btn.setAttribute('aria-pressed',String(MUSIC.on));btn.classList.toggle('muted',!MUSIC.on);btn.title=MUSIC.on?'关闭音乐':'打开音乐';};
+ btn.addEventListener('click',e=>{e.stopPropagation();if(MUSIC.on){MUSIC.stop();pref=false;}else{MUSIC.start();pref=true;}try{localStorage.setItem('rqw-music',pref?'on':'off');}catch(e){}paint();});
+ volEl.addEventListener('input',()=>{MUSIC.setVol(+volEl.value);$('#volv').textContent=Math.round(volEl.value*100)+'%';});
+ // browsers only allow sound after a tap or key press: begin with the first one
+ const first=()=>{removeEventListener('pointerdown',first,true);removeEventListener('keydown',first,true);if(pref&&!MUSIC.on){MUSIC.start();paint();}};
+ addEventListener('pointerdown',first,true);addEventListener('keydown',first,true);
+ document.addEventListener('visibilitychange',()=>{if(document.hidden&&MUSIC.on){MUSIC.stop();MUSIC.__resume=true;}else if(!document.hidden&&MUSIC.__resume){MUSIC.__resume=false;MUSIC.start();}paint();});
+ paint();}
+function musicMood(){const d=describe(view.lat,view.lon);const q=fromLL(view.lat,view.lon,1);const ri=T.regionIdx(q.x,q.y,q.z);
+  const m=ri===2?'east':d.terr==='荒漠'?'desert':(d.terr==='海岸'||d.terr==='海面'||d.region==='海上岛屿')?'coast':(d.terr==='高山'||Math.abs(view.lat)>62*D2R)?'snow':d.terr==='林地'?'forest':'plain';
+  MUSIC.setMood(m,uni.uUp.value.dot(uni.uSun.value)<-.05);}
+
+/* ===== shadows ===== */
+const depthMat=new THREE.MeshDepthMaterial({depthPacking:THREE.RGBADepthPacking});
+const solidDepth=new THREE.MeshDepthMaterial({depthPacking:THREE.RGBADepthPacking,side:THREE.DoubleSide});
+const leafDepth=new THREE.MeshDepthMaterial({depthPacking:THREE.RGBADepthPacking,side:THREE.DoubleSide,map:atlas,alphaTest:.45});
+/* aim a cascade along light L and lock its texel grid to the planet, so shadow edges don't crawl as you walk */
+function fitShadow(sc,half,L){const U=uni.uUp.value;let ux=U.x,uy=U.y,uz=U.z;if(Math.abs(L.x*ux+L.y*uy+L.z*uz)>.95){ux=1;uy=0;uz=0;}
+  const zx=L.x,zy=L.y,zz=L.z;let xx=uy*zz-uz*zy,xy=uz*zx-ux*zz,xz=ux*zy-uy*zx;const xl=Math.hypot(xx,xy,xz);xx/=xl;xy/=xl;xz/=xl;
+  const yx=zy*xz-zz*xy,yy=zz*xx-zx*xz,yz=zx*xy-zy*xx;const tex=2*half/SHS;
+  const px=cam.x*xx+cam.y*xy+cam.z*xz,py=cam.x*yx+cam.y*yy+cam.z*yz;const fx=px-Math.floor(px/tex)*tex,fy=py-Math.floor(py/tex)*tex;
+  sc.position.set(zx*800-xx*fx-yx*fy,zy*800-xy*fx-yy*fy,zz*800-xz*fx-yz*fy);sc.up.set(ux,uy,uz);sc.lookAt(sc.position.x-zx,sc.position.y-zy,sc.position.z-zz);
+  sc.updateMatrixWorld();sc.updateProjectionMatrix();}
+function renderShadow(rt,sc){const sw=[];const S=(o,m)=>{sw.push(o,o.material);o.material=m;};
+  for(const o of planet.children)if(o.visible)S(o,depthMat);
+  for(const g of flora.children){if(!g.visible)continue;for(const im of g.children)if(im.visible)S(im,im.material.defines&&im.material.defines.TEXTURED?leafDepth:solidDepth);}
+  for(const c of fauna.children)c.traverse(o=>{if(o.isMesh)S(o,solidDepth);});
+  renderer.setRenderTarget(rt);renderer.setClearColor(0xffffff,1);renderer.clear();renderer.render(scene,sc);renderer.setRenderTarget(null);renderer.setClearColor(0x000000,1);
+  for(let i=0;i<sw.length;i+=2)sw[i].material=sw[i+1];}
+let shF=0;const sh1At={x:0,y:0,z:0},sh1VP=new THREE.Matrix4(),_tm=new THREE.Matrix4();
+function updateShadows(){const U=uni.uUp.value;const L=U.dot(uni.uSun.value)>-.03?uni.uSun.value:uni.uMoon.value;
+  if(U.dot(L)<-.02){uni.uShadowOn.value=0;return;}
+  fitShadow(shadowCam0,60,L);renderShadow(shadowRT0,shadowCam0);
+  uni.uShadowVP0.value.multiplyMatrices(shadowCam0.projectionMatrix,shadowCam0.matrixWorldInverse);uni.uShadowMap0.value=shadowRT0.texture;
+  if(quality.far){if(shF%quality.far===0){fitShadow(shadowCam1,520,L);renderShadow(shadowRT1,shadowCam1);sh1VP.multiplyMatrices(shadowCam1.projectionMatrix,shadowCam1.matrixWorldInverse);sh1At.x=cam.x;sh1At.y=cam.y;sh1At.z=cam.z;uni.uShadowMap1.value=shadowRT1.texture;}
+    // the far map was drawn around an earlier viewpoint; shift its matrix by how far we have walked since
+    uni.uShadowVP1.value.multiplyMatrices(sh1VP,_tm.makeTranslation(cam.x-sh1At.x,cam.y-sh1At.y,cam.z-sh1At.z));uni.uShadowFar.value=1;}
+  else uni.uShadowFar.value=0;
+  shF++;uni.uShadowOn.value=1;}
+
+/* ===== loop ===== */
+let last=performance.now(),fpsAcc=0,fpsN=0,lowStreak=0,plaqueT=9,mapT=9;const mapEl=$('#map'),_v2=new THREE.Vector2();
+function tick(now,force){
+  const dt=Math.min((now-last)/1000,.1);last=now;uni.uTime.value+=dt;
+  {// flight: hold Space to climb slowly, release to sink back down to the ground
+   const up=(keys.Space||keys.Fly)&&mapEl.hidden;const k=Math.pow(view.eye/1.6,.5)*Math.max(1,Math.pow(view.speedK,.5));
+   const want=up?3.2*k*(1+(view.fly||0)/120):-(2.2+(view.fly||0)*.08)*k;view.vz=THREE.MathUtils.lerp(view.vz||0,want,1-Math.exp(-dt*(up?1.6:1.1)));
+   view.fly=Math.min(Math.max((view.fly||0)+view.vz*dt,0),6000);
+   {const q=fromLL(view.lat,view.lon,1);if(T.terrain(q.x,q.y,q.z,2)<-1.2&&view.fly<1.5){view.fly=1.5;view.vz=Math.max(view.vz,0);}}   // never sink into the sea: hover just above it
+   if(view.fly===0&&view.vz<0)view.vz=0;}
+  let mx=0,my=0;if(keys.KeyW||keys.ArrowUp)my+=1;if(keys.KeyS||keys.ArrowDown)my-=1;if(keys.KeyD||keys.ArrowRight)mx+=1;if(keys.KeyA||keys.ArrowLeft)mx-=1;
+  if(stick){mx+=stick.dx;my-=stick.dy;}
+  if((mx||my)&&mapEl.hidden){const run=keys.ShiftLeft||keys.ShiftRight||(stick&&Math.hypot(stick.dx,stick.dy)>.92);const stride=1.3*Math.pow(view.eye/1.6,.6);const sp=(run?stride*3.8:stride)*view.speedK*dt*(1+Math.min((view.fly||0)/25,30));const l=Math.hypot(mx,my)||1;
+    const {east,north}=frameAt(view.lat,view.lon);
+    const fwd=new THREE.Vector3().copy(north).multiplyScalar(Math.cos(view.heading)).addScaledVector(east,Math.sin(view.heading));
+    const rgt=new THREE.Vector3().copy(east).multiplyScalar(Math.cos(view.heading)).addScaledVector(north,-Math.sin(view.heading));
+    const mv=new THREE.Vector3().copy(fwd).multiplyScalar(my/l).addScaledVector(rgt,mx/l);const oLat=view.lat,oLon=view.lon;moveLL(mv.normalize(),sp/R);
+    {const q=fromLL(view.lat,view.lon,1);if(!(view.fly>.5)&&T.terrain(q.x,q.y,q.z,2)<-1.2){view.lat=oLat;view.lon=oLon;}}}   // the sea stops you at the shallows
+  if(mapEl.hidden&&!(view.fly>40))resolveCollisions();
+  if(curtain){curtain.t+=dt;if((curtain.t>.6&&busy===0&&queue.length===0)||curtain.t>curtain.max){$('#load').classList.add('off');curtain=null;}}
+  updateSun(dt);
+  if(speedToastT>0){speedToastT-=dt;if(speedToastT<=0)$('#speedToast').classList.add('off');}
+  plaqueT+=dt;if(plaqueT>.5||force){plaqueT=0;updatePlaque();if(MUSIC.on)musicMood();}
+  if(!mapEl.hidden){mapT+=dt;if(mapT>1||force){mapT=0;updateMapLive();}if(!force){requestAnimationFrame(tick);return;}}   // the chart covers the view: skip 3D work
+  applyCamera();camera.updateMatrixWorld();frameNo++;updateTree();floraLOD();placeMeshes();updateCreatures(dt);
+  {const el=uni.uUp.value.dot(uni.uSun.value);compMat.uniforms.uStars.value=1-smooth01((el+.1)/.25);
+   {const dq=(el-.06)/.13;uni.uMist.value=.35+2.2*Math.exp(-dq*dq);}
+   const want=THREE.MathUtils.lerp(3.2,1.0,smooth01((el+.15)/.3));renderer.toneMappingExposure+=(want-renderer.toneMappingExposure)*Math.min(1,dt*1.5);}
+  updateShadows();
+  compMat.uniforms.uInvVP.value.multiplyMatrices(camera.matrixWorld,camera.projectionMatrixInverse);
+  compMat.uniforms.uPix.value=camera.fov*D2R/renderer.getDrawingBufferSize(_v2).y;
+  renderer.setRenderTarget(skyRT);renderer.setClearColor(0x000000,1);renderer.clear(true,false,false);renderer.render(skyScene,camera);renderer.setRenderTarget(null);
+  composer.render();
+  fpsAcc+=dt;fpsN++;
+  if(fpsAcc>=1){const fps=fpsN/fpsAcc;window.__fps=fps;
+    if(!force&&!document.hidden){rsHold--;
+      const setRS=v=>{v=Math.round(v*100)/100;if(v===rscale)return;rscale=v;renderer.setPixelRatio(quality.pr*rscale);resize();};
+      if(fps<47&&rscale>.5){setRS(Math.max(.5,rscale-(fps<30?.15:.08)));rsHold=6;}
+      else if(fps>57&&rscale<1&&rsHold<=0){setRS(Math.min(1,rscale+.05));rsHold=2;}}
+    if(qmode==='auto'&&!force&&rscale<=.5){if(fps<26){lowStreak++;if(lowStreak>=3){lowStreak=0;if(autoTier==='high'){autoTier='mid';applyQuality();}else if(autoTier==='mid'){autoTier='low';applyQuality();}}}else lowStreak=0;}
+    fpsAcc=0;fpsN=0;}
+  if(!force)requestAnimationFrame(tick);
+}
+function fail(msg){const d=document.createElement('div');d.id='err';d.textContent=msg;document.body.appendChild(d);$('#load').classList.add('off');}
+window.__music=MUSIC;window.__demo={crdbg:()=>CREATURES.map(c=>{const q=c.obj.position.clone().project(camera);const wp=new THREE.Vector3();c.obj.children[0].getWorldPosition(wp);return c.key+' ndc '+q.x.toFixed(2)+','+q.y.toFixed(2)+','+q.z.toFixed(4)+' child0 '+wp.toArray().map(v=>v.toFixed(1)).join(',');}).join(' | ')+' heading '+view.heading.toFixed(2),showcase:list=>{for(const c of CREATURES)fauna.remove(c.obj);CREATURES.length=0;spawnT=1e9;const {east,north}=frameAt(view.lat,view.lon);
+  list.forEach(([k,dist,side],i)=>{const sp=SPEC[k];const o=makeCreature(k,{});fauna.add(o);const a=view.heading+side;CREATURES.push({sp,key:k,obj:o,lat:view.lat+Math.cos(a)*dist/R,lon:view.lon+Math.sin(a)*dist/R/Math.cos(view.lat),heading:view.heading+Math.PI/2,alt:sp.fly?sp.fly[0]+2:0,ph:i,t:0,pause:0});});},levels:()=>{const c={};const walk=n=>{const k=n.level+':'+n.state+(n.flora?'F':'')+(n.mesh&&n.mesh.visible?'v':'');c[k]=(c[k]||0)+1;if(n.kids)n.kids.forEach(walk);};roots.forEach(walk);return JSON.stringify(c);},flora:()=>{let g=0,i=0;flora.children.forEach(o=>{if(o.visible){g++;o.children.forEach(m=>{i+=m.count;});}});return [g,i];},creatures:()=>CREATURES.map(c=>c.key).join(','),dbg:n=>{terrainMat.uniforms.uDbg.value=n;},goPlace:id=>goPlace(PLACES.find(p=>p.id===id)),hide:o=>{if(o.cloud!==undefined)cloud.visible=!o.cloud;if(o.terrain!==undefined)planet.visible=!o.terrain;},openMap,closeMap,goView,setSun,setQuality:q=>{qmode=q;applyQuality();},render:()=>tick(performance.now(),true),ready:()=>busy===0&&queue.length===0,view,setView:o=>{Object.assign(view,o);if(o.mode)setMode(o.mode);},tiles:()=>visibleTiles};
+applyQuality();{const [a,b]=landNear(view.lat,view.lon);view.lat=a;view.lon=b;}setMode('ground');updateSun(0);updatePlaque();
+let curtain={t:0,max:9};function arriveCurtain(name){const l=$('#load');l.textContent=name?'前往 '+name:'正在生成绒球';l.classList.remove('off');curtain={t:0,max:name?5:9};}
+if(!window.__noloop)requestAnimationFrame(tick);else $('#load').classList.add('off');
+</script>
+
+</body>
+</html>
