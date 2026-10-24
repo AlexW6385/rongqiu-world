@@ -243,7 +243,7 @@ body.touch #hint{bottom:calc(160px + env(safe-area-inset-bottom,0px))}
 </script>
 <script type="module">
 import * as THREE from 'three/webgpu';
-import {wgsl,wgslFn,uniform,varying,attribute,positionWorld,positionLocal,normalLocal,normalWorldGeometry,normalView,modelWorldMatrix,instanceIndex,instanceColor,frontFacing,
+import {wgsl,wgslFn,uniform,varying,attribute,positionWorld,positionLocal,positionGeometry,floor,normalLocal,normalWorldGeometry,normalView,modelWorldMatrix,instanceIndex,instanceColor,frontFacing,
   texture,textureLoad,uv,screenUV,screenCoordinate,Fn,If,Discard,select,vec2,vec3,vec4,float,int,ivec2,normalize,abs,max,min,clamp,mix,smoothstep,step,fract,sin,cos,dot,
   instancedBufferAttribute,pass,mrt,output,velocity,packNormalToRGB,unpackRGBToNormal,sample,convertToTexture,renderOutput} from 'three/tsl';
 import {taau} from 'three/addons/tsl/display/TAAUNode.js';
@@ -555,6 +555,9 @@ fn mist(col:vec3f,dist:f32,skyAmb:vec3f,sunC:vec3f)->vec3f{let f=(1.0-exp(-dist*
 fn bumpN(q:vec3f,n:vec3f,f:f32,k:f32)->vec3f{let e=0.3/f;let a=gn(q*f);let bx=gn((q+vec3f(e,0.0,0.0))*f);let by=gn((q+vec3f(0.0,e,0.0))*f);let bz=gn((q+vec3f(0.0,0.0,e))*f);
   var g=vec3f(bx-a,by-a,bz-a)/e;g-=n*dot(g,n);return normalize(n-g*k);}
 /* bump a normal by a per-pixel height, from screen-space derivatives the caller took in uniform control flow */
+/* tangent-space normal map without stored tangents (cotangent frame from derivatives) */
+fn perturbN(N:vec3f,dp1:vec3f,dp2:vec3f,du1:vec2f,du2:vec2f,mapN:vec3f)->vec3f{let a=cross(dp2,N);let b=cross(N,dp1);let T=a*du1.x+b*du2.x;let B=a*du1.y+b*du2.y;
+  let im=inverseSqrt(max(max(dot(T,T),dot(B,B)),1e-30));let m=mapN*2.0-1.0;return normalize(T*im*m.x+B*im*m.y+N*max(m.z,0.2));}
 fn dbump(N:vec3f,dpx:vec3f,dpy:vec3f,dhx:f32,dhy:f32)->vec3f{let r1=cross(dpy,N);let r2=cross(N,dpx);let det=dot(dpx,r1);
   if(abs(det)<1e-9){return N;}let g=sign(det)*(dhx*r1+dhy*r2);return normalize(abs(det)*N-g);}
 `);
@@ -656,10 +659,10 @@ const plantV=wgslFn(/* wgsl */`fn plantV(pr:vec3f,${UARGS})->mat4x4f{${USET}
   let bn=normalize(pr);
   let a=aerial(pr,4);
   return mat4x4f(vec4f(sunTrans(pr,uSun),dot(bn,uSun)),vec4f(a.ins,cloudCov(normalize(bn+uSun*0.004))),vec4f(a.tr,0.0),vec4f(0.0));}`,[WGSL_COMMON]);
-const plantF=wgslFn(/* wgsl */`fn plantF(P:vec3f,Nin:vec3f,ff:f32,colv:vec3f,tint:vec3f,tex:f32,S4:vec4f,I4:vec4f,trv:vec3f,smap:f32,${UARGS})->vec4f{${USET}
-  let h=dot(tint,vec3f(0.333));let dpx=dpdx(P);let dpy=dpdy(P);let dhx=dpdx(h);let dhy=dpdy(h);
+const plantF=wgslFn(/* wgsl */`fn plantF(P:vec3f,Nin:vec3f,ff:f32,colv:vec3f,tint:vec3f,tex:f32,nrm:vec3f,uvv:vec2f,S4:vec4f,I4:vec4f,trv:vec3f,smap:f32,${UARGS})->vec4f{${USET}
+  let h=dot(tint,vec3f(0.333));let dpx=dpdx(P);let dpy=dpdy(P);let dhx=dpdx(h);let dhy=dpdy(h);let du1=dpdx(uvv);let du2=dpdy(uvv);
   let n=normalize(P-uCenter);var N=normalize(Nin)*ff;
-  if(tex>0.5){N=dbump(N,dpx,dpy,dhx*0.05,dhy*0.05);}
+  if(tex>1.5){N=perturbN(N,dpx,dpy,du1,du2,nrm);}else if(tex>0.5){N=dbump(N,dpx,dpy,dhx*0.05,dhy*0.05);}
   let sunEl=S4.w;let vCs=I4.w;
   let skyAmb=skyAmbient(sunEl);
   let lightIsSun=step(-0.03,dot(uUp,uSun));
@@ -667,7 +670,7 @@ const plantF=wgslFn(/* wgsl */`fn plantF(P:vec3f,Nin:vec3f,ff:f32,colv:vec3f,tin
   let ndl=dot(N,uSun);let wrap=clamp((ndl+0.35)/1.35,0.0,1.0);
   let moonL=vec3f(0.6,0.7,1.0)*uMoonI*(max(dot(N,uMoon),0.0)*0.8*mix(smap,1.0,lightIsSun)+0.25)*ss(-0.05,0.15,dot(n,uMoon));
   var col=colv*tint*(sunL*wrap*0.95+moonL+skyAmb*(0.55+0.45*dot(N,n)));
-  if(tex>0.5){let back=pow(max(dot(normalize(P),uSun),0.0),5.0);col+=colv*tint*vec3f(1.0,1.05,0.7)*sunL*back*0.5;}   // light glowing through leaves and grass
+  if(tex>0.5&&tex<1.5){let back=pow(max(dot(normalize(P),uSun),0.0),5.0);col+=colv*tint*vec3f(1.0,1.05,0.7)*sunL*back*0.5;}   // light glowing through leaves and grass
   let night=ss(0.1,-0.08,sunEl);col+=colv*vec3f(0.5,0.6,0.8)*0.006*night;
   col=mist(col,length(P),skyAmb,S4.xyz*uSunI);
   return vec4f(col*trv+I4.xyz,1.0);}`,[WGSL_COMMON]);
@@ -864,21 +867,103 @@ scene.backgroundNode=Fn(()=>{const s=skyTexNode.sample(screenUV);
 
 /* plants & creatures */
 function plantMaterial({tex=false,sway=true,inst=true}={}){
-  const m=new THREE.MeshBasicNodeMaterial({side:THREE.DoubleSide});
+  if(tex===true)tex='atlas';
+  const m=new THREE.MeshBasicNodeMaterial({side:tex==='bark'?THREE.FrontSide:THREE.DoubleSide});
   if(sway){const base=modelWorldMatrix.mul(vec4(0,0,0,1)).xyz;
     let ph=dot(base,vec3(.013,.011,.017)).add(UT.mul(1.1));if(inst)ph=ph.add(instanceIndex.toFloat().mul(1.731));
     const sy=clamp(positionLocal.y,0,40);m.positionNode=positionLocal.add(vec3(sin(ph),0,cos(ph.mul(.73))).mul(min(sy.mul(sy).mul(.0009),.45)));}
   const M=plantV({pr:positionWorld.sub(uni.uCenter),...UA()});
   const vS=varying(M.element(0)),vI=varying(M.element(1)),vT=varying(M.element(2).xyz);
-  m.outputNode=Fn(()=>{let tint=vec3(1);
-    if(tex){const tx=texture(atlas,uv());If(tx.a.lessThan(.45),()=>{Discard();});tint=tx.rgb.mul(1.6);}
+  m.outputNode=Fn(()=>{let tint=vec3(1),nrm=vec3(.5,.5,1),tf=0;
+    if(tex==='atlas'){const tx=texture(atlas,uv());If(tx.a.lessThan(.45),()=>{Discard();});tint=tx.rgb.mul(1.6);tf=1;}
+    if(tex==='sprig'){const tx=texture(sprigTex,uv());If(tx.a.lessThan(.4),()=>{Discard();});tint=tx.rgb.mul(1.45);tf=1;}
+    if(tex==='bark'){tint=texture(barkTex,uv()).rgb.mul(1.9);nrm=texture(barkNrm,uv()).xyz;tf=2;}
     let col=attribute('color','vec3');if(inst)col=col.mul(instanceColor);
-    const N=normalWorldGeometry;
-    const smap=shadowAt(positionWorld,N.mul(frontFacing.select(1,-1)));
-    return plantF({P:positionWorld,Nin:N,ff:frontFacing.select(1,-1),colv:col,tint,tex:float(tex?1:0),S4:vS,I4:vI,trv:vT,smap,...UA()});})();
+    const ff=frontFacing.select(1,-1);const N=normalWorldGeometry;
+    const smap=shadowAt(positionWorld,N.mul(ff));
+    return plantF({P:positionWorld,Nin:N,ff,colv:col,tint,tex:float(tf),nrm,uvv:uv(),S4:vS,I4:vI,trv:vT,smap,...UA()});})();
   m.userData.tex=tex;return m;}
 const plantMat=plantMaterial(),plantMatS=plantMaterial({sway:false}),leafMat=plantMaterial({tex:true}),leafMatS=plantMaterial({tex:true,sway:false});
+const barkMat=plantMaterial({tex:'bark'}),barkMatS=plantMaterial({tex:'bark',sway:false}),sprigMat=plantMaterial({tex:'sprig'}),sprigMatS=plantMaterial({tex:'sprig',sway:false});
 const crMat=plantMaterial({sway:false,inst:false});
+/* ===== grass: individual blades drawn by the GPU around the viewer =====
+   A worker samples the ground on a 129×129 grid (96 m square) around an anchor point. The vertex shader gives every cell of
+   a world-locked grid near the camera one blade, lifts it onto the sampled ground, leans it in the wind and fades it out
+   with distance, so the field never swims as you walk. */
+const GR={N:129,S:96};
+const grassWorker=new Worker(URL.createObjectURL(new Blob([TERRAIN_SRC+`
+onmessage=e=>{const {A,E,Nn,U,N,S,id}=e.data;const out=new Float32Array(N*N*4);
+  for(let j=0;j<N;j++)for(let i=0;i<N;i++){const x=(i/(N-1)-.5)*S,z=(j/(N-1)-.5)*S;
+    const px=A[0]+E[0]*x+Nn[0]*z,py=A[1]+E[1]*x+Nn[1]*z,pz=A[2]+E[2]*x+Nn[2]*z;const l=Math.hypot(px,py,pz);const nx=px/l,ny=py/l,nz=pz/l;
+    const h=terrain(nx,ny,nz,0.5);const r=${R}+Math.max(h,0);
+    const y=(nx*r-A[0])*U[0]+(ny*r-A[1])*U[1]+(nz*r-A[2])*U[2];
+    const moist=moisture(nx,ny,nz),dry=dryness(nx,ny,nz),la=Math.abs(ny),snow=4300-3600*la*la;
+    const k=(j*N+i)*4;out[k]=y;out[k+1]=sm(2,6,h)*sm(.18,.42,moist)*(1-sm(.25,.6,dry))*sm(snow-150,snow-650,h);out[k+2]=moist;out[k+3]=h;}
+  for(let j=1;j<N-1;j++)for(let i=1;i<N-1;i++){const k=(j*N+i)*4;const sl=Math.hypot(out[k+4]-out[k-4],out[k+N*4]-out[k-N*4])/(2*S/(N-1));out[k+1]*=sm(1.0,.5,sl);}   // no grass on steep ground
+  postMessage({out,id},[out.buffer]);};`],{type:'text/javascript'})));
+const grassTex=new THREE.DataTexture(new Float32Array(GR.N*GR.N*4),GR.N,GR.N,THREE.RGBAFormat,THREE.FloatType);grassTex.needsUpdate=true;
+const gA=uniform(new THREE.Vector3()),gE=uniform(new THREE.Vector3(1,0,0)),gNn=uniform(new THREE.Vector3(0,0,1)),gU=uniform(new THREE.Vector3(0,1,0));
+const gCam=uniform(new THREE.Vector2()),gW=uniform(240),gS=uniform(.25),gR=uniform(28);
+const grassCell=wgslFn(/* wgsl */`fn grassCell(i:f32,W:f32,s:f32,cam:vec2f)->vec4f{
+  let cx=i-W*floor(i/W);let cz=floor(i/W);
+  let gx=floor(cam.x/s)+cx-floor(W*0.5);let gz=floor(cam.y/s)+cz-floor(W*0.5);
+  let h=fract(sin(vec2f(dot(vec2f(gx,gz),vec2f(127.1,311.7)),dot(vec2f(gx,gz),vec2f(269.5,183.3))))*43758.5453);
+  return vec4f((gx+h.x)*s,(gz+h.y)*s,h.x,h.y);}`);
+const grassPos=wgslFn(/* wgsl */`fn grassPos(lp:vec3f,cell:vec4f,hm:vec4f,cam:vec2f,R:f32,t:f32,A:vec3f,E:vec3f,Nn:vec3f,U:vec3f)->mat4x4f{
+  let x=cell.x;let z=cell.y;
+  let h3=fract(vec3f(cell.z*7.13,cell.w*5.71,(cell.z+cell.w)*3.37)*13.7);
+  let d=length(vec2f(x-cam.x,z-cam.y));
+  let fade=clamp((R-d)/(R*0.3),0.0,1.0);
+  let hgt=mix(0.28,0.8,h3.x)*hm.y*fade*(0.65+0.7*hm.z)*mix(1.0,0.55,clamp(d/R,0.0,1.0));
+  let a=h3.y*6.2832;let ca=cos(a);let sa=sin(a);
+  let w=0.05*(0.8+0.5*h3.z)*max(fade,0.35);
+  let ty=lp.y;
+  let wind=sin(t*1.7+x*0.35+z*0.27)*0.22+sin(t*3.1+x*0.9)*0.06;
+  let lean=(h3.z-0.5)*0.7+wind;
+  let bx=lp.x*w*ca+lean*ty*ty*hgt*0.8;let bz=lp.x*w*sa+(h3.x-0.5)*0.4*ty*ty*hgt;
+  let p=A+E*(x+bx)+Nn*(z+bz)+U*(hm.x+ty*hgt*(1.0-0.12*lean*lean));
+  let nrm=normalize(E*(-sa)+Nn*ca+U*0.55);
+  let lush=0.75+0.5*hm.z;
+  let base=vec3f(0.03,0.07,0.018);var tip=mix(vec3f(0.25,0.33,0.09),vec3f(0.14,0.27,0.06),h3.x)*lush;
+  if(fract(h3.y*17.0)<0.12){tip=vec3f(0.36,0.31,0.13);}
+  let col=mix(base,tip,pow(ty,0.8));
+  return mat4x4f(vec4f(p,hgt),vec4f(nrm,0.0),vec4f(col,0.0),vec4f(0.0));}`);
+const grassV=wgslFn(/* wgsl */`fn grassV(pr:vec3f,${UARGS})->mat4x4f{${USET}
+  let bn=normalize(pr);return mat4x4f(vec4f(sunTrans(pr,uSun),dot(bn,uSun)),vec4f(0.0,0.0,0.0,cloudCov(normalize(bn+uSun*0.004))),vec4f(1.0),vec4f(0.0));}`,[WGSL_COMMON]);
+const grassMesh=(()=>{
+  const g=new THREE.InstancedBufferGeometry();
+  const P=[-.5,0,0, .5,0,0, -.44,.3,0, .44,.3,0, -.32,.6,0, .32,.6,0, 0,1,0];
+  g.setAttribute('position',new THREE.Float32BufferAttribute(P,3));g.setIndex([0,1,2,2,1,3,2,3,4,4,3,5,4,5,6]);g.instanceCount=1;
+  const m=new THREE.MeshBasicNodeMaterial({side:THREE.DoubleSide});
+  const cell=grassCell({i:instanceIndex.toFloat(),W:gW,s:gS,cam:gCam});
+  const N=GR.N,S=GR.S;
+  const fx=cell.x.div(S).add(.5).mul(N-1),fz=cell.y.div(S).add(.5).mul(N-1);
+  const ix=clamp(floor(fx),0,N-2),iz=clamp(floor(fz),0,N-2),ax=clamp(fx.sub(ix),0,1),az=clamp(fz.sub(iz),0,1);
+  const L=(dx,dz)=>textureLoad(grassTex,ivec2(int(ix.add(dx)),int(iz.add(dz))));
+  const hm=mix(mix(L(0,0),L(1,0),ax),mix(L(0,1),L(1,1),ax),az);
+  const G=grassPos({lp:positionGeometry,cell,hm,cam:gCam,R:gR,t:UT,A:gA,E:gE,Nn:gNn,U:gU});
+  m.positionNode=G.element(0).xyz;
+  const vN=varying(G.element(1).xyz),vC=varying(G.element(2).xyz),vT=varying(positionGeometry.y);
+  const M=grassV({pr:G.element(0).xyz.sub(uni.uCenter),...UA()});
+  const vS=varying(M.element(0)),vI=varying(M.element(1));
+  m.outputNode=Fn(()=>{const ff=frontFacing.select(1,-1);const smap=shadowAt(positionWorld,vN.mul(ff));
+    return plantF({P:positionWorld,Nin:vN,ff,colv:vC,tint:vec3(1),tex:float(1),nrm:vec3(.5,.5,1),uvv:vec2(vT,0),S4:vS,I4:vI,trv:vec3(1),smap,...UA()});})();
+  const mesh=new THREE.Mesh(g,m);mesh.frustumCulled=false;mesh.visible=false;scene.add(mesh);return mesh;})();
+let grassAnchor=null,grassPend=null,grassReq=0;
+grassWorker.onmessage=e=>{if(e.data.id!==grassReq)return;grassTex.image.data=e.data.out;grassTex.needsUpdate=true;grassAnchor=grassPend;grassPend=null;};
+function requestGrass(){const {up,east,north}=frameAt(view.lat,view.lon);const h=ground(view.lat,view.lon);const p=fromLL(view.lat,view.lon,R+Math.max(h,0));
+  grassPend={A:[p.x,p.y,p.z],E:[east.x,east.y,east.z],Nn:[north.x,north.y,north.z],U:[up.x,up.y,up.z]};grassReq++;
+  grassWorker.postMessage({...grassPend,N:GR.N,S:GR.S,id:grassReq});}
+function updateGrass(){const W=quality.grass||0;
+  if(!W||view.fly>30){grassMesh.visible=false;return;}
+  const s=quality.grassS,Rr=W*s*.5-1;gW.value=W;gS.value=s;gR.value=Rr;grassMesh.geometry.instanceCount=W*W;
+  let cx=1e9,cz=1e9;
+  if(grassAnchor){const A=grassAnchor.A,E=grassAnchor.E,N=grassAnchor.Nn;const dx=cam.x-A[0],dy=cam.y-A[1],dz=cam.z-A[2];cx=dx*E[0]+dy*E[1]+dz*E[2];cz=dx*N[0]+dy*N[1]+dz*N[2];}
+  if(Math.max(Math.abs(cx),Math.abs(cz))>GR.S*.18&&!grassPend)requestGrass();
+  const ok=grassAnchor&&Math.max(Math.abs(cx),Math.abs(cz))+Rr<GR.S*.5;
+  grassMesh.visible=!!ok;if(!ok)return;
+  const A=grassAnchor.A;gA.value.set(A[0]-cam.x,A[1]-cam.y,A[2]-cam.z);gE.value.fromArray(grassAnchor.E);gNn.value.fromArray(grassAnchor.Nn);gU.value.fromArray(grassAnchor.U);gCam.value.set(cx,cz);}
+
 const STATIC=new Set(['hometree','deadGiant','pyramid','eggRock','floatIsle','house','tower','crystalPeak','spire','rock','crystalTree','mushroom']);
 
 /* geometry helpers */
@@ -900,6 +985,85 @@ const M4=(x=0,y=0,z=0,rx=0,ry=0,rz=0,s=1)=>new THREE.Matrix4().compose(new THREE
 let gseed=11;const grnd=()=>{gseed=(gseed*16807)%2147483647;return gseed/2147483647;};
 function twistedTrunk(H,r0,turns,wob){const pts=[];for(let i=0;i<=14;i++){const t=i/14;const a=t*turns*6.283+wob;const rad=(1.6*(1-t)+.25)*r0;pts.push(new THREE.Vector3(Math.cos(a)*rad+Math.sin(t*9+wob)*.3,t*H,Math.sin(a)*rad));}
   return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),14,.55*r0,5,false);}
+/* ===== real textures and generated trees =====
+   Bark (Poly Haven, CC0) and leaf-sprig photos come from the ez-tree package on jsDelivr. Tree shapes are grown by a
+   small recursive branch generator modelled on Daniel Greenheck's ez-tree (MIT). */
+const ASSET='https://cdn.jsdelivr.net/npm/@dgreenheck/ez-tree@1.1.0/src/';
+const texLoader=new THREE.TextureLoader();texLoader.setCrossOrigin('anonymous');
+const loadTex=(path,srgb)=>{const t=texLoader.load(ASSET+path);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=8;if(srgb)t.colorSpace=THREE.SRGBColorSpace;return t;};
+const barkTex=loadTex('lib/assets/bark/oak_color_1k.jpg',true),barkNrm=loadTex('lib/assets/bark/oak_normal_1k.jpg',false);
+/* leaf sprigs: oak on the left half, ash on the right */
+const sprigCanvas=document.createElement('canvas');sprigCanvas.width=2048;sprigCanvas.height=1024;
+const sprigTex=new THREE.CanvasTexture(sprigCanvas);sprigTex.colorSpace=THREE.SRGBColorSpace;sprigTex.anisotropy=8;
+['oak','ash'].forEach((k,i)=>{const im=new Image();im.crossOrigin='anonymous';im.onload=()=>{sprigCanvas.getContext('2d').drawImage(im,i*1024,0,1024,1024);sprigTex.needsUpdate=true;};im.src=ASSET+'lib/assets/leaves/'+k+'_color.png';});
+
+function rng(seed){let s=seed>>>0||1;return ()=>{s=(s+0x6D2B79F5)>>>0;let t=s;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return ((t^t>>>14)>>>0)/4294967296;};}
+/* grow one tree. o: {seed, levels, len[], rad[], sections[], segments[], children[], angle[], start[], gnarl[], taper, force, twist,
+   leaves:{count,size,start,type}, bark:[r,g,b]}  -> {bark, sprig} geometries in metres, trunk base at the origin */
+function growTree(o){
+  const R0=rng(o.seed||1);const r=(a,b)=>a+(b-a)*R0();
+  const BP=[],BN=[],BU=[],BC=[],BI=[],LP=[],LN=[],LU=[];
+  const _v=new THREE.Vector3(),_n=new THREE.Vector3(),Y=new THREE.Vector3(0,1,0),qUp=new THREE.Quaternion();
+  let top=new THREE.Vector3();
+  const queue=[{org:new THREE.Vector3(),rot:new THREE.Quaternion(),len:o.len[0],rad:o.rad[0],lvl:0,v0:0}];
+  while(queue.length){const b=queue.shift();const S=o.sections[b.lvl],M=o.segments[b.lvl];const base=BP.length/3;
+    const org=b.org.clone(),rot=b.rot.clone();const secLen=b.len/S;const secs=[];let v=b.v0;
+    for(let i=0;i<=S;i++){
+      let rad=b.rad*(1-o.taper*(i/S));if(i===S&&b.lvl===o.levels)rad=.002;
+      for(let j=0;j<=M;j++){const a=j/M*6.2832;_n.set(Math.cos(a),0,Math.sin(a)).applyQuaternion(rot);_v.copy(_n).multiplyScalar(rad).add(org);
+        BP.push(_v.x,_v.y,_v.z);BN.push(_n.x,_n.y,_n.z);BU.push(j/M*Math.max(1,Math.round(b.rad*6)),v);BC.push(...o.bark);}
+      secs.push({org:org.clone(),rot:rot.clone(),rad});
+      org.add(_v.set(0,secLen,0).applyQuaternion(rot));v+=secLen/(6.2832*Math.max(b.rad,.05))*Math.max(1,Math.round(b.rad*6));
+      // bend the next section a little at random, more for thin branches, then pull it toward (or away from) the sky
+      const g=Math.max(1,1/Math.sqrt(Math.max(rad,.01)))*o.gnarl[b.lvl];
+      rot.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(r(-g,g),o.twist[b.lvl]||0,r(-g,g))));
+      qUp.setFromUnitVectors(Y,o.force>0?Y:new THREE.Vector3(0,-1,0));rot.rotateTowards(qUp,Math.abs(o.force)/Math.max(rad,.05)*.1);}
+    if(b.lvl===0)top=secs[S].org.clone();
+    for(let i=0;i<S;i++)for(let j=0;j<M;j++){const a=base+i*(M+1)+j,c=a+M+1;BI.push(a,c,a+1,a+1,c,c+1);}
+    if(b.lvl<o.levels){const n=o.children[b.lvl],off=R0();
+      for(let k=0;k<n;k++){const t=r(o.start[b.lvl+1],1);const f=t*S,i0=Math.min(Math.floor(f),S-1),al=f-i0;const A=secs[i0],B=secs[i0+1];
+        const org2=new THREE.Vector3().lerpVectors(A.org,B.org,al);const rad2=o.rad[b.lvl+1]*(A.rad*(1-al)+B.rad*al);
+        const rot2=A.rot.clone().slerp(B.rot,al).multiply(new THREE.Quaternion().setFromAxisAngle(Y,6.2832*(off+k/n)+r(-.3,.3))).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),o.angle[b.lvl+1]*Math.PI/180*r(.8,1.15)));
+        queue.push({org:org2,rot:rot2,len:o.len[b.lvl+1]*r(.7,1.1)*(1-.35*t),rad:rad2,lvl:b.lvl+1,v0:0});}}
+    if(b.lvl===o.levels&&o.leaves){const L=o.leaves;
+      for(let k=0;k<L.count;k++){const t=r(L.start,1);const f=t*S,i0=Math.min(Math.floor(f),S-1),al=f-i0;const A=secs[i0],B=secs[i0+1];
+        const p=new THREE.Vector3().lerpVectors(A.org,B.org,al);const q=A.rot.clone().slerp(B.rot,al).multiply(new THREE.Quaternion().setFromAxisAngle(Y,r(0,6.2832))).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),r(.3,1.1)));
+        const s=L.size*r(.7,1.3),u0=L.type?.5:0;
+        for(const yaw of [0,1.5708]){const qq=q.clone().multiply(new THREE.Quaternion().setFromAxisAngle(Y,yaw));
+          const c=[[-.5,0],[.5,0],[.5,1],[-.5,1]].map(([x,y])=>new THREE.Vector3(x*s,y*s,0).applyQuaternion(qq).add(p));
+          for(const [a,uu,vv] of [[0,0,0],[1,1,0],[2,1,1],[0,0,0],[2,1,1],[3,0,1]]){LP.push(c[a].x,c[a].y,c[a].z);LU.push(u0+uu*.5,vv);}}}}}
+  const bark=new THREE.BufferGeometry();bark.setAttribute('position',new THREE.Float32BufferAttribute(BP,3));bark.setAttribute('normal',new THREE.Float32BufferAttribute(BN,3));
+  bark.setAttribute('uv',new THREE.Float32BufferAttribute(BU,2));bark.setAttribute('color',new THREE.Float32BufferAttribute(BC,3));bark.setIndex(BI);
+  let sprig=null;
+  if(LP.length){// shade the crown as one round mass: normals point out from its centre, deeper leaves darker
+    let cx=0,cy=0,cz=0;const nv=LP.length/3;for(let i=0;i<LP.length;i+=3){cx+=LP[i];cy+=LP[i+1];cz+=LP[i+2];}cx/=nv;cy/=nv;cz/=nv;
+    let rm=.01;for(let i=0;i<LP.length;i+=3)rm=Math.max(rm,Math.hypot(LP[i]-cx,LP[i+1]-cy,LP[i+2]-cz));
+    const col=[];for(let i=0;i<LP.length;i+=3){const dx=LP[i]-cx,dy=LP[i+1]-cy+rm*.25,dz=LP[i+2]-cz,l=Math.hypot(dx,dy,dz)||1;LN.push(dx/l,dy/l,dz/l);
+      const f=.45+.55*Math.min(1,Math.hypot(LP[i]-cx,LP[i+1]-cy,LP[i+2]-cz)/rm)**.8;col.push(f,f,f);}
+    sprig=new THREE.BufferGeometry();sprig.setAttribute('position',new THREE.Float32BufferAttribute(LP,3));sprig.setAttribute('normal',new THREE.Float32BufferAttribute(LN,3));
+    sprig.setAttribute('uv',new THREE.Float32BufferAttribute(LU,2));sprig.setAttribute('color',new THREE.Float32BufferAttribute(col,3));}
+  // trunks darker toward the ground (light rarely reaches it)
+  {const P=bark.attributes.position,C=bark.attributes.color;let ym=.01;for(let i=0;i<P.count;i++)ym=Math.max(ym,P.getY(i));
+   for(let i=0;i<P.count;i++){const f=.5+.5*Math.min(1,Math.max(0,P.getY(i)/ym))**.6;C.setXYZ(i,C.getX(i)*f,C.getY(i)*f,C.getZ(i)*f);}}
+  return {bark,sprig,top};}
+/* the same species at two levels of detail: the near tree, and a lighter one with the same seed for the middle distance */
+const TREE_SPECS={
+  // 普通森林树：橡树一样的阔叶树，十七米左右
+  bigTree:{seed:7,levels:3,len:[9,6.5,3,1.2],rad:[.55,.5,.55,.6],sections:[10,7,5,3],segments:[9,6,4,3],children:[7,5,4],angle:[0,58,48,40],start:[0,.32,.2,.25],
+    gnarl:[.05,.16,.22,.3],taper:.72,force:.25,twist:[0,0,0,0],leaves:{count:4,size:2.1,start:.2,type:0},bark:[1.05,1,.95]},
+  // 扭曲树：触手般卷绕的树干，在顶上盘成平台
+  twistTree:{seed:11,levels:2,len:[25,7,2.5],rad:[.9,.42,.5],sections:[24,7,4],segments:[9,5,3],children:[6,5],angle:[0,72,55],start:[0,.72,.3],
+    gnarl:[.1,.2,.3],taper:.6,force:.18,twist:[.32,.1,0],leaves:{count:6,size:2.4,start:.1,type:1},bark:[1.1,1,.88]},
+  platformTree:{seed:5,levels:2,len:[36,11,3.5],rad:[1.6,.4,.5],sections:[28,8,4],segments:[11,6,3],children:[8,5],angle:[0,80,60],start:[0,.82,.3],
+    gnarl:[.08,.16,.25],taper:.55,force:.2,twist:[.26,.08,0],leaves:{count:6,size:3,start:.15,type:1},bark:[1.08,.98,.86]},
+  // 龙栖木：高三十米、树冠浓密
+  longqi:{seed:3,levels:3,len:[19,10,4,1.5],rad:[1.5,.42,.5,.6],sections:[12,8,5,3],segments:[11,7,4,3],children:[9,5,4],angle:[0,62,50,40],start:[0,.5,.25,.25],
+    gnarl:[.04,.13,.2,.28],taper:.7,force:.2,twist:[0,0,0,0],leaves:{count:4,size:2.8,start:.2,type:0},bark:[1,.95,.9]}};
+const lighter=o=>({...o,levels:o.levels-1,sections:o.sections.map(s=>Math.max(2,Math.ceil(s/2))),segments:o.segments.map(s=>Math.max(3,s-3)),
+  leaves:{...o.leaves,count:o.leaves.count*Math.max(3,o.children[o.levels-1]+1),size:o.leaves.size*2.1,start:.35}});
+const GEOS_HI={};
+function treeParts(k,o,extra){const t=growTree(o);const g=extra?merge(extra):{solid:null,tex:null};return {solid:g.solid,tex:g.tex,bark:t.bark,sprig:t.sprig};}
+
 const GEOS={},GEOS_LO={};
 function buildGeos(){
   const trunk=[.28,.22,.16],leaf=[.07,.26,.09],leaf2=[.12,.32,.1];
@@ -910,10 +1074,17 @@ function buildGeos(){
   GEOS.platformTree=merge([{g:twistedTrunk(36,1.8,2.2,1),c:trunk,t:'bark'},{g:twistedTrunk(34,1.3,-1.7,3),c:[.3,.25,.18],t:'bark'},
     {g:new THREE.CylinderGeometry(13,10,.9,12),m:M4(0,36.5,0),c:[.15,.32,.13]},...blob(4.5,5,38,2,leaf),...blob(4,-6,38,-3,leaf2),...blob(3.5,1,39.5,-6,leaf)]);
   // 蔓藤蕨：三十多厘米粗、歪歪扭扭长到十多米
-  {const pts=[];for(let i=0;i<=8;i++){const t=i/8;pts.push(new THREE.Vector3(Math.sin(t*5.1)*.7*t,t*11,Math.cos(t*3.7)*.6*t));}
-   const parts=[{g:new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),16,.16,5,false),c:[.36,.42,.17]}];
-   for(let k=0;k<5;k++)parts.push({g:new THREE.PlaneGeometry(1.6,3.6),m:M4(0,12.4,0,-.9,k*1.26,0),c:[.5,.7,.3],t:'frond'});
-   GEOS.fern=merge(parts);}
+  {const pts=[];for(let i=0;i<=10;i++){const t=i/10;pts.push(new THREE.Vector3(Math.sin(t*5.1)*.8*t,t*11,Math.cos(t*3.7)*.7*t));}
+   const stem=new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),24,.17,7,false);paint(stem,[.55,.75,.38]);
+   {const uv=stem.attributes.uv;for(let i=0;i<uv.count;i++)uv.setXY(i,uv.getY(i)*1,uv.getX(i)*18);}
+   const top=pts[10],LP=[],LU=[],LN=[],LC=[];
+   for(let k=0;k<11;k++){const yaw=k*2.4,len=3.2+(k%3)*.7,dip=.5+(k%4)*.22;
+     const q=new THREE.Quaternion().setFromEuler(new THREE.Euler(0,yaw,0)).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),Math.PI/2+dip));
+     const c=[[-.5,0],[.5,0],[.5,1],[-.5,1]].map(([x,y])=>new THREE.Vector3(x*len*.55,y*len,0).applyQuaternion(q).add(top));
+     const nrm=new THREE.Vector3(0,1,0).applyQuaternion(q);
+     for(const [a2,uu,vv] of [[0,0,0],[1,1,0],[2,1,1],[0,0,0],[2,1,1],[3,0,1]]){LP.push(c[a2].x,c[a2].y,c[a2].z);LU.push(.5+uu*.5,vv);const up=new THREE.Vector3(c[a2].x-top.x,c[a2].y-top.y+1.5,c[a2].z-top.z).normalize();LN.push(up.x,up.y,up.z);LC.push(1,1,.9);}}
+   const sp=new THREE.BufferGeometry();sp.setAttribute('position',new THREE.Float32BufferAttribute(LP,3));sp.setAttribute('normal',new THREE.Float32BufferAttribute(LN,3));sp.setAttribute('uv',new THREE.Float32BufferAttribute(LU,2));sp.setAttribute('color',new THREE.Float32BufferAttribute(LC,3));
+   GEOS.fern={solid:null,tex:null,bark:stem,sprig:sp};}
   // 尖柱：覆盖苔藓的空心石柱
   GEOS.spire=merge([{g:new THREE.CylinderGeometry(1.5,3.4,42,7,1,false),m:M4(0,21,0),c:[.2,.36,.14]},{g:new THREE.CircleGeometry(1.3,7),m:M4(0,42.1,0,-Math.PI/2),c:[.04,.06,.04]}]);
   GEOS.bigTree=merge([{g:new THREE.CylinderGeometry(.45,.9,17,7),m:M4(0,8.5,0),c:trunk,t:'bark'},{g:new THREE.CylinderGeometry(.15,.3,6,5),m:M4(1.6,13,.4,.3,0,-1),c:trunk,t:'bark'},{g:new THREE.CylinderGeometry(.15,.3,6,5),m:M4(-1.5,14,-.6,-.3,0,1.1),c:trunk,t:'bark'},...blob(4.4,0,19,0,leaf),...blob(3.6,2.8,17,1.5,leaf2),...blob(3.4,-2.6,17.5,-1.8,leaf),...blob(2.6,3.6,13.5,.8,leaf2),...blob(2.4,-3.4,14.6,-1.2,leaf)]);
@@ -927,7 +1098,13 @@ function buildGeos(){
   GEOS.bloodTree=merge([{g:new THREE.CylinderGeometry(.25,.45,4,6),m:M4(0,2,0),c:[.2,.1,.08]},{g:new THREE.IcosahedronGeometry(1.3,1),m:M4(0,4.8,0),c:[.6,.07,.07]},{g:new THREE.IcosahedronGeometry(.9,1),m:M4(1,4.2,.4),c:[.5,.06,.08]},{g:new THREE.IcosahedronGeometry(.8,1),m:M4(-.8,4.4,-.6),c:[.55,.08,.07]}]);
   GEOS.grass=merge([0,1.05].map(a=>({g:new THREE.PlaneGeometry(1,.62),m:M4(0,.31,0,0,a,0),c:[.5,.65,.3],t:'grass'})));
   // 岩石
-  GEOS.rock=merge([{g:new THREE.IcosahedronGeometry(1,1),m:new THREE.Matrix4().makeScale(1.3,.7,1).premultiply(M4(0,.15,0)),c:[.23,.22,.2]}]);
+  {// 岩石：用噪声揉出来的圆石，缝里更暗，朝上的面长苔藓
+   const g=new THREE.IcosahedronGeometry(1,4);const P=g.attributes.position,col=new Float32Array(P.count*3);const v=new THREE.Vector3();
+   for(let i=0;i<P.count;i++){v.fromBufferAttribute(P,i).normalize();const n1=T.fbm(v.x*1.6+3,v.y*1.6,v.z*1.6,3),n2=T.pn(v.x*5,v.y*5+7,v.z*5);const r=1+n1*.35+n2*.08;
+     v.multiplyScalar(r);v.y=v.y*.62+.12;v.x*=1.3;P.setXYZ(i,v.x,v.y,v.z);
+     const cav=Math.min(1,Math.max(0,.7+n2*1.6+n1*.6)),moss=Math.max(0,Math.min(1,(v.y-.25)*2.2+n1*1.5));
+     const base=[.2*cav+.03,.19*cav+.03,.17*cav+.03];col.set([base[0]*(1-moss)+.06*moss,base[1]*(1-moss)+.11*moss,base[2]*(1-moss)+.035*moss],i*3);}
+   g.setAttribute('color',new THREE.BufferAttribute(col,3));g.computeVertexNormals();GEOS.rock={solid:g,tex:null};}
   // 死亡尖刺：印加种成围墙的肉食植物
   {const parts=[{g:new THREE.CylinderGeometry(.5,.9,2.5,6),m:M4(0,1.25,0),c:[.25,.12,.1]}];for(let k=0;k<7;k++){const a=k*.9;parts.push({g:new THREE.ConeGeometry(.22,4,5),m:M4(Math.cos(a)*.5,3.5,Math.sin(a)*.5,Math.sin(a)*.5,0,-Math.cos(a)*.5),c:[.5,.15,.12]});}GEOS.deathSpike=merge(parts);}
   // 瘟疫真菌：真菌之岛的巨型蘑菇
@@ -967,18 +1144,48 @@ buildGeos();
  GEOS_LO.bigTree=merge([{g:new THREE.CylinderGeometry(.45,.9,17,4),m:M4(0,8.5,0),c:bk,t:'bark'},...cards(12,11,17)]);
  GEOS_LO.longqi=merge([{g:new THREE.CylinderGeometry(1.1,2,30,5),m:M4(0,15,0),c:bk,t:'bark'},...cards(17,14,30)]);
  GEOS_LO.fern=merge([{g:new THREE.PlaneGeometry(3,13),m:M4(0,6.5,0),c:[1.05,1.1,.95],t:'frond'},{g:new THREE.PlaneGeometry(3,13),m:M4(0,6.5,0,0,1.5708,0),c:[1.05,1.1,.95],t:'frond'}]);}
-const NEAR_ONLY=new Set(['grass','rock','spikeBall','deathSpike','bloodTree','mushroom']);
+delete GEOS.grass;   // grass is now drawn blade by blade around the viewer
+/* generated trees: GEOS_HI near the viewer (per tree), GEOS for the middle distance, GEOS_LO cards far away */
+{const houses=[];for(let k=0;k<4;k++){const a=k*1.57+.5;houses.push({g:new THREE.BoxGeometry(2.4,1.6,2.4),m:M4(Math.cos(a)*2.6,8+k*4.5,Math.sin(a)*2.6,0,-a,0),c:[.42,.34,.22]});}
+ const extra={twistTree:t=>[{g:new THREE.CylinderGeometry(5.5,4.5,.5,9),m:M4(t.x,t.y,t.z),c:[.14,.3,.12]}],platformTree:t=>[{g:new THREE.CylinderGeometry(13,10,.9,12),m:M4(t.x,t.y+.3,t.z),c:[.15,.32,.13]}],
+   longqi:()=>houses.map(h=>({...h,g:h.g.clone()}))};
+ for(const k in TREE_SPECS){const o=TREE_SPECS[k];const hi=growTree(o),mid=growTree(lighter(o));const ex=extra[k];
+   GEOS_HI[k]={solid:ex?merge(ex(hi.top)).solid:null,bark:hi.bark,sprig:hi.sprig};
+   GEOS[k]={solid:ex?merge(ex(mid.top)).solid:null,tex:null,bark:mid.bark,sprig:mid.sprig};}}
+const NEAR_ONLY=new Set(['rock','spikeBall','deathSpike','bloodTree','mushroom']);
 const _q=new THREE.Quaternion(),_qy=new THREE.Quaternion(),_m=new THREE.Matrix4(),_p=new THREE.Vector3(),_s=new THREE.Vector3(),_up=new THREE.Vector3(),_Y=new THREE.Vector3(0,1,0);
+const PART_MAT={solid:[plantMat,plantMatS],tex:[leafMat,leafMatS],bark:[barkMat,barkMatS],sprig:[sprigMat,sprigMatS]};
 function buildFlora(data,span){
-  const g=new THREE.Group();let any=false;
-  for(const k in data){const geos=GEOS[k];if(!geos)continue;const a=data[k];const n=a.length/8;if(!n)continue;
-   const st=STATIC.has(k);for(const [geo,mat] of [[geos.solid,st?plantMatS:plantMat],[geos.tex,st?leafMatS:leafMat]]){if(!geo)continue;
-    const im=new THREE.InstancedMesh(geo,mat,n);im.userData.k=k;im.userData.hi=geo;im.userData.lo=GEOS_LO[k]?(mat.userData.tex?GEOS_LO[k].tex:GEOS_LO[k].solid):undefined;
-    for(let i=0;i<n;i++){const o=i*8;_p.set(a[o],a[o+1],a[o+2]);_up.set(a[o+3],a[o+4],a[o+5]);_q.setFromUnitVectors(_Y,_up);_qy.setFromAxisAngle(_Y,a[o+7]);_q.multiply(_qy);const sc=a[o+6];_s.set(sc,sc,sc);_m.compose(_p,_q,_s);im.setMatrixAt(i,_m);}
-    {let sd=n*31+7;const rn=()=>{sd=(sd*16807)%2147483647;return sd/2147483647;};const col=new Float32Array(n*3);for(let i=0;i<n;i++){const t=.82+rn()*.36,w=.95+rn()*.1;col[i*3]=t*w;col[i*3+1]=t;col[i*3+2]=t*(2-w);}im.instanceColor=new THREE.InstancedBufferAttribute(col,3);}
-    im.instanceMatrix.needsUpdate=true;im.computeBoundingSphere();im.frustumCulled=true;g.add(im);any=true;}}
+  const g=new THREE.Group();let any=false;g.userData.hiSets=[];
+  for(const k in data){const geos=GEOS[k],lo=GEOS_LO[k],hiG=GEOS_HI[k];if(!geos&&!lo)continue;const a=data[k];const n=a.length/8;if(!n)continue;
+    const st=STATIC.has(k);
+    // one transform per plant, kept so the near/far split can be redone as the viewer moves
+    const mats=new Float32Array(n*16),pos=new Float32Array(n*3),cols=new Float32Array(n*3);
+    for(let i=0;i<n;i++){const o=i*8;_p.set(a[o],a[o+1],a[o+2]);_up.set(a[o+3],a[o+4],a[o+5]);_q.setFromUnitVectors(_Y,_up);_qy.setFromAxisAngle(_Y,a[o+7]);_q.multiply(_qy);const sc=a[o+6];_s.set(sc,sc,sc);_m.compose(_p,_q,_s);_m.toArray(mats,i*16);pos[i*3]=a[o];pos[i*3+1]=a[o+1];pos[i*3+2]=a[o+2];}
+    {let sd=n*31+7;const rn=()=>{sd=(sd*16807)%2147483647;return sd/2147483647;};for(let i=0;i<n;i++){const t=.82+rn()*.36,w=.95+rn()*.1;cols[i*3]=t*w;cols[i*3+1]=t;cols[i*3+2]=t*(2-w);}}
+    const set=hiG?{k,pos,mats,cols,n,pairs:[],done:false}:null;
+    for(const part of ['solid','tex','bark','sprig']){const hg=geos&&geos[part],lg=lo&&lo[part];if(!hg&&!lg)continue;const mat=PART_MAT[part][st?1:0];
+      const mk=geo=>{const im=new THREE.InstancedMesh(geo,mat,n);im.userData.k=k;im.instanceMatrix.array.set(mats);im.instanceColor=new THREE.InstancedBufferAttribute(cols.slice(),3);
+        im.instanceMatrix.needsUpdate=true;im.computeBoundingSphere();im.frustumCulled=true;g.add(im);return im;};
+      const im=mk(hg||lg);im.userData.hi=hg||undefined;im.userData.lo=lg||undefined;any=true;
+      if(set){const hh=GEOS_HI[k][part];if(hh){const ih=mk(hh);ih.count=0;ih.userData.near=true;set.pairs.push({lo:im,hi:ih});}else set.pairs.push({lo:im,hi:null});}}
+    if(set)g.userData.hiSets.push(set);}
   return any?g:null;
 }
+/* trees close to the viewer get the full model: move their transforms from the middle-distance mesh into the near one */
+let splitAt={x:1e18,y:0,z:0},splitForce=false;
+function splitNear(g,set,rHi){const P=set.pos,n=set.n,nd=g.userData.node,gx=nd.cx-cam.x,gy=nd.cy-cam.y,gz=nd.cz-cam.z,r2=rHi*rHi;
+  const near=set.near||(set.near=new Uint32Array(n)),far=set.far||(set.far=new Uint32Array(n));let nh=0,nl=0;
+  if(rHi>0)for(let i=0;i<n;i++){const x=P[i*3]+gx,y=P[i*3+1]+gy,z=P[i*3+2]+gz;if(x*x+y*y+z*z<r2)near[nh++]=i;else far[nl++]=i;}
+  else for(let i=0;i<n;i++)far[nl++]=i;
+  if(set.done&&nh===set.nh&&nh===0)return;set.done=true;set.nh=nh;
+  const M=set.mats,C=set.cols;
+  for(const {lo,hi} of set.pairs){
+    if(!hi){continue;}
+    const LM=lo.instanceMatrix.array,HM=hi.instanceMatrix.array,LC=lo.instanceColor.array,HC=hi.instanceColor.array;
+    for(let a=0;a<nh;a++){const i=near[a];HM.set(M.subarray(i*16,i*16+16),a*16);HC.set(C.subarray(i*3,i*3+3),a*3);}
+    for(let a=0;a<nl;a++){const i=far[a];LM.set(M.subarray(i*16,i*16+16),a*16);LC.set(C.subarray(i*3,i*3+3),a*3);}
+    hi.count=nh;lo.count=nl;lo.instanceMatrix.needsUpdate=hi.instanceMatrix.needsUpdate=true;lo.instanceColor.needsUpdate=hi.instanceColor.needsUpdate=true;}}
 
 /* ===== solid things you cannot walk through: trunk / footprint radius in metres at scale 1 ===== */
 const COLL={twistTree:2,platformTree:3.6,bigTree:.9,longqi:2.1,ancientTree:6.5,crystalTree:1.3,spire:3.4,mushroom:1.3,deathSpike:1.1,bloodTree:.45,spikeBall:1,rock:1.25,
@@ -1256,10 +1463,13 @@ function updateTree(){leafLevel=0;leafSpan=1e6;
   if(frameNo%30===0)for(const r of roots)prune(r);
 }
 function floraLOD(){
+  const moved=Math.hypot(cam.x-splitAt.x,cam.y-splitAt.y,cam.z-splitAt.z)>4||splitForce;if(moved){splitAt={x:cam.x,y:cam.y,z:cam.z};splitForce=false;}
   for(const g of flora.children){if(!g.visible)continue;const d=g.userData.d||0;const far=d>320;
-    for(const im of g.children){const k=im.userData.k;
+    for(const im of g.children){const k=im.userData.k;if(im.userData.near)continue;
       if(NEAR_ONLY.has(k)){im.visible=d<(g.userData.node.level===16?400:520);continue;}
-      if(im.userData.lo!==undefined||GEOS_LO[k]){const want=far?im.userData.lo:im.userData.hi;if(want){im.visible=true;if(im.geometry!==want)im.geometry=want;}else im.visible=!far;}}}
+      const want=far?im.userData.lo:im.userData.hi;if(want){im.visible=true;if(im.geometry!==want)im.geometry=want;}else im.visible=false;}
+    for(const set of g.userData.hiSets||[]){const rHi=far?0:quality.rHi;if(moved||!set.done){splitNear(g,set,rHi);}
+      for(const p of set.pairs)if(p.hi)p.hi.visible=!far&&set.nh>0;}}
 }
 function placeMeshes(){
   for(const o of planet.children){const n=o.userData.node;if(n)o.position.set(n.cx-cam.x,n.cy-cam.y,n.cz-cam.z);}
@@ -1272,7 +1482,7 @@ function placeMeshes(){
 /* ===== post: scene pass (colour, normals, motion) → ambient occlusion → temporal upscaling → bloom → tone map + grade =====
    The scene is drawn at rscale of the output resolution; TAAU (temporal anti-aliasing upscaling) rebuilds a full-resolution
    image from several jittered frames. rscale adapts every second to hold the frame rate. */
-const TIERS={high:{pr:Math.min(devicePixelRatio,2),steps:28,lod:1.9,far:2,sky:.5,ao:true,label:'高'},mid:{pr:Math.min(devicePixelRatio,1.5),steps:20,lod:1.7,far:3,sky:.45,ao:true,label:'中'},low:{pr:1,steps:14,lod:1.5,far:4,sky:.4,ao:false,label:'低'}};
+const TIERS={high:{pr:Math.min(devicePixelRatio,2),steps:28,lod:1.9,far:2,sky:.5,ao:true,grass:300,grassS:.21,rHi:130,label:'高'},mid:{pr:Math.min(devicePixelRatio,1.5),steps:20,lod:1.7,far:3,sky:.45,ao:true,grass:230,grassS:.25,rHi:90,label:'中'},low:{pr:1,steps:14,lod:1.5,far:4,sky:.4,ao:false,grass:160,grassS:.32,rHi:55,label:'低'}};
 let quality=TIERS.high,qmode='auto',autoTier=/Mobi|Android|iPhone|iPad/.test(navigator.userAgent)?'mid':'high';
 let rscale=1,rsHold=0;
 let pipeline=null,scenePass=null,compRTT=null;
@@ -1295,7 +1505,7 @@ function buildPipeline(){
   pipeline.outputNode=grade(renderOutput(hdr));
   applyRS();}
 function applyRS(){if(scenePass)scenePass.setResolutionScale(rscale);if(compRTT&&compRTT.setResolutionScale)compRTT.setResolutionScale(rscale);buildSkyRT();}
-function applyQuality(){const t=qmode==='auto'?autoTier:qmode;quality=TIERS[t];renderer.setPixelRatio(quality.pr);resize();uni.uSteps.value=quality.steps;buildPipeline();$('#qv').textContent=qmode==='auto'?quality.label:'';}
+function applyQuality(){const t=qmode==='auto'?autoTier:qmode;quality=TIERS[t];splitForce=true;renderer.setPixelRatio(quality.pr);resize();uni.uSteps.value=quality.steps;buildPipeline();$('#qv').textContent=qmode==='auto'?quality.label:'';}
 function resize(){const w=innerWidth,h=innerHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();if(pipeline)buildSkyRT();if(!$('#map').hidden)fitMap();}
 addEventListener('resize',resize);
 
@@ -1670,8 +1880,9 @@ function musicMood(){const d=describe(view.lat,view.lon);const q=fromLL(view.lat
 /* the writer stores distance from the light's image plane; leaves cut out by the atlas alpha */
 const uSPw=uniform(new THREE.Vector3());
 const shadowWriter=tex=>{const m=new THREE.MeshBasicNodeMaterial({side:THREE.DoubleSide});
-  m.outputNode=Fn(()=>{if(tex){const tx=texture(atlas,uv());If(tx.a.lessThan(.45),()=>{Discard();});}return vec4(positionWorld.sub(uSPw).dot(uni.uSL.negate()),0,0,1);})();return m;};
-const depthMat=shadowWriter(false),solidDepth=depthMat,leafDepth=shadowWriter(true);
+  m.outputNode=Fn(()=>{if(tex){const tx=texture(tex,uv());If(tx.a.lessThan(.42),()=>{Discard();});}return vec4(positionWorld.sub(uSPw).dot(uni.uSL.negate()),0,0,1);})();return m;};
+const depthMat=shadowWriter(false),solidDepth=depthMat,leafDepth=shadowWriter(atlas),sprigDepth=shadowWriter(sprigTex);
+const SHADOW_MAT={atlas:leafDepth,sprig:sprigDepth};
 /* aim a cascade along light L and lock its texel grid to the planet, so shadow edges don't crawl as you walk */
 function fitShadow(sc,half,L){const U=uni.uUp.value;let ux=U.x,uy=U.y,uz=U.z;if(Math.abs(L.x*ux+L.y*uy+L.z*uz)>.95){ux=1;uy=0;uz=0;}
   const zx=L.x,zy=L.y,zz=L.z;let xx=uy*zz-uz*zy,xy=uz*zx-ux*zz,xz=ux*zy-uy*zx;const xl=Math.hypot(xx,xy,xz);xx/=xl;xy/=xl;xz/=xl;
@@ -1682,7 +1893,7 @@ function fitShadow(sc,half,L){const U=uni.uUp.value;let ux=U.x,uy=U.y,uz=U.z;if(
 const shadowScene=new THREE.Scene(),_far=new THREE.Color(1e6,1e6,1e6);
 function renderShadow(rt,sc){uSPw.value.copy(sc.position);const sw=[];const S=(o,m)=>{sw.push(o,o.material);o.material=m;};
   for(const o of planet.children)if(o.visible)S(o,depthMat);
-  for(const g of flora.children){if(!g.visible)continue;for(const im of g.children)if(im.visible)S(im,im.material.userData.tex?leafDepth:solidDepth);}
+  for(const g of flora.children){if(!g.visible)continue;for(const im of g.children)if(im.visible&&im.count>0)S(im,SHADOW_MAT[im.material.userData.tex]||solidDepth);}
   for(const c of fauna.children)c.traverse(o=>{if(o.isMesh)S(o,solidDepth);});
   shadowScene.add(planet,flora,fauna);
   renderer.setRenderTarget(rt);renderer.setClearColor(_far,1);renderer.clear();renderer.render(shadowScene,sc);renderer.setRenderTarget(null);renderer.setClearColor(0x000000,1);
@@ -1725,7 +1936,7 @@ function tick(now,force){
   if(speedToastT>0){speedToastT-=dt;if(speedToastT<=0)$('#speedToast').classList.add('off');}
   plaqueT+=dt;if(plaqueT>.5||force){plaqueT=0;updatePlaque();if(MUSIC.on)musicMood();}
   if(!mapEl.hidden){mapT+=dt;if(mapT>1||force){mapT=0;updateMapLive();}if(!force){requestAnimationFrame(tick);return;}}   // the chart covers the view: skip 3D work
-  applyCamera();camera.updateMatrixWorld();frameNo++;updateTree();floraLOD();placeMeshes();updateCreatures(dt);
+  applyCamera();camera.updateMatrixWorld();frameNo++;updateTree();floraLOD();placeMeshes();updateGrass();updateCreatures(dt);
   {const el=uni.uUp.value.dot(uni.uSun.value);uStars.value=1-smooth01((el+.1)/.25);
    {const dq=(el-.06)/.13;uni.uMist.value=.35+2.2*Math.exp(-dq*dq);}
    const want=THREE.MathUtils.lerp(3.2,1.0,smooth01((el+.15)/.3));renderer.toneMappingExposure+=(want-renderer.toneMappingExposure)*Math.min(1,dt*1.5);}
