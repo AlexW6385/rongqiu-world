@@ -10,6 +10,8 @@ The novel describes this world richly and at length. The project's ambition is t
 
 It is a **sightseeing experience**, not a game, not an encyclopedia.
 
+**Scope is decided by the novel, not by this document.** This brief names no fixed list of cities, landmarks, plants or creatures; how many there are, what they are, and how important each is comes from reading the text (§4). More is better: there is no point at which the world is "full enough".
+
 **Live site:** https://alexw6385.github.io/rongqiu-world/
 **Source of truth for content:** the private repo **https://github.com/AlexW6385/rongqiu-source** — see §4.
 
@@ -106,7 +108,7 @@ Rich systems are built in levels, not all at once. Each level must be complete, 
 - L1 — correct sea level, coastlines, depth colour, shallow-water blocking.
 - L2 — surface waves, foam at shorelines, reflections and refraction, sun glitter.
 - L3 — rivers, lakes and waterfalls where the codex places them; wet shore materials.
-- L4 — underwater view with light scattering, underwater life where the book describes it; the special seas (峡谷之海 etc.) with their own look.
+- L4 — underwater view with light scattering, underwater life where the book describes it; any special seas the book describes with their own look.
 
 **Weather and sky**
 - L1 — day/night, moon phases, clear sky (done).
@@ -157,6 +159,7 @@ Append-only. One line per decision: date, decision, reason.
 - 2026-10-26 — Creature behaviour, water, weather, cities and vegetation are built in levels (§8), as deep and real as possible over time. Reason: richness without blocking progress.
 - 2026-10-26 — Travel is walk/run/fly with adjustable speed plus the map; nothing else. Reason: sufficient; keeps the UI simple.
 - 2026-10-26 — This document is the brief for autonomous implementation; the agent decides §9 items itself and records them here.
+- 2026-10-26 — No fixed content list in the brief; the novel (via the codex) decides what and how much exists. The project is open-ended: keep adding depth and content indefinitely; release in versions as chunks complete.
 
 ## 11. Roadmap and status
 
@@ -179,7 +182,7 @@ The implementing agent updates this section at the end of every work session: mo
 - In `rongqiu-source/codex/index.md`, record which 绒球 places, plants and creatures appear in which chapters, with a one-line note each — by searching for names (see §4, reading the novel efficiently), not by reading every chapter. Output also a ranked list of importance (frequency × narrative weight) to drive content order.
 
 **Phase 2 — Codex, first batch, and conformance**
-- Full entries for: the continents and seas; 峡谷之海, 大裂谷, 印加巨坑, 无尽荒漠, 盐地, 结晶之山, 地眼之湖; 家园树, 立蝎之城, 翡翠龙之城, 翡翠港, 银之城, 创造之城; the top ~20 plants and ~30 creatures by the Phase 1 ranking.
+- Full entries for the first tier of the Phase 1 ranking: the continents and seas, the most important landscapes, landmarks and cities, and the most important plants and creatures. The agent decides the cut-off from the ranking; the novel decides what the entries are. (The names already in the README and the code are a first pass only — the codex, not the README, is authoritative.)
 - Re-check everything already built against these entries; fix positions, sizes, forms, colours, distributions. Record discrepancies found and fixed.
 
 **Phase 3 — Rich nature**
@@ -188,7 +191,7 @@ The implementing agent updates this section at the end of every work session: mo
 - Baking/caching per §6 where it helps; verify budgets.
 
 **Phase 4 — First city**
-- City layer design (plan format, building generator, collision). Build one city (立蝎之城 or 翡翠龙之城, whichever has the richer codex entry) to Cities L1–L2.
+- City layer design (plan format, building generator, collision). Build the one city with the richest codex entry to Cities L1–L2.
 - Split into ES modules if not already done.
 
 **Phase 5 — Depth, round one**
@@ -201,7 +204,18 @@ The implementing agent updates this section at the end of every work session: mo
 **Phase 7 — Depth, round two**
 - Creatures L3, Water L4, Weather L3, Vegetation L3, Cities L3 for all cities.
 
-**Phase 8 — Completion**
+**Phase 8 — Full depth**
 - Creatures L4; Cities L4 (interiors of major buildings); every codex entry present at its full level; final conformance pass against the codex; final performance and budget pass; README updated to describe the finished world.
 
-**Definition of done for the project:** every 绒球 entry in the codex index exists in the world at the deepest level §8 defines for its kind, each checked against its codex entry; the live site loads within the §6 budgets; the UI is still just walk, look, fly, map, settings.
+**Phase 9 onward — Keep going**
+- There is no final state. After Phase 8, continue in a loop: find what the book describes of 绒球 that is still missing, thin, or shallower than its text (new codex entries, more individuals, more variation, more behaviour, more detail in places), add it, check it, release it. Prefer the item that adds the most to richness and faithfulness per unit of work. Stop only when the author says so.
+
+**Milestone for the main phases:** every 绒球 entry in the codex index exists in the world at the deepest level §8 defines for its kind, each checked against its codex entry; the live site loads within the §6 budgets; the UI is still just walk, look, fly, map, settings. Reaching it starts Phase 9; it does not end the project.
+
+## 12. Releases
+
+Every push to `main` deploys to GitHub Pages, so the live site is always current. On top of that, cut a **release** whenever a meaningful chunk is done — the end of a phase, a new city, a new tier of creatures, a visible quality jump:
+- Tag `vMAJOR.MINOR` (MAJOR for a phase, MINOR for a chunk inside it) and create a GitHub release with a short note of what is new and a few screenshots from `dev/shot.cjs`.
+- Keep `CHANGELOG.md` with one entry per release, newest first, in plain language a reader of the novel would understand (what they can now see), not a list of commits.
+- Never release with a known regression in the picture or a budget breach; fix first.
+
