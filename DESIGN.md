@@ -65,7 +65,9 @@ The encyclopedia is the bridge between the novel and the code. It is the single 
 - **Vegetation:** procedural recursive trees in three LODs (full / simplified / impostor atlas); GPU-instanced grass driven by a background height sampler.
 - **Lighting:** single-scattering Rayleigh+Mie atmosphere, ray-marched volumetric clouds, terrain self-shadow via precomputed horizon angles, two-cascade shadow maps for objects.
 - **Travel:** walk, run, fly. Flight speed scales with altitude and is adjustable (keys, wheel, settings); the map lists famous places and jumps straight to them. This is the complete travel model — no vehicles, no fast-travel lore.
-- **Audio:** music synthesised in the browser per biome; no audio files.
+- **Sound.** Two systems, both synthesised in the browser with Web Audio (FM / wavetable / simple physical modelling; convolution reverb from synthesised impulses); no audio files.
+  - *Soundscape first.* Wind, water, foliage, weather, and the creatures — their calls, wings, footsteps, and the sounds the book gives things (a bursting 爆炸尖球, a 滚雷). Encyclopedia entries record every described sound; creatures are heard before they are seen, positioned by distance and direction. Realism comes from this layer more than from music.
+  - *Music, sparingly.* One planet-level motif, varied per continent and biome so the whole world sounds like one world; long silences are allowed; music rises at landmarks and cities. City music is derived from the encyclopedia — what that civilization's bodies and materials could sound like — not borrowed from a human tradition. Adaptive layers by time of day (night slower and lighter), altitude (wider layers when flying), nearby creature groups, and interior spaces (streets, caves: synthesised reverb). Every change of region crossfades; never a hard cut.
 - **Dev tooling:** `dev/shot.cjs` — headless Chromium screenshots for checking the picture without a GPU.
 
 ## 6. Assets, precomputation and caching
@@ -133,6 +135,12 @@ Rich systems are built in levels, not all at once. Each level must be complete, 
 - L2 — variation (age, size, damage), seasonal states where applicable, undergrowth and litter.
 - L3 — wind, interaction (brushing through grass), bioluminescence and other described effects.
 
+**Sound**
+- L1 — environmental soundscape per biome (wind, water, foliage, weather), positioned and distance-attenuated; crossfades between biomes.
+- L2 — creature and plant sounds from the encyclopedia, positional, tied to behaviour (calls at dusk, wings when flying over, footsteps of the large ones).
+- L3 — adaptive music layers (time, altitude, proximity, interiors); landmark and city themes derived from their entries; synthesised reverb for enclosed spaces.
+- L4 — set pieces: storms, herds passing, the night chorus, as the book describes them.
+
 **Landscapes and landmarks**
 - L1 — correct position, scale and overall form.
 - L2 — unique materials and detail (rock strata, crystal structure, bark of the great trees).
@@ -166,6 +174,7 @@ Append-only. One line per decision: date, decision, reason.
 - 2026-10-26 — Creature behaviour, water, weather, cities and vegetation are built in levels (§8), as deep and real as possible over time. Reason: richness without blocking progress.
 - 2026-10-26 — Travel is walk/run/fly with adjustable speed plus the map; nothing else. Reason: sufficient; keeps the UI simple.
 - 2026-10-26 — This document is the brief for autonomous implementation; the agent decides §9 items itself and records them here.
+- 2026-10-26 — Sound is soundscape-first, music sparse and motif-based, all synthesised, in levels (§8). Reason: realism comes from the world's own sounds; one motif keeps the world coherent.
 - 2026-10-26 — No fixed content list in the brief; the novel (via the encyclopedia) decides what and how much exists. The project is open-ended: keep adding depth and content indefinitely; release in versions as chunks complete.
 - 2026-10-26 — The WebGPU check tests for a real adapter and, after init, for the WebGPU backend. Reason: three.js silently falls back to its WebGL2 backend when `navigator.gpu` exists but no adapter is available, and our WGSL shaders break there (page hung on the loading screen).
 - 2026-10-26 — `dev/shot.cjs` renders with software WebGPU (SwiftShader/Vulkan) instead of software WebGL; screenshots use N=120 frames so terrain and trees finish streaming. Reason: WebGPU-only renderer.
