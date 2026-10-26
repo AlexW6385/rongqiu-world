@@ -181,6 +181,10 @@ Append-only. One line per decision: date, decision, reason.
 - 2026-10-26 — Encyclopedia index scope: volumes 1–5 are 绒球's story and are counted; volumes 6–8 are listed only where several 绒球 places/creatures co-occur (possible on-planet scenes). Importance score = log2(1+mentions) × √chapters × (1 + 0.3 × titled chapters, max 5), adjusted by judgement for the tier list. Reason: from volume 6 "绒球" is mostly 琳's faction off-planet; frequency alone over-ranks common words and under-ranks set-pieces.
 - 2026-10-26 — Tier 1 for Phase 2 excludes cell-scale (`micro`) entries and 琳's made units; they stay in the index for later tiers. Reason: they are invisible at ground scale or transient war units, and add little to the sightseeing world per unit of work.
 - 2026-10-26 — The scripts that rebuild the index live with it in `rongqiu-source/encyclopedia/tools/` (private), including the hand-curated alias/kind list. Reason: the index will be re-run as new names are found; tools that read the novel stay next to the novel.
+- 2026-10-26 — Phase 2 entries were written in parallel by several agents from a shared guide (`rongqiu-source/encyclopedia/WRITING.md`) and a passage reader (`tools/passages.py`); every content line is tagged [stated vN·C] or [inferred: …]. Reason: 70 entries, each needing 20–60 passages; one guide keeps them uniform.
+- 2026-10-26 — Conformance findings and fixes are logged in `CONFORMANCE.md` (fixed / open, with the phase each open item belongs to). Reason: §11 Phase 2 asks for a record of discrepancies; a table per pass is easier to check than prose here.
+- 2026-10-26 — Landmark items' fifth field is now a compass heading (0 = east, π/2 = north) converted to the instance yaw in the worker. Reason: walls and rows of buildings must line up with the plan; the old value was an arbitrary spin.
+- 2026-10-26 — Visual checks with `dev/shot.cjs` run one browser at a time with N≥150. Reason: under software WebGPU, parallel runs starve the tile workers and the screenshots show unloaded terrain.
 
 ## 11. Roadmap and status
 
@@ -196,12 +200,10 @@ The implementing agent updates this section at the end of every work session: mo
 - `DESIGN.md` (this brief), 2026-10-26.
 - Phase 0 — Housekeeping, 2026-10-26: `webgl.html` and the redirect removed; WebGPU notice (also covers "API present, no adapter"); `ASSETS.md` added; README and `dev/` updated. Checked with `dev/shot.cjs` at 家园树, 立蝎之城, 创造之城 and on the no-WebGPU path; picture unchanged from before.
 - Phase 1 — Encyclopedia index, 2026-10-26: `rongqiu-source/encyclopedia/index.md` — 303 entries (260 from the 展览馆 data, the rest found in the text), each with kind, region, eras, mention and chapter counts, titled chapters and a one-line note; a ranked list; a chapter-by-chapter map of volumes 1–5; candidate on-planet chapters in volumes 6–8; and the tier-1 list for Phase 2.
-
-**Phase 2 — Encyclopedia, first batch, and conformance**
-- Full entries for the first tier of the Phase 1 ranking: the continents and seas, the most important landscapes, landmarks and cities, and the most important plants and creatures. The agent decides the cut-off from the ranking; the novel decides what the entries are. (The names already in the README and the code are a first pass only — the encyclopedia, not the README, is authoritative.)
-- Re-check everything already built against these entries; fix positions, sizes, forms, colours, distributions. Record discrepancies found and fixed.
+- Phase 2 — Encyclopedia first batch and conformance, 2026-10-26: 70 tier-1 entries in `rongqiu-source/encyclopedia/`; conformance pass 1 fixed 20 discrepancies (pit, egg boulders, spire forest, 龙栖木, home trees, frozen giants, 立蝎 pyramids, 银之城 and 创造之城, floating islands, rift width, eastern succulents, spike-ball island, six creatures) — see `CONFORMANCE.md`; the open items there are carried into Phases 3–6. Checked with `dev/shot.cjs` at the pit, spire forest, home tree, 银之城, 立蝎之城, 创造之城, 翡翠龙之城, 龙栖木之林 and the frozen giants.
 
 **Phase 3 — Rich nature**
+- Open conformance items from `CONFORMANCE.md` marked Phase 3 (cloud sea layers, fog pillar, twisted-jungle canopy, death-spike walls, southern ice continent, planet calendar).
 - Turn encyclopedia habitat/density statements into generation rules; every Phase 2 plant and creature present at encyclopedia density across the continents (Creatures L1, Vegetation L1, Landscapes L1–L2).
 - Water L1–L2. Weather L2.
 - Baking/caching per §6 where it helps; verify budgets.
