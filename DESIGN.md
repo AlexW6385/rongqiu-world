@@ -91,7 +91,7 @@ Use whatever makes the picture better, as long as the page stays light to load. 
 - UI stays minimal: walk, look, fly, map, settings. A new on-screen element needs a reason recorded in §10.
 - Picture quality on the author's machine never goes down silently; a change that lowers it must be recorded in §10 with the reason.
 - Content order follows importance in the novel.
-- Every change is checked visually (`dev/shot.cjs` at several landmark viewpoints) before it is pushed.
+- Checks are tiered so they do not crowd out the work: per change, one `dev/shot.cjs` screenshot of the thing changed (none for codex-only work); per task end and before every release, screenshots at a fixed set of landmark viewpoints compared with the previous set, plus the §6 budget check; only for high-risk changes (renderer, LOD, post chain, module split) a full viewpoint comparison after each step. Tool output is summarised, never pasted whole into the working context.
 - Commits are authored as the repository owner (Alex Wang <alex119122114@gmail.com>) with no AI co-author trailers; messages in English, saying what changed and why.
 
 ## 8. Depth is layered
