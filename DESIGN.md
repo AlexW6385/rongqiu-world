@@ -162,6 +162,9 @@ Append-only. One line per decision: date, decision, reason.
 - 2026-10-26 — No fixed content list in the brief; the novel (via the encyclopedia) decides what and how much exists. The project is open-ended: keep adding depth and content indefinitely; release in versions as chunks complete.
 - 2026-10-26 — The WebGPU check tests for a real adapter and, after init, for the WebGPU backend. Reason: three.js silently falls back to its WebGL2 backend when `navigator.gpu` exists but no adapter is available, and our WGSL shaders break there (page hung on the loading screen).
 - 2026-10-26 — `dev/shot.cjs` renders with software WebGPU (SwiftShader/Vulkan) instead of software WebGL; screenshots use N=120 frames so terrain and trees finish streaming. Reason: WebGPU-only renderer.
+- 2026-10-26 — Encyclopedia index scope: volumes 1–5 are 绒球's story and are counted; volumes 6–8 are listed only where several 绒球 places/creatures co-occur (possible on-planet scenes). Importance score = log2(1+mentions) × √chapters × (1 + 0.3 × titled chapters, max 5), adjusted by judgement for the tier list. Reason: from volume 6 "绒球" is mostly 琳's faction off-planet; frequency alone over-ranks common words and under-ranks set-pieces.
+- 2026-10-26 — Tier 1 for Phase 2 excludes cell-scale (`micro`) entries and 琳's made units; they stay in the index for later tiers. Reason: they are invisible at ground scale or transient war units, and add little to the sightseeing world per unit of work.
+- 2026-10-26 — The scripts that rebuild the index live with it in `rongqiu-source/encyclopedia/tools/` (private), including the hand-curated alias/kind list. Reason: the index will be re-run as new names are found; tools that read the novel stay next to the novel.
 
 ## 11. Roadmap and status
 
@@ -176,9 +179,7 @@ The implementing agent updates this section at the end of every work session: mo
 - WebGPU post chain; performance pass (Oct 2026).
 - `DESIGN.md` (this brief), 2026-10-26.
 - Phase 0 — Housekeeping, 2026-10-26: `webgl.html` and the redirect removed; WebGPU notice (also covers "API present, no adapter"); `ASSETS.md` added; README and `dev/` updated. Checked with `dev/shot.cjs` at 家园树, 立蝎之城, 创造之城 and on the no-WebGPU path; picture unchanged from before.
-
-**Phase 1 — Encyclopedia index**
-- In `rongqiu-source/encyclopedia/index.md`, record which 绒球 places, plants and creatures appear in which chapters, with a one-line note each — by searching for names (see §4, reading the novel efficiently), not by reading every chapter. Output also a ranked list of importance (frequency × narrative weight) to drive content order.
+- Phase 1 — Encyclopedia index, 2026-10-26: `rongqiu-source/encyclopedia/index.md` — 303 entries (260 from the 展览馆 data, the rest found in the text), each with kind, region, eras, mention and chapter counts, titled chapters and a one-line note; a ranked list; a chapter-by-chapter map of volumes 1–5; candidate on-planet chapters in volumes 6–8; and the tier-1 list for Phase 2.
 
 **Phase 2 — Encyclopedia, first batch, and conformance**
 - Full entries for the first tier of the Phase 1 ranking: the continents and seas, the most important landscapes, landmarks and cities, and the most important plants and creatures. The agent decides the cut-off from the ranking; the novel decides what the entries are. (The names already in the README and the code are a first pass only — the encyclopedia, not the README, is authoritative.)
