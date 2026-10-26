@@ -6,7 +6,7 @@
 
 **在线游玩：<https://alexw6385.github.io/rongqiu-world/>**（建议用电脑和独立显卡；手机会自动降低画质）
 
-整个项目是一个 `index.html`，不需要构建。用任意静态服务器打开即可，three.js 从 jsDelivr 加载。渲染使用 WebGPU（较新的 Chrome、Edge、Safari、Firefox）；不支持 WebGPU 的浏览器会自动转到旧的 WebGL 版本 `webgl.html`。
+整个项目是一个 `index.html`，不需要构建。用任意静态服务器打开即可，three.js 从 jsDelivr 加载。渲染只用 WebGPU（较新的 Chrome、Edge、Safari、Firefox）；不支持 WebGPU 的浏览器会显示一条提示，不再有 WebGL 版本（旧的 `webgl.html` 在 git 历史里）。
 
 ## 怎么玩
 
@@ -33,7 +33,7 @@
 
 本仓库不包含小说原文，只有地名、坐标和一两句概括。
 
-树皮（Poly Haven，CC0）和叶片照片取自 [ez-tree](https://github.com/dgreenheck/ez-tree)（MIT），运行时从 jsDelivr 加载；树的生长算法也参考了 ez-tree。
+树皮（Poly Haven，CC0）和叶片照片取自 [ez-tree](https://github.com/dgreenheck/ez-tree)（MIT），运行时从 jsDelivr 加载；树的生长算法也参考了 ez-tree。所有外部素材及其来源和许可见 [`ASSETS.md`](ASSETS.md)。
 
 ## 技术要点
 

@@ -1,12 +1,12 @@
-# 开发工具
+# Dev tools
 
-`shot.cjs` 用无头 Chromium（软件 WebGL）截图，用来在没有显卡的环境里检查画面。
+`shot.cjs` takes screenshots with headless Chromium using software WebGPU (SwiftShader on Vulkan), so the picture can be checked without a GPU.
 
 ```bash
-npm i three@0.169.0 playwright
-# 把 index.html 里的 CDN 地址换成本地 node_modules，另存为 test.html，然后：
+npm i three@0.186.1 @dgreenheck/ez-tree@1.1.0 playwright
+# Point the jsDelivr URLs in index.html (three and ez-tree) at local node_modules, save as test.html, then:
 python3 -m http.server 8788 &
-OUT=view node dev/shot.cjs
+OUT=view N=120 node dev/shot.cjs
 ```
 
-环境变量：`W`/`H` 视口尺寸，`Q` 画质（high / mid / low），`N` 渲染帧数，`VIEW` 视角 JSON（`{"lat":..,"lon":..,"heading":..,"pitch":..}`，弧度），`HOUR` 当地时间，`MAP=1` 同时截地图。
+Environment variables: `W`/`H` viewport size; `Q` quality (high / mid / low); `N` frames to render (terrain and trees need about 100 frames to finish streaming — fewer gives an empty flat ground); `VIEW` view JSON (`{"lat":..,"lon":..,"heading":..,"pitch":..}`, radians); `HOUR` local time; `MAP=1` also screenshots the map; `PORT` server port; `DIR` output directory; `F` page file name; `CHROME` path to a Chromium binary (when Playwright's own browser can't be downloaded, the npm package `@sparticuz/chromium` provides one).

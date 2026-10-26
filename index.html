@@ -835,9 +835,13 @@ photoDetail(texDirt,'https://cdn.jsdelivr.net/npm/@dgreenheck/ez-tree@1.1.0/src/
 
 /* ===== renderer / scene ===== */
 const canvas=$('#c');
-if(!navigator.gpu){if(/github\.io/.test(location.host)){location.replace('webgl.html');}fail('这个浏览器不支持 WebGPU，无法生成画面。请用较新的 Chrome、Edge、Safari 或 Firefox 打开。');throw new Error('no WebGPU');}
+/* WebGPU only (DESIGN.md §5). three.js would silently fall back to its WebGL2 backend when navigator.gpu exists but no
+   adapter is available, and our WGSL shaders do not run there — so check for a real adapter and the real backend. */
+const NO_GPU='绒球世界只用 WebGPU 渲染，这个浏览器或设备当前不能使用 WebGPU。请用较新的 Chrome、Edge、Safari 或 Firefox 打开，并确认硬件加速已开启。';
+if(!navigator.gpu||!(await navigator.gpu.requestAdapter({powerPreference:'high-performance'}).catch(()=>null))){fail(NO_GPU);throw new Error('no WebGPU');}
 const renderer=new THREE.WebGPURenderer({canvas,antialias:false,powerPreference:'high-performance',reversedDepthBuffer:true});
 try{await renderer.init();}catch(e){fail('无法初始化 WebGPU：'+e.message);throw e;}
+if(!renderer.backend||!renderer.backend.isWebGPUBackend){fail(NO_GPU);throw new Error('WebGPU backend unavailable');}
 renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.0;renderer.outputColorSpace=THREE.SRGBColorSpace;
 const scene=new THREE.Scene();
 const camera=new THREE.PerspectiveCamera(50,1,0.2,3e7);

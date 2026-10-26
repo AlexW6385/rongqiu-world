@@ -160,6 +160,8 @@ Append-only. One line per decision: date, decision, reason.
 - 2026-10-26 — Travel is walk/run/fly with adjustable speed plus the map; nothing else. Reason: sufficient; keeps the UI simple.
 - 2026-10-26 — This document is the brief for autonomous implementation; the agent decides §9 items itself and records them here.
 - 2026-10-26 — No fixed content list in the brief; the novel (via the encyclopedia) decides what and how much exists. The project is open-ended: keep adding depth and content indefinitely; release in versions as chunks complete.
+- 2026-10-26 — The WebGPU check tests for a real adapter and, after init, for the WebGPU backend. Reason: three.js silently falls back to its WebGL2 backend when `navigator.gpu` exists but no adapter is available, and our WGSL shaders break there (page hung on the loading screen).
+- 2026-10-26 — `dev/shot.cjs` renders with software WebGPU (SwiftShader/Vulkan) instead of software WebGL; screenshots use N=120 frames so terrain and trees finish streaming. Reason: WebGPU-only renderer.
 
 ## 11. Roadmap and status
 
@@ -173,10 +175,7 @@ The implementing agent updates this section at the end of every work session: mo
 - Map with teleport; mobile controls; procedural music.
 - WebGPU post chain; performance pass (Oct 2026).
 - `DESIGN.md` (this brief), 2026-10-26.
-
-**Phase 0 — Housekeeping**
-- Remove `webgl.html` and the fallback redirect; show a WebGPU notice instead. Update README accordingly.
-- Add `ASSETS.md` (currently: Poly Haven bark, ez-tree leaves).
+- Phase 0 — Housekeeping, 2026-10-26: `webgl.html` and the redirect removed; WebGPU notice (also covers "API present, no adapter"); `ASSETS.md` added; README and `dev/` updated. Checked with `dev/shot.cjs` at 家园树, 立蝎之城, 创造之城 and on the no-WebGPU path; picture unchanged from before.
 
 **Phase 1 — Encyclopedia index**
 - In `rongqiu-source/encyclopedia/index.md`, record which 绒球 places, plants and creatures appear in which chapters, with a one-line note each — by searching for names (see §4, reading the novel efficiently), not by reading every chapter. Output also a ranked list of importance (frequency × narrative weight) to drive content order.
