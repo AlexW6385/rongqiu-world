@@ -1,14 +1,17 @@
 # 绒球世界 — Design
 
-> This document is the frame for the project. Anyone (human or AI) touching the code should read it first and stay inside it. It records *what* this project is, *why* it is built the way it is, and *what we will not do*. It is deliberately short on implementation detail — the code is the detail; this file is the direction.
+> **This document is the brief for the whole project.** It is written so that an implementing agent can work from it, alone, from the current state to completion, without further direction from the author. Read it in full before touching anything, follow it, and keep §11 (status) and §10 (decisions) up to date as you go. If something here is unclear, decide in the spirit of §3 and record the decision in §10 — do not stop to ask.
 
 ## 1. What this is
 
 A realistic, real-scale, first-person 3D world of **绒球**, the home planet of 琳 in the novel 《进化的四十六亿重奏》. You stand on the ground as a creature living on 绒球 and explore it: vast natural environments — continents, seas, deserts, forests, mountains — populated by the plants and creatures the novel describes, distributed where the novel says (or implies) they live; and, scattered across them, **concentrated places** — the famous landscapes, landmarks and cities — built with a great density of unique detail.
 
-The novel describes this world richly and at length. The project's ambition is to be as rich: everything the book describes should eventually exist here, looking and behaving as described, in the numbers and places described.
+The novel describes this world richly and at length. The project's ambition is to be as rich: everything the book describes of 绒球 should eventually exist here, looking and behaving as described, in the numbers and places described.
 
 It is a **sightseeing experience**, not a game, not an encyclopedia.
+
+**Live site:** https://alexw6385.github.io/rongqiu-world/
+**Source of truth for content:** the private repo **https://github.com/AlexW6385/rongqiu-source** — see §4.
 
 ## 2. What this is NOT
 
@@ -16,12 +19,12 @@ It is a **sightseeing experience**, not a game, not an encyclopedia.
 - **Not a god's-eye view.** Ground view only. Flying exists as a way of moving, not as a different kind of experience.
 - **Not era-switching.** Each place shows its single richest / most representative era. Inconsistency between places (snow here, summer there) is acceptable and intended.
 - **Not a product for every device.** Targets the author's own computer and phone, both with WebGPU. Broad compatibility is a non-goal.
-- **Not a host for the novel's text.** Only names, coordinates and one- or two-sentence summaries ever appear in the repo or on the page. The novel is still the *source* for everything — see §4 and §6.
-- **Not invented.** Nothing contradicts the book. Where the book is silent, inference is allowed but must be marked as inference.
+- **Not a host for the novel's text.** Only names, coordinates and one- or two-sentence summaries ever appear in this repo or on the page.
+- **Not invented.** Nothing contradicts the book. Where the book is silent, inference is allowed but must be marked as inference in the codex.
 
 ## 3. The two things to get right
 
-Everything else is secondary to these two pillars.
+Everything else is secondary to these two pillars. When two goals conflict, resolve in this order.
 
 ### Pillar A — Faithful to the novel, and rich
 
@@ -32,71 +35,110 @@ Everything else is secondary to these two pillars.
 
 ### Pillar B — As real and as beautiful as possible, as fast as possible
 
-- Realism and natural look first: atmosphere, light, materials, vegetation, water, scale.
-- Picture quality is allowed to win over smoothness, within reason: it must not be unplayably laggy. Before lowering quality, look for optimisation, caching, precomputation and acceleration.
+- Realism and natural look first: atmosphere, light, materials, vegetation, water, scale, motion.
+- Picture quality is allowed to win over smoothness, within reason: it must not be unplayably laggy on the author's machine. Before lowering quality, look for optimisation, caching, precomputation and acceleration.
+- The page stays **light to load** (budgets in §7).
 - The interface stays **simple and clean**: walk, look, fly, a map to jump to places, a few settings. Nothing else on screen.
 
-## 4. The design codex (世界百科)
+## 4. The design codex (世界百科) and the source repo
 
 The codex is the bridge between the novel and the code. It is the single source of truth for *what* exists and *how it looks*.
 
-- **One entry per thing** — a landscape, a landmark, a city, a plant, a creature, a material, a weather or sky phenomenon. Each entry records, from the text: appearance (shape, size, colour, texture, light), behaviour or motion, where it is found (continent, biome, specific places), how many / how dense, time of day or season it appears, relationships (what eats what, what grows near what), and the chapters it comes from. Each statement is tagged **stated** (from the text) or **inferred** (our reasonable extrapolation).
-- **Lives in the private source repo** (`AlexW6385/rongqiu-source`) next to the novel, because it paraphrases the book closely. It never enters this public repo.
-- **What crosses into this repo** is only the parameters the code needs: names, coordinates, sizes, counts, biome tags, colour values, placement rules. No prose.
-- **Starting point:** the 展览馆's `data/wiki*.js` already indexes most entries with their chapters; use it as the index of what to write, and the novel as the content.
-- **Format:** structured text (one Markdown or YAML file per entry) so that both people and AI can read, diff and query it.
+- **Where the novel is:** `https://github.com/AlexW6385/rongqiu-source` (private). `novel.txt` is the full text (UTF-8, ~34 MB, volumes → chapters). An implementing agent attaches/clones that repo to read it. It is large: read it by volume/chapter ranges, not whole.
+- **Where the codex is:** the same repo, under `codex/`. One file per entry, Markdown with a YAML front matter: `name`, `kind` (landscape / landmark / city / plant / creature / material / sky-weather), `aliases`, `continent`, `biome`, `places`, `size` (metres), `count_or_density`, `time` (day/night/season), `chapters`; then sections *Appearance*, *Behaviour / motion*, *Habitat and distribution*, *Relationships*, *Notes for implementation*. Every statement is tagged **[stated]** (from the text, with chapter) or **[inferred]** (our extrapolation, with reasoning). Entries are in English; names keep the Chinese original plus a romanised id.
+- **Index:** `codex/index.md` — a chapter-by-chapter list of which 绒球 places, plants and creatures appear, built before full entries. The 展览馆's `data/wiki*.js` is the starting checklist of entries and chapters.
+- **What crosses into this repo:** only the parameters the code needs — names, coordinates, sizes, counts, biome tags, colour values, placement and behaviour rules — in code or small data tables. No prose from the codex or the novel.
+- **Rule:** no plant, creature, landscape or city is built or changed without a codex entry. If an entry is missing, write it first.
 
 ## 5. Architecture
 
-- **Single page, no build.** The whole app is `index.html`, served statically from GitHub Pages. three.js is loaded from jsDelivr. (See Open questions on splitting into static ES modules as the project grows.)
-- **Renderer: three.js WebGPU only.** Terrain, atmosphere, clouds and vegetation shaders are WGSL connected through TSL. Post chain: scene → GTAO → TAAU → bloom → tone-mapping / grade. Browsers without WebGPU get a short notice, not a fallback renderer (`webgl.html` was removed; it remains in git history).
+- **Single page, no bundler.** The app is `index.html` served statically from GitHub Pages; three.js from jsDelivr. The implementing agent may split it into static ES modules (`src/*.js` loaded by `index.html`) when it becomes unmanageable — expected once the city layer lands. Still no build step.
+- **Renderer: three.js WebGPU only.** WGSL shaders connected through TSL. Post chain: scene → GTAO → TAAU → bloom → tone-mapping / grade. Browsers without WebGPU get a short notice, not a fallback (`webgl.html` removed; in git history).
 - **Planet:** cube-sphere quadtree LOD (18 levels, finest ≈ 1.2 m). Tiles generated in Web Workers from one deterministic height function shared by worker and main thread. Camera-relative rendering with double-precision camera position; logarithmic depth.
-- **World authoring lives in code and tables.** Continents, mountain belts, landmarks and biomes are carved into the height function and placement tables by coordinates. The tables are derived from the codex.
-- **Generated nature.** Vegetation and creature distribution are generated procedurally from codex rules (biome, altitude, moisture, proximity to landmarks), not hand-placed, so the vast areas can be rich without hand work. Hand placement is reserved for landmarks and cities.
-- **Concentrated places.** Famous landscapes, landmarks and cities are a separate layer of hand-authored, dense detail on top of the generated world.
-- **Cities (planned module).** Cities become fully walkable — streets, squares, building exteriors and eventually interiors — laid out from the codex. They need their own layer: a per-city plan (street network, lots, landmarks), procedural buildings generated from that plan, and city-level collision/navigation. The plan is data; the look is code. This layer stays separate from the terrain code.
+- **World authoring in code and tables.** Continents, mountain belts, landmarks and biomes are carved into the height function and placement tables by coordinates; the tables derive from the codex.
+- **Generated nature.** Vegetation, ground cover and creature distribution are generated from codex rules (biome, altitude, moisture, proximity to landmarks, time of day), not hand-placed, so vast areas can be rich without hand work.
+- **Concentrated places.** Famous landscapes, landmarks and cities are a separate layer of hand-authored dense detail on top of the generated world.
+- **City layer.** A per-city plan (street network, lots, landmarks, districts) as data; procedural buildings generated from the plan; city-level collision and navigation; interiors loaded on demand. Separate from terrain code.
 - **Vegetation:** procedural recursive trees in three LODs (full / simplified / impostor atlas); GPU-instanced grass driven by a background height sampler.
 - **Lighting:** single-scattering Rayleigh+Mie atmosphere, ray-marched volumetric clouds, terrain self-shadow via precomputed horizon angles, two-cascade shadow maps for objects.
+- **Travel:** walk, run, fly. Flight speed scales with altitude and is adjustable (keys, wheel, settings); the map lists famous places and jumps straight to them. This is the complete travel model — no vehicles, no fast-travel lore.
 - **Audio:** music synthesised in the browser per biome; no audio files.
 - **Dev tooling:** `dev/shot.cjs` — headless Chromium screenshots for checking the picture without a GPU.
 
-## 6. Technical decisions and why
+## 6. Assets, precomputation and caching
 
-| Decision | Why |
-|---|---|
-| WebGPU only, WebGL removed | Needed for compute-heavy grass/foliage and modern post-processing; author's devices support it. Maintaining a second renderer (separate file, GLSL vs. WGSL, no shared code) would double every change for a version nobody uses. |
-| Real planet radius (6371 km), metres | Realism and proper scale; faking scale breaks the feeling of being a creature on the planet. |
-| One `index.html`, no bundler | Zero build friction; the page must keep running by just opening it. If it becomes unmanageable, split into ES modules served statically — still no bundler. |
-| Procedural geometry, CDN-hosted textures | Keeps the repo tiny and legally clean; no large binaries committed. Photographic textures and scanned models from permissive sources (Poly Haven CC0, ez-tree MIT) are allowed via CDN. |
-| Adaptive internal resolution + TAAU | Lets slow hardware keep every effect on rather than turning effects off. |
-| Deterministic height function | The same world everywhere, in workers and on the main thread, with no data files to ship. |
-| Codex in the private repo, parameters in the public repo | Faithfulness needs close paraphrase of the text; the public repo must stay free of it. |
-| Generated distribution from rules, hand-placed landmarks | Only generation can make continents rich; only hand work can make a landmark unique. |
+Use whatever makes the picture better, as long as the page stays light to load. The implementing agent chooses sources and techniques itself within these rules.
+
+- **Third-party assets** (PBR materials, scanned rocks and ground, bark, leaves, HDRIs for reference): allowed from permissive sources only — CC0 (Poly Haven, ambientCG), MIT or equivalent. Loaded at runtime from a CDN (jsDelivr for GitHub-hosted packages; the source's own CDN where it offers one). Keep an `ASSETS.md` listing every external asset with its source, licence and URL. Never commit large third-party binaries.
+- **Precomputed / baked data** (impostor atlases, distribution maps, baked terrain tiles for landmark areas, city lightmaps, horizon maps): allowed and encouraged where it makes things faster or better. Store under `data/` in this repo, compressed (KTX2/Basis for textures, binary for tables), **streamed per region on demand**, never all at startup.
+- **Caching:** use the browser's HTTP cache (immutable, content-hashed file names) and, for generated data that is expensive to compute at runtime, Cache Storage / IndexedDB so a second visit is fast. Cache misses must degrade gracefully (compute on the fly).
+- **Budgets** (hard limits unless §10 records a change):
+  - Initial load to first frame: **≤ 15 MB** transferred and **≤ 5 s** on the author's desktop.
+  - Any single region's on-demand data: **≤ 25 MB**.
+  - Any single committed file: **≤ 50 MB** (GitHub's warning threshold); no Git LFS.
+  - Whole repository: **≤ 500 MB** (GitHub Pages serves up to 1 GB).
+  - Expected final footprint under these rules: a few MB of code, tens of MB of baked atlases and maps, 100–300 MB of per-region baked data in total — only a small slice of it ever loaded in one visit.
 
 ## 7. Constraints and rules
 
 - Units are metres; coordinates are lat/lon on the planet.
-- **Codex first.** Do not build or change a plant, creature, landscape or city without a codex entry written from the original text. Inferred details are marked as inferred.
-- **The novel never enters this repo.** It is supplied privately to the session via `rongqiu-source`. Nothing from the original text is committed, displayed, or paraphrased at length on the page. `.gitignore` must keep excluding `*.txt`.
-- Do not add gameplay (objectives, inventory, combat, NPC dialogue).
-- Do not add an overhead/orbital mode or era switching.
-- Do not add a build step, framework, or a second renderer.
-- Keep the UI minimal: walk, look, fly, map, settings. Any new on-screen element needs a reason in this document.
-- A performance change must not lower the default picture quality on the author's machine without being called out. Prefer precomputation, caching and culling to lower quality.
+- Codex first (§4). The novel never enters this repo; `.gitignore` keeps excluding `*.txt`.
+- No gameplay (objectives, inventory, combat, NPC dialogue).
+- No overhead/orbital mode, no era switching, no second renderer, no build step.
+- UI stays minimal: walk, look, fly, map, settings. A new on-screen element needs a reason recorded in §10.
+- Picture quality on the author's machine never goes down silently; a change that lowers it must be recorded in §10 with the reason.
 - Content order follows importance in the novel.
+- Every change is checked visually (`dev/shot.cjs` at several landmark viewpoints) before it is pushed.
+- Commits are authored as the repository owner (Alex Wang <alex119122114@gmail.com>) with no AI co-author trailers; messages in English, saying what changed and why.
 
-## 8. Open questions
+## 8. Depth is layered
 
-1. **Codex scope and pace.** The novel is ~34 MB of text. Writing the full codex before building anything would take a long time; writing one entry at a time is slow but safe. Proposed: do a chapter-by-chapter **index pass** first (what appears where), then write full entries per place as that place is built.
-2. **Precomputation vs. pure procedural.** For speed, some things could be baked offline (terrain tiles for the most-visited areas, impostor atlases, lightmaps for cities, distribution maps) and shipped as files. That speeds up loading and rendering but adds binaries and hosting. Decide a size budget and what is allowed to be baked.
-3. **Assets for realism.** Procedural-only has a realism ceiling. Allow more CDN-hosted scanned models and PBR materials (CC0) for rocks, ground, bark, water? Proposed: yes, within a documented list of sources and licences.
-4. **Splitting `index.html`.** Now ~200 KB and growing with cities and codex-driven content. Proposed: split into static ES modules (no bundler) when the city layer lands.
-5. **City plan format.** Hand-written tables vs. a small plan DSL; how interiors load without hurting planet-scale LOD.
-6. **Creature behaviour.** How far to go: idle animation and wandering only, or herd behaviour, predator/prey, day/night activity as described? Richness argues for more; cost argues for staging it.
-7. **Travel between places.** At real scale, walking between continents is impossible; today there is fast flight and the map. Is that enough, or should there be lore-friendly travel (e.g., following a river, a 巴士 route)?
-8. **Water.** Seas and 峡谷之海 are central to the book; current water is basic. Which level of water simulation (shoreline, waves, depth colour, underwater view) is in scope?
+Rich systems are built in levels, not all at once. Each level must be complete, checked and committed before the next starts. Levels for the main systems:
 
-## 9. Decisions log
+**Creatures**
+- L1 — correct look, size, colour, posture; placed in the right biomes at codex densities; idle animation.
+- L2 — locomotion matching the codex (gait, flight, swim); wandering within habitat; day/night activity.
+- L3 — group behaviour (herds, flocks, swarms); reaction to the player (flee / ignore / approach as the book implies).
+- L4 — ecological behaviour: predator/prey, feeding, nesting, seasonal or weather-driven movement, as the codex describes.
+
+**Water**
+- L1 — correct sea level, coastlines, depth colour, shallow-water blocking.
+- L2 — surface waves, foam at shorelines, reflections and refraction, sun glitter.
+- L3 — rivers, lakes and waterfalls where the codex places them; wet shore materials.
+- L4 — underwater view with light scattering, underwater life where the book describes it; the special seas (峡谷之海 etc.) with their own look.
+
+**Weather and sky**
+- L1 — day/night, moon phases, clear sky (done).
+- L2 — cloud cover per biome, fog, haze, sunrise/sunset moods as described.
+- L3 — rain, snow, storms, sandstorms where the codex places them; wet/snowy ground response.
+
+**Cities**
+- L1 — correct site, silhouette, walls, main landmark structures at the right scale.
+- L2 — street network and squares, walkable, with collision; buildings as exteriors.
+- L3 — districts with distinct building types, props, street detail, inhabitants (as creatures/figures, not NPC dialogue).
+- L4 — interiors of major buildings, loaded on demand.
+
+**Vegetation and ground**
+- L1 — every codex plant exists with correct form and size, in the right biomes.
+- L2 — variation (age, size, damage), seasonal states where applicable, undergrowth and litter.
+- L3 — wind, interaction (brushing through grass), bioluminescence and other described effects.
+
+**Landscapes and landmarks**
+- L1 — correct position, scale and overall form.
+- L2 — unique materials and detail (rock strata, crystal structure, bark of the great trees).
+- L3 — surroundings: the ecology and small places around the landmark as the book describes them.
+
+## 9. Decisions delegated to the implementing agent
+
+These are the agent's to make, without asking, within the rules above; record each in §10.
+
+- Which CC0/MIT asset sources to use, and which data to bake vs. compute live.
+- When to split `index.html` into static ES modules, and the module layout.
+- The city plan format (tables vs. a small DSL) and the building generator design.
+- Order of work within a roadmap phase, and the viewpoints used for visual checks.
+- Any implementation detail not fixed by this document.
+
+## 10. Decisions log
 
 Append-only. One line per decision: date, decision, reason.
 
@@ -107,32 +149,58 @@ Append-only. One line per decision: date, decision, reason.
 - 2026-10 — Target only the author's own devices for now. Reason: not a product; testing done by the author.
 - 2026-10-26 — WebGL fallback removed; WebGPU only. Reason: two renderers with no shared code double every change; the fallback serves no device the author uses.
 - 2026-10-26 — Cities will be fully walkable, with streets and eventually interiors, refined progressively. Reason: cities are among the novel's most important places.
-- 2026-10-26 — The original text is the source of truth and lives in the private repo `rongqiu-source`; it never enters this repo.
+- 2026-10-26 — The original text lives in the private repo `rongqiu-source` and never enters this repo. The codex lives there too.
 - 2026-10-26 — Two pillars adopted: (A) faithful and rich, codex-first; (B) realism, quality and speed with a simple clean UI. Reason: author's stated vision.
-- 2026-10-26 — A design codex (世界百科) will be written from the text before building content, kept in `rongqiu-source`; only parameters cross into this repo. Reason: faithfulness and richness need a source of truth; the public repo must stay text-free.
 - 2026-10-26 — Nature is generated from codex rules; landmarks and cities are hand-authored. Reason: richness at continent scale vs. uniqueness at landmark scale.
+- 2026-10-26 — External CC0/MIT assets and baked data are allowed, chosen by the agent, within the load budgets of §6. Reason: realism ceiling of pure procedural; the page must stay light.
+- 2026-10-26 — Creature behaviour, water, weather, cities and vegetation are built in levels (§8), as deep and real as possible over time. Reason: richness without blocking progress.
+- 2026-10-26 — Travel is walk/run/fly with adjustable speed plus the map; nothing else. Reason: sufficient; keeps the UI simple.
+- 2026-10-26 — This document is the brief for autonomous implementation; the agent decides §9 items itself and records them here.
 
-## 10. Roadmap and status
+## 11. Roadmap and status
+
+The implementing agent updates this section at the end of every work session: move items between lists, add dates, and note what was checked. Phases run in order; within a phase, order is the agent's choice. A phase is done when every item in it is built, visually checked, pushed, and the live site works.
 
 **Done**
 - Planet, terrain LOD, atmosphere, clouds, day/night and moon.
-- Continents, major 原著 landscapes and landmarks placed (first pass).
+- Continents, major 原著 landscapes and landmarks placed (first pass, not yet checked against the codex).
 - Trees (3 LODs), grass, flowers, rocks, ground detail.
-- Creatures by biome (see README), sized per the novel (first pass).
+- Creatures by biome (see README), sized per the novel (first pass, not yet checked against the codex).
 - Map with teleport; mobile controls; procedural music.
 - WebGPU post chain; performance pass (Oct 2026).
+- `DESIGN.md` (this brief), 2026-10-26.
 
-**Next**
-1. Remove `webgl.html` and the fallback redirect; show a WebGPU notice instead.
-2. **Codex, index pass:** go through the novel (using the 展览馆's entry index as a checklist) and record, per chapter, which 绒球 places, plants and creatures appear. Output: an index in `rongqiu-source`.
-3. **Codex, full entries** for the first batch: the continents and seas; the top landscapes (峡谷之海, 大裂谷, 印加巨坑, 无尽荒漠, 盐地, 结晶之山, 地眼之湖); the top landmarks (家园树, 立蝎之城, 翡翠龙之城); the most important plants and creatures. Then re-check what is already built against the entries and fix discrepancies.
-4. **Distribution rules:** turn codex habitat/density statements into generation rules; make the natural world rich (plants, creatures, ground cover) across the continents.
-5. **City layer, first pass:** plan format + procedural buildings + collision, applied to one city (立蝎之城 or 翡翠龙之城) with walkable streets and squares, built from its codex entry.
-6. **Visual pass:** water and shorelines; material and vegetation realism; any baked/cached acceleration decided in Open question 2.
+**Phase 0 — Housekeeping**
+- Remove `webgl.html` and the fallback redirect; show a WebGPU notice instead. Update README accordingly.
+- Add `ASSETS.md` (currently: Poly Haven bark, ez-tree leaves).
 
-**Later**
-- Remaining cities on the city layer; then interiors.
-- Creature behaviour beyond wandering, as the codex describes.
-- Weather and biome moods (fog, rain) where the novel describes them.
-- Split `index.html` into static ES modules.
-- Night sky as described in the novel, if described.
+**Phase 1 — Codex index**
+- In `rongqiu-source/codex/index.md`, go through the novel chapter by chapter (using the 展览馆's entry index as a checklist) and record which 绒球 places, plants and creatures appear, with a one-line note each. Output also a ranked list of importance (frequency × narrative weight) to drive content order.
+
+**Phase 2 — Codex, first batch, and conformance**
+- Full entries for: the continents and seas; 峡谷之海, 大裂谷, 印加巨坑, 无尽荒漠, 盐地, 结晶之山, 地眼之湖; 家园树, 立蝎之城, 翡翠龙之城, 翡翠港, 银之城, 创造之城; the top ~20 plants and ~30 creatures by the Phase 1 ranking.
+- Re-check everything already built against these entries; fix positions, sizes, forms, colours, distributions. Record discrepancies found and fixed.
+
+**Phase 3 — Rich nature**
+- Turn codex habitat/density statements into generation rules; every Phase 2 plant and creature present at codex density across the continents (Creatures L1, Vegetation L1, Landscapes L1–L2).
+- Water L1–L2. Weather L2.
+- Baking/caching per §6 where it helps; verify budgets.
+
+**Phase 4 — First city**
+- City layer design (plan format, building generator, collision). Build one city (立蝎之城 or 翡翠龙之城, whichever has the richer codex entry) to Cities L1–L2.
+- Split into ES modules if not already done.
+
+**Phase 5 — Depth, round one**
+- Creatures L2, Vegetation L2, Water L3, Landscapes L3 for all Phase 2 entries.
+- Remaining codex entries for the next tier of plants and creatures; add them at L1.
+
+**Phase 6 — All cities**
+- Remaining cities to L1–L2; first city to L3.
+
+**Phase 7 — Depth, round two**
+- Creatures L3, Water L4, Weather L3, Vegetation L3, Cities L3 for all cities.
+
+**Phase 8 — Completion**
+- Creatures L4; Cities L4 (interiors of major buildings); every codex entry present at its full level; final conformance pass against the codex; final performance and budget pass; README updated to describe the finished world.
+
+**Definition of done for the project:** every 绒球 entry in the codex index exists in the world at the deepest level §8 defines for its kind, each checked against its codex entry; the live site loads within the §6 budgets; the UI is still just walk, look, fly, map, settings.
