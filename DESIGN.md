@@ -8,7 +8,7 @@ A realistic, real-scale, first-person 3D world of **绒球**, the home planet of
 
 The novel describes this world richly and at length. The project's ambition is to be as rich: everything the book describes of 绒球 should eventually exist here, looking and behaving as described, in the numbers and places described.
 
-It is a **sightseeing experience**, not a game, not an encyclopedia.
+It is a **sightseeing experience**, not a game, not a wiki to read — the encyclopedia (§4) is a design tool behind the scenes, never a feature of the page.
 
 **Scope is decided by the novel, not by this document.** This brief names no fixed list of cities, landmarks, plants or creatures; how many there are, what they are, and how important each is comes from reading the text (§4). More is better: there is no point at which the world is "full enough".
 
@@ -22,7 +22,7 @@ It is a **sightseeing experience**, not a game, not an encyclopedia.
 - **Not era-switching.** Each place shows its single richest / most representative era. Inconsistency between places (snow here, summer there) is acceptable and intended.
 - **Not a product for every device.** Targets the author's own computer and phone, both with WebGPU. Broad compatibility is a non-goal.
 - **Not a host for the novel's text.** Only names, coordinates and one- or two-sentence summaries ever appear in this repo or on the page.
-- **Not invented.** Nothing contradicts the book. Where the book is silent, inference is allowed but must be marked as inference in the codex.
+- **Not invented.** Nothing contradicts the book. Where the book is silent, inference is allowed but must be marked as inference in the encyclopedia.
 
 ## 3. The two things to get right
 
@@ -32,7 +32,7 @@ Everything else is secondary to these two pillars. When two goals conflict, reso
 
 - Terrain, places, plants and creatures follow the book's actual descriptions: appearance, size, behaviour, habitat, distribution, numbers.
 - Richness is the goal, not a nice-to-have: the book has a lot; the world should have a lot.
-- Work is **codex-first**: before building a thing, its entry in the design codex (§4) is written from the original text. Building from memory or guesswork is not allowed.
+- Work is **encyclopedia-first**: before building a thing, its entry in the design encyclopedia (§4) is written from the original text. Building from memory or guesswork is not allowed.
 - Content is added in order of importance in the novel.
 
 ### Pillar B — As real and as beautiful as possible, as fast as possible
@@ -42,24 +42,24 @@ Everything else is secondary to these two pillars. When two goals conflict, reso
 - The page stays **light to load** (budgets in §7).
 - The interface stays **simple and clean**: walk, look, fly, a map to jump to places, a few settings. Nothing else on screen.
 
-## 4. The design codex (世界百科) and the source repo
+## 4. The design encyclopedia (世界百科) and the source repo
 
-The codex is the bridge between the novel and the code. It is the single source of truth for *what* exists and *how it looks*.
+The encyclopedia is the bridge between the novel and the code. It is the single source of truth for *what* exists and *how it looks*.
 
 - **Where the novel is:** `https://github.com/AlexW6385/rongqiu-source` (private). `novel.txt` is the full text (UTF-8, ~34 MB, volumes → chapters). An implementing agent attaches/clones that repo to read it. It is large: read it by volume/chapter ranges, not whole.
-- **Where the codex is:** the same repo, under `codex/`. One file per entry, Markdown with a YAML front matter: `name`, `kind` (landscape / landmark / city / plant / creature / material / sky-weather), `aliases`, `continent`, `biome`, `places`, `size` (metres), `count_or_density`, `time` (day/night/season), `chapters`; then sections *Appearance*, *Behaviour / motion*, *Habitat and distribution*, *Relationships*, *Notes for implementation*. Every statement is tagged **[stated]** (from the text, with chapter) or **[inferred]** (our extrapolation, with reasoning). Entries are in English; names keep the Chinese original plus a romanised id.
-- **Index:** `codex/index.md` — a chapter-by-chapter list of which 绒球 places, plants and creatures appear, built before full entries. The 展览馆's `data/wiki*.js` is the starting checklist of entries and chapters.
+- **Where the encyclopedia is:** the same repo, under `encyclopedia/`. One file per entry, Markdown with a YAML front matter: `name`, `kind` (landscape / landmark / city / plant / creature / material / sky-weather), `aliases`, `continent`, `biome`, `places`, `size` (metres), `count_or_density`, `time` (day/night/season), `chapters`; then sections *Appearance*, *Behaviour / motion*, *Habitat and distribution*, *Relationships*, *Notes for implementation*. Every statement is tagged **[stated]** (from the text, with chapter) or **[inferred]** (our extrapolation, with reasoning). Entries are in English; names keep the Chinese original plus a romanised id.
+- **Index:** `encyclopedia/index.md` — a chapter-by-chapter list of which 绒球 places, plants and creatures appear, built before full entries. The 展览馆's `data/wiki*.js` is the starting checklist of entries and chapters.
 - **Reading the novel efficiently.** The text is far too long to read end to end. Do not. Work search-first: build a list of names and aliases (from the 展览馆 index and from names met along the way), locate every occurrence with text search (`grep -n`, by chapter), and read only the passages around the hits — a few hundred characters each side, more when a description runs long. Read a whole chapter only when it is clearly a set-piece for a place or creature. Keep a per-entry list of the passages used (chapter + approximate position) so they can be re-read later without searching again.
-- **What crosses into this repo:** only the parameters the code needs — names, coordinates, sizes, counts, biome tags, colour values, placement and behaviour rules — in code or small data tables. No prose from the codex or the novel.
-- **Rule:** no plant, creature, landscape or city is built or changed without a codex entry. If an entry is missing, write it first.
+- **What crosses into this repo:** only the parameters the code needs — names, coordinates, sizes, counts, biome tags, colour values, placement and behaviour rules — in code or small data tables. No prose from the encyclopedia or the novel.
+- **Rule:** no plant, creature, landscape or city is built or changed without a encyclopedia entry. If an entry is missing, write it first.
 
 ## 5. Architecture
 
 - **Single page, no bundler.** The app is `index.html` served statically from GitHub Pages; three.js from jsDelivr. The implementing agent may split it into static ES modules (`src/*.js` loaded by `index.html`) when it becomes unmanageable — expected once the city layer lands. Still no build step.
 - **Renderer: three.js WebGPU only.** WGSL shaders connected through TSL. Post chain: scene → GTAO → TAAU → bloom → tone-mapping / grade. Browsers without WebGPU get a short notice, not a fallback (`webgl.html` removed; in git history).
 - **Planet:** cube-sphere quadtree LOD (18 levels, finest ≈ 1.2 m). Tiles generated in Web Workers from one deterministic height function shared by worker and main thread. Camera-relative rendering with double-precision camera position; logarithmic depth.
-- **World authoring in code and tables.** Continents, mountain belts, landmarks and biomes are carved into the height function and placement tables by coordinates; the tables derive from the codex.
-- **Generated nature.** Vegetation, ground cover and creature distribution are generated from codex rules (biome, altitude, moisture, proximity to landmarks, time of day), not hand-placed, so vast areas can be rich without hand work.
+- **World authoring in code and tables.** Continents, mountain belts, landmarks and biomes are carved into the height function and placement tables by coordinates; the tables derive from the encyclopedia.
+- **Generated nature.** Vegetation, ground cover and creature distribution are generated from encyclopedia rules (biome, altitude, moisture, proximity to landmarks, time of day), not hand-placed, so vast areas can be rich without hand work.
 - **Concentrated places.** Famous landscapes, landmarks and cities are a separate layer of hand-authored dense detail on top of the generated world.
 - **City layer.** A per-city plan (street network, lots, landmarks, districts) as data; procedural buildings generated from the plan; city-level collision and navigation; interiors loaded on demand. Separate from terrain code.
 - **Vegetation:** procedural recursive trees in three LODs (full / simplified / impostor atlas); GPU-instanced grass driven by a background height sampler.
@@ -85,13 +85,13 @@ Use whatever makes the picture better, as long as the page stays light to load. 
 ## 7. Constraints and rules
 
 - Units are metres; coordinates are lat/lon on the planet.
-- Codex first (§4). The novel never enters this repo; `.gitignore` keeps excluding `*.txt`.
+- Encyclopedia first (§4). The novel never enters this repo; `.gitignore` keeps excluding `*.txt`.
 - No gameplay (objectives, inventory, combat, NPC dialogue).
 - No overhead/orbital mode, no era switching, no second renderer, no build step.
 - UI stays minimal: walk, look, fly, map, settings. A new on-screen element needs a reason recorded in §10.
 - Picture quality on the author's machine never goes down silently; a change that lowers it must be recorded in §10 with the reason.
 - Content order follows importance in the novel.
-- Checks are tiered so they do not crowd out the work: per change, one `dev/shot.cjs` screenshot of the thing changed (none for codex-only work); per task end and before every release, screenshots at a fixed set of landmark viewpoints compared with the previous set, plus the §6 budget check; only for high-risk changes (renderer, LOD, post chain, module split) a full viewpoint comparison after each step. Tool output is summarised, never pasted whole into the working context.
+- Checks are tiered so they do not crowd out the work: per change, one `dev/shot.cjs` screenshot of the thing changed (none for encyclopedia-only work); per task end and before every release, screenshots at a fixed set of landmark viewpoints compared with the previous set, plus the §6 budget check; only for high-risk changes (renderer, LOD, post chain, module split) a full viewpoint comparison after each step. Tool output is summarised, never pasted whole into the working context.
 - Commits are authored as the repository owner (Alex Wang <alex119122114@gmail.com>) with no AI co-author trailers; messages in English, saying what changed and why.
 
 ## 8. Depth is layered
@@ -99,21 +99,21 @@ Use whatever makes the picture better, as long as the page stays light to load. 
 Rich systems are built in levels, not all at once. Each level must be complete, checked and committed before the next starts. Levels for the main systems:
 
 **Creatures**
-- L1 — correct look, size, colour, posture; placed in the right biomes at codex densities; idle animation.
-- L2 — locomotion matching the codex (gait, flight, swim); wandering within habitat; day/night activity.
+- L1 — correct look, size, colour, posture; placed in the right biomes at encyclopedia densities; idle animation.
+- L2 — locomotion matching the encyclopedia (gait, flight, swim); wandering within habitat; day/night activity.
 - L3 — group behaviour (herds, flocks, swarms); reaction to the player (flee / ignore / approach as the book implies).
-- L4 — ecological behaviour: predator/prey, feeding, nesting, seasonal or weather-driven movement, as the codex describes.
+- L4 — ecological behaviour: predator/prey, feeding, nesting, seasonal or weather-driven movement, as the encyclopedia describes.
 
 **Water**
 - L1 — correct sea level, coastlines, depth colour, shallow-water blocking.
 - L2 — surface waves, foam at shorelines, reflections and refraction, sun glitter.
-- L3 — rivers, lakes and waterfalls where the codex places them; wet shore materials.
+- L3 — rivers, lakes and waterfalls where the encyclopedia places them; wet shore materials.
 - L4 — underwater view with light scattering, underwater life where the book describes it; any special seas the book describes with their own look.
 
 **Weather and sky**
 - L1 — day/night, moon phases, clear sky (done).
 - L2 — cloud cover per biome, fog, haze, sunrise/sunset moods as described.
-- L3 — rain, snow, storms, sandstorms where the codex places them; wet/snowy ground response.
+- L3 — rain, snow, storms, sandstorms where the encyclopedia places them; wet/snowy ground response.
 
 **Cities**
 - L1 — correct site, silhouette, walls, main landmark structures at the right scale.
@@ -122,7 +122,7 @@ Rich systems are built in levels, not all at once. Each level must be complete, 
 - L4 — interiors of major buildings, loaded on demand.
 
 **Vegetation and ground**
-- L1 — every codex plant exists with correct form and size, in the right biomes.
+- L1 — every encyclopedia plant exists with correct form and size, in the right biomes.
 - L2 — variation (age, size, damage), seasonal states where applicable, undergrowth and litter.
 - L3 — wind, interaction (brushing through grass), bioluminescence and other described effects.
 
@@ -152,14 +152,14 @@ Append-only. One line per decision: date, decision, reason.
 - 2026-10 — Target only the author's own devices for now. Reason: not a product; testing done by the author.
 - 2026-10-26 — WebGL fallback removed; WebGPU only. Reason: two renderers with no shared code double every change; the fallback serves no device the author uses.
 - 2026-10-26 — Cities will be fully walkable, with streets and eventually interiors, refined progressively. Reason: cities are among the novel's most important places.
-- 2026-10-26 — The original text lives in the private repo `rongqiu-source` and never enters this repo. The codex lives there too.
-- 2026-10-26 — Two pillars adopted: (A) faithful and rich, codex-first; (B) realism, quality and speed with a simple clean UI. Reason: author's stated vision.
-- 2026-10-26 — Nature is generated from codex rules; landmarks and cities are hand-authored. Reason: richness at continent scale vs. uniqueness at landmark scale.
+- 2026-10-26 — The original text lives in the private repo `rongqiu-source` and never enters this repo. The encyclopedia lives there too.
+- 2026-10-26 — Two pillars adopted: (A) faithful and rich, encyclopedia-first; (B) realism, quality and speed with a simple clean UI. Reason: author's stated vision.
+- 2026-10-26 — Nature is generated from encyclopedia rules; landmarks and cities are hand-authored. Reason: richness at continent scale vs. uniqueness at landmark scale.
 - 2026-10-26 — External CC0/MIT assets and baked data are allowed, chosen by the agent, within the load budgets of §6. Reason: realism ceiling of pure procedural; the page must stay light.
 - 2026-10-26 — Creature behaviour, water, weather, cities and vegetation are built in levels (§8), as deep and real as possible over time. Reason: richness without blocking progress.
 - 2026-10-26 — Travel is walk/run/fly with adjustable speed plus the map; nothing else. Reason: sufficient; keeps the UI simple.
 - 2026-10-26 — This document is the brief for autonomous implementation; the agent decides §9 items itself and records them here.
-- 2026-10-26 — No fixed content list in the brief; the novel (via the codex) decides what and how much exists. The project is open-ended: keep adding depth and content indefinitely; release in versions as chunks complete.
+- 2026-10-26 — No fixed content list in the brief; the novel (via the encyclopedia) decides what and how much exists. The project is open-ended: keep adding depth and content indefinitely; release in versions as chunks complete.
 
 ## 11. Roadmap and status
 
@@ -167,9 +167,9 @@ The implementing agent updates this section at the end of every work session: mo
 
 **Done**
 - Planet, terrain LOD, atmosphere, clouds, day/night and moon.
-- Continents, major 原著 landscapes and landmarks placed (first pass, not yet checked against the codex).
+- Continents, major 原著 landscapes and landmarks placed (first pass, not yet checked against the encyclopedia).
 - Trees (3 LODs), grass, flowers, rocks, ground detail.
-- Creatures by biome (see README), sized per the novel (first pass, not yet checked against the codex).
+- Creatures by biome (see README), sized per the novel (first pass, not yet checked against the encyclopedia).
 - Map with teleport; mobile controls; procedural music.
 - WebGPU post chain; performance pass (Oct 2026).
 - `DESIGN.md` (this brief), 2026-10-26.
@@ -178,25 +178,25 @@ The implementing agent updates this section at the end of every work session: mo
 - Remove `webgl.html` and the fallback redirect; show a WebGPU notice instead. Update README accordingly.
 - Add `ASSETS.md` (currently: Poly Haven bark, ez-tree leaves).
 
-**Phase 1 — Codex index**
-- In `rongqiu-source/codex/index.md`, record which 绒球 places, plants and creatures appear in which chapters, with a one-line note each — by searching for names (see §4, reading the novel efficiently), not by reading every chapter. Output also a ranked list of importance (frequency × narrative weight) to drive content order.
+**Phase 1 — Encyclopedia index**
+- In `rongqiu-source/encyclopedia/index.md`, record which 绒球 places, plants and creatures appear in which chapters, with a one-line note each — by searching for names (see §4, reading the novel efficiently), not by reading every chapter. Output also a ranked list of importance (frequency × narrative weight) to drive content order.
 
-**Phase 2 — Codex, first batch, and conformance**
-- Full entries for the first tier of the Phase 1 ranking: the continents and seas, the most important landscapes, landmarks and cities, and the most important plants and creatures. The agent decides the cut-off from the ranking; the novel decides what the entries are. (The names already in the README and the code are a first pass only — the codex, not the README, is authoritative.)
+**Phase 2 — Encyclopedia, first batch, and conformance**
+- Full entries for the first tier of the Phase 1 ranking: the continents and seas, the most important landscapes, landmarks and cities, and the most important plants and creatures. The agent decides the cut-off from the ranking; the novel decides what the entries are. (The names already in the README and the code are a first pass only — the encyclopedia, not the README, is authoritative.)
 - Re-check everything already built against these entries; fix positions, sizes, forms, colours, distributions. Record discrepancies found and fixed.
 
 **Phase 3 — Rich nature**
-- Turn codex habitat/density statements into generation rules; every Phase 2 plant and creature present at codex density across the continents (Creatures L1, Vegetation L1, Landscapes L1–L2).
+- Turn encyclopedia habitat/density statements into generation rules; every Phase 2 plant and creature present at encyclopedia density across the continents (Creatures L1, Vegetation L1, Landscapes L1–L2).
 - Water L1–L2. Weather L2.
 - Baking/caching per §6 where it helps; verify budgets.
 
 **Phase 4 — First city**
-- City layer design (plan format, building generator, collision). Build the one city with the richest codex entry to Cities L1–L2.
+- City layer design (plan format, building generator, collision). Build the one city with the richest encyclopedia entry to Cities L1–L2.
 - Split into ES modules if not already done.
 
 **Phase 5 — Depth, round one**
 - Creatures L2, Vegetation L2, Water L3, Landscapes L3 for all Phase 2 entries.
-- Remaining codex entries for the next tier of plants and creatures; add them at L1.
+- Remaining encyclopedia entries for the next tier of plants and creatures; add them at L1.
 
 **Phase 6 — All cities**
 - Remaining cities to L1–L2; first city to L3.
@@ -205,12 +205,12 @@ The implementing agent updates this section at the end of every work session: mo
 - Creatures L3, Water L4, Weather L3, Vegetation L3, Cities L3 for all cities.
 
 **Phase 8 — Full depth**
-- Creatures L4; Cities L4 (interiors of major buildings); every codex entry present at its full level; final conformance pass against the codex; final performance and budget pass; README updated to describe the finished world.
+- Creatures L4; Cities L4 (interiors of major buildings); every encyclopedia entry present at its full level; final conformance pass against the encyclopedia; final performance and budget pass; README updated to describe the finished world.
 
 **Phase 9 onward — Keep going**
-- There is no final state. After Phase 8, continue in a loop: find what the book describes of 绒球 that is still missing, thin, or shallower than its text (new codex entries, more individuals, more variation, more behaviour, more detail in places), add it, check it, release it. Prefer the item that adds the most to richness and faithfulness per unit of work. Stop only when the author says so.
+- There is no final state. After Phase 8, continue in a loop: find what the book describes of 绒球 that is still missing, thin, or shallower than its text (new encyclopedia entries, more individuals, more variation, more behaviour, more detail in places), add it, check it, release it. Prefer the item that adds the most to richness and faithfulness per unit of work. Stop only when the author says so.
 
-**Milestone for the main phases:** every 绒球 entry in the codex index exists in the world at the deepest level §8 defines for its kind, each checked against its codex entry; the live site loads within the §6 budgets; the UI is still just walk, look, fly, map, settings. Reaching it starts Phase 9; it does not end the project.
+**Milestone for the main phases:** every 绒球 entry in the encyclopedia index exists in the world at the deepest level §8 defines for its kind, each checked against its encyclopedia entry; the live site loads within the §6 budgets; the UI is still just walk, look, fly, map, settings. Reaching it starts Phase 9; it does not end the project.
 
 ## 12. Releases
 
