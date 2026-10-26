@@ -47,6 +47,7 @@ The codex is the bridge between the novel and the code. It is the single source 
 - **Where the novel is:** `https://github.com/AlexW6385/rongqiu-source` (private). `novel.txt` is the full text (UTF-8, ~34 MB, volumes → chapters). An implementing agent attaches/clones that repo to read it. It is large: read it by volume/chapter ranges, not whole.
 - **Where the codex is:** the same repo, under `codex/`. One file per entry, Markdown with a YAML front matter: `name`, `kind` (landscape / landmark / city / plant / creature / material / sky-weather), `aliases`, `continent`, `biome`, `places`, `size` (metres), `count_or_density`, `time` (day/night/season), `chapters`; then sections *Appearance*, *Behaviour / motion*, *Habitat and distribution*, *Relationships*, *Notes for implementation*. Every statement is tagged **[stated]** (from the text, with chapter) or **[inferred]** (our extrapolation, with reasoning). Entries are in English; names keep the Chinese original plus a romanised id.
 - **Index:** `codex/index.md` — a chapter-by-chapter list of which 绒球 places, plants and creatures appear, built before full entries. The 展览馆's `data/wiki*.js` is the starting checklist of entries and chapters.
+- **Reading the novel efficiently.** The text is far too long to read end to end. Do not. Work search-first: build a list of names and aliases (from the 展览馆 index and from names met along the way), locate every occurrence with text search (`grep -n`, by chapter), and read only the passages around the hits — a few hundred characters each side, more when a description runs long. Read a whole chapter only when it is clearly a set-piece for a place or creature. Keep a per-entry list of the passages used (chapter + approximate position) so they can be re-read later without searching again.
 - **What crosses into this repo:** only the parameters the code needs — names, coordinates, sizes, counts, biome tags, colour values, placement and behaviour rules — in code or small data tables. No prose from the codex or the novel.
 - **Rule:** no plant, creature, landscape or city is built or changed without a codex entry. If an entry is missing, write it first.
 
@@ -175,7 +176,7 @@ The implementing agent updates this section at the end of every work session: mo
 - Add `ASSETS.md` (currently: Poly Haven bark, ez-tree leaves).
 
 **Phase 1 — Codex index**
-- In `rongqiu-source/codex/index.md`, go through the novel chapter by chapter (using the 展览馆's entry index as a checklist) and record which 绒球 places, plants and creatures appear, with a one-line note each. Output also a ranked list of importance (frequency × narrative weight) to drive content order.
+- In `rongqiu-source/codex/index.md`, record which 绒球 places, plants and creatures appear in which chapters, with a one-line note each — by searching for names (see §4, reading the novel efficiently), not by reading every chapter. Output also a ranked list of importance (frequency × narrative weight) to drive content order.
 
 **Phase 2 — Codex, first batch, and conformance**
 - Full entries for: the continents and seas; 峡谷之海, 大裂谷, 印加巨坑, 无尽荒漠, 盐地, 结晶之山, 地眼之湖; 家园树, 立蝎之城, 翡翠龙之城, 翡翠港, 银之城, 创造之城; the top ~20 plants and ~30 creatures by the Phase 1 ranking.
