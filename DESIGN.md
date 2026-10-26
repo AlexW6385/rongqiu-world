@@ -82,6 +82,13 @@ Use whatever makes the picture better, as long as the page stays light to load. 
   - Whole repository: **≤ 500 MB** (GitHub Pages serves up to 1 GB).
   - Expected final footprint under these rules: a few MB of code, tens of MB of baked atlases and maps, 100–300 MB of per-region baked data in total — only a small slice of it ever loaded in one visit.
 
+### 6a. Techniques worth borrowing
+
+Reference projects on the same stack, to study before designing the relevant systems (study the ideas; do not copy code without checking its licence):
+
+- **False Earth** (Ming Jyun Hung, Codrops, Apr 2026; three.js WebGPU + TSL): over a million GPU-generated grass blades; GPU frustum culling writing visible indices for **indirect draws** so most instances never run the vertex shader; three density tiers with per-instance jitter on the distance test to hide LOD rings; deterministic per-blade seeds from world position; `compileAsync` with timeouts and a FIFO upload queue to avoid stalls on load. Apply the culling/indirect-draw and the shader warm-up ideas to grass, trees and creatures here.
+- **Tesseract** (Fyrestar, three.js forum): planet engine at realistic scale — impostors for distant assets, mesh/texture packing, texture arrays with depth-based splatting for many ground materials, cascaded shadows. Useful as a checklist of systems a planet renderer ends up needing.
+
 ## 7. Constraints and rules
 
 - Units are metres; coordinates are lat/lon on the planet.
