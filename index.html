@@ -332,10 +332,10 @@ const F_CANYON=[V(12,6),V(50,7)];          // 峡谷之海：贯穿北之大陆�
 const F_RIFT=[V(10,-63),V(19,-56)];         // 大裂谷：深两千米、迷雾弥漫
 const PIT_R=560/6371000,PIT_D=420,PIT_RINGS=24,PIT_LA=22,PIT_LO=-10,PIT_E=[-Math.sin(PIT_LO*D2R),0,-Math.cos(PIT_LO*D2R)],PIT_N=[-Math.sin(PIT_LA*D2R)*Math.cos(PIT_LO*D2R),Math.cos(PIT_LA*D2R),Math.sin(PIT_LA*D2R)*Math.sin(PIT_LO*D2R)];
 /* open ground with no trees: [centre, radius rad] — 立蝎之城 stands on an open grass plain (encyclopedia scorpion); a ring of open ground round the home tree (hometree) */
-const CLEARINGS=[[V(33.6,10.4),120/6371000],[V(-12,-78),1100/6371000],[V(32,8.3),140/6371000],[V(-4,56),500/6371000],[V(-14,63),790/6371000],[V(7.5,16.75),520/6371000]];  // + the 翡翠港 town  // + inside the walls of 银之城 and 创造之城
+const CLEARINGS=[[V(33.6,10.4),120/6371000],[V(-12,-78),1100/6371000],[V(32,8.3),140/6371000],[V(-4,56),500/6371000],[V(-14,63),790/6371000],[V(7.5,16.75),520/6371000],[V(-5.9,65.7),330/6371000]];  // + the Academy summit  // + the 翡翠港 town  // + inside the walls of 银之城 and 创造之城
 /* tall-fern jungle, no trees: the egg-boulder field of 翡翠龙之城 (encyclopedia emeraldcity) */
 const FERNZONES=[[V(12,-88),1400/6371000]];
-const F_PEAK=V(33.2,11.2),F_JADE=V(7.5,16.75);
+const F_PEAK=V(33.2,11.2),F_JADE=V(7.5,16.75),F_CPEAK=V(-6.2,66.2),F_ACAD=V(-5.9,65.7);
 /* snowline (m): falls with latitude; the whole southern continent is ice (encyclopedia south: 南之大陆, a white ice continent) */
 const SOUTH_C=V(-52,-18),CRYS_C=V(10,-100);   // CRYS_C: 结晶林地, bare floor
 function snowLineAt(nx,ny,nz){const la=Math.abs(ny);return 4300-3600*la*la-(4360-3600*la*la)*sm(.314,.244,angTo(nx,ny,nz,SOUTH_C));}
@@ -376,6 +376,12 @@ function features(nx,ny,nz,h,detail,coast,mMask){
   d=angTo(nx,ny,nz,F_PEAK);
   if(d<7*km){const u=d/(4.2*km);const cone=Math.pow(Math.max(0,1-u),1.7)*.92+.08*Math.exp(-u*u)*(1+.1*ridge(nx*7000,ny*7000,nz*7000,3));h+=1250*cone*(1+.06*ridge(nx*9000,ny*9000,nz*9000,3));
     const cr=d/(.25*km);if(cr<1.6)h-=200*sm(1.6,.85,cr);}
+  // 云中山峰 (encyclopedia cloudpeak): a steep rock mountain rising through all three cloud sheets; and the lower Academy peak
+  // ~60 km away whose flat top just clears the third sheet, crowned by the 白骸龙 Academy
+  d=angTo(nx,ny,nz,F_CPEAK);
+  if(d<6*km){const u=d/(4.6*km);h+=2300*Math.pow(Math.max(0,1-u),1.35)*(1+.12*ridge(nx*6000,ny*6000,nz*6000,4));}
+  d=angTo(nx,ny,nz,F_ACAD);
+  if(d<4.5*km){const u=Math.max(d/(3.2*km),.07);h+=820*Math.pow(Math.max(0,1-u),1.7)*(1+.08*ridge(nx*9000,ny*9000,nz*9000,3)*sm(.1,.3,u));}
   // 翡翠港 (encyclopedia jadeport): the harbour town sits on a low shore terrace among the coastal islets
   d=angTo(nx,ny,nz,F_JADE);if(d<.42*km){const t=sm(.42*km,.27*km,d);h=h*(1-t)+(4+1.2*fbm(nx*400000,ny*400000,nz*400000,2))*t;}
   // 地眼之湖：沙漠中心的绿洲巨湖
@@ -395,7 +401,7 @@ const LMR=k=>{let x=Math.sin(k*127.1+311.7)*43758.5453;return x-Math.floor(x);};
 const ring=(n,r,f)=>Array.from({length:n},(_,i)=>f(i*6.2832/n,r,i));
 const spiralLots=(n,r0,r1,f)=>Array.from({length:n},(_,i)=>{const a=i*2.39996+LMR(i)*.4,r=r0+(r1-r0)*Math.sqrt((i+.5)/n)*(.92+LMR(i+7)*.16);return f(Math.cos(a)*r,Math.sin(a)*r,i);});
 const LANDMARKS=[
-  [32,8.3,'hometree',[[0,0,1,0,0]]],                                   // hometree: branchless 50 m × 310 m column
+  [32,8.3,'hometree',[[0,0,1,0,1.5708]]],                                   // hometree: branchless 50 m × 310 m column
   [40,6.65,'deadGiant',[[0,0,1,0,0],[450,-1300,.95,0,1],[-600,1500,1.05,0,2],[300,3100,.9,0,.5]]],   // on the canyon's glacier   // frozentree: dead home trees on the glacier, 0.5–2 km apart
   // scorpion: ten 50 m pyramids in a straight line, with a field of 3–20 m pyramids round them (jinzita)
   [-12,-78,'pyramid',[...Array.from({length:10},(_,i)=>[(i-4.5)*140,0,1,0,0]),
@@ -409,6 +415,8 @@ const LANDMARKS=[
   [-4,56,'barMetal',ring(150,470,(a,r,i)=>(i>=74&&i<=76)?null:[Math.cos(a)*r,Math.sin(a)*r,1,0,a+1.5708]).filter(Boolean)],
   [-4,56,'squareHall',[[0,0,1,0,0],[-36,0,.7,0,1.5708]]],
   [-4,56,'roundHall',[[60,40,1,0,0]]],
+  [-5.9,65.7,'roundHall',[[0,0,1.3,0,0]]],                                                    // 学院 (cloudpeak): the great hall on the summit
+  [-5.9,65.7,'squareHall',ring(7,62,(a,r,i)=>[Math.cos(a)*r,Math.sin(a)*r,.55+(i%2)*.15,0,a+1.5708])],   // classrooms and the library round it
   // capital: the 银甲龙 capital — the same building language at larger scale, with military halls and a silver pyramid over the dock cavern
   [-14,63,'coneHouse',spiralLots(620,140,700,(x,y,i)=>[x,y,.8+LMR(i+11)*.6,0,LMR(i+13)*6.28])],
   [-14,63,'barMetal',ring(240,760,(a,r,i)=>(i>=118&&i<=121)?null:[Math.cos(a)*r,Math.sin(a)*r,1,0,a+1.5708]).filter(Boolean)],
@@ -511,10 +519,11 @@ onmessage=e=>{
       const u=u0+i/SEG*size,v=v0+j/SEG*size;const d=cubeDir(f,u,v);
       const sl=Math.hypot(hAt(Math.min(i+1,SEG),j)-hAt(Math.max(i-1,0),j),hAt(i,Math.min(j+1,SEG))-hAt(i,Math.max(j-1,0)))/(2*detail);if(sl>1.1)continue;
       if(h>snowLineAt(d[0],d[1],d[2]))continue;
+      if(angTo(d[0],d[1],d[2],F_CPEAK)<.00085&&rnd()>.03)continue;   // 云中山峰: bare rock
       const moist=moisture(d[0],d[1],d[2]),dry=dryness(d[0],d[1],d[2]);
       const r=R+h;const x=d[0]*r,y=d[1]*r,z=d[2]*r;const yaw=rnd()*6.283;
       if(level===16){ // dense ground cover only
-        if(rnd()<.04&&h>1){add('rock',x,y,z,d[0],d[1],d[2],.3+rnd()*1.2,yaw);continue;}
+        if(rnd()<.04*(1-.9*sm(.4,.7,dry))&&h>1){add('rock',x,y,z,d[0],d[1],d[2],.3+rnd()*1.2,yaw);continue;}
         if(dry>.4||h<2.5||zone.crystal<.026)continue;   // 结晶林地 floor is bare rock and gravel
         if(moist>.25)add(rnd()<.92||CLEARINGS.some(([c,r])=>angTo(d[0],d[1],d[2],c)<r)?'grass':'fern',x,y,z,d[0],d[1],d[2],.5+rnd()*.7,yaw);continue;}
       if(level===12){
@@ -522,7 +531,7 @@ onmessage=e=>{
         if(zone.jungle<.05&&rnd()<.08){add('platformTree',x,y,z,d[0],d[1],d[2],1+rnd()*.5,yaw);continue;}
         if(zone.tianguo<.04&&rnd()<.12){add('ancientTree',x,y,z,d[0],d[1],d[2],1+rnd()*.8,yaw);continue;}
         continue;}
-      if(rnd()<.01&&h>1){add('rock',x,y,z,d[0],d[1],d[2],1+rnd()*3,yaw);continue;}
+      if(rnd()<.01*(1-.9*sm(.4,.7,dry))&&h>1){add('rock',x,y,z,d[0],d[1],d[2],1+rnd()*3,yaw);continue;}
       // 死亡尖刺 grow only as the 印加 wall inside the underworld (encyclopedia siwangjianci) — none on the surface until the underworld exists
       if(zone.crystal<.026){if(rnd()<.32)add('crystalTree',x,y,z,d[0],d[1],d[2],1+rnd()*.6,yaw);continue;}   // 结晶林地: spaced trees on bare rock, no undergrowth
       if(zone.fungus<.012&&rnd()<.17){add('mushroom',x,y,z,d[0],d[1],d[2],.6+rnd()*1.6,yaw);continue;}
@@ -704,12 +713,15 @@ const terrainF=wgslFn(/* wgsl */`fn terrainF(P4:vec4f,N4:vec4f,D4:vec4f,DT:vec4f
     col=mix(veg,sand,sandM);
     col=mix(col,rock*(0.8+0.4*v2)*(0.9+0.2*v3),rk);
     col=mix(col,vec3f(0.25,0.245,0.235)*(0.8+0.4*v3),ss(0.03,0.022,acos(clamp(dot(n,vec3f(-0.1710,0.1736,0.9698)),-1.0,1.0))));   // 结晶林地: bare rock and gravel floor (encyclopedia jingshu)
+    col=mix(col,rock*(0.75+0.5*v2)*(0.85+0.3*v3),ss(0.0009,0.0005,length(n-vec3f(0.4012,-0.1080,-0.9096))));   // 云中山峰: mostly hard steep rock (encyclopedia cloudpeak)
     if(df2>0.001){ // close-up surface detail: triplanar grass / rock / sand maps at two scales
       col*=mix(vec3f(1.0),det*1.5+0.25,df2*0.9);
       N=dbump(N,dpx,dpy,dhx*0.06*df2,dhy*0.06*df2);
     }
     var snowLine=4300.0-3600.0*lat*lat+600.0*v2;
     snowLine=mix(snowLine,-60.0,ss(0.314,0.244,acos(clamp(dot(n,vec3f(0.5856,-0.7880,0.1903)),-1.0,1.0))));   // 南之大陆 is an ice continent (encyclopedia south)
+    snowLine+=1500.0*ss(0.0011,0.0006,length(n-vec3f(0.4012,-0.1080,-0.9096)));   // (chord length: acos near 1 is too coarse in f32)
+      // 云中山峰: hard bare rock in the cold wind, snow only on the top
     col=mix(col,snow,ss(snowLine,snowLine+500.0,vH)*ss(0.75,0.4,slope));
     let ndl=max(dot(N,uSun),0.0);
     let ao=0.8+0.2*ss(0.0,300.0,vH);
@@ -740,7 +752,7 @@ const plantV=wgslFn(/* wgsl */`fn plantV(pr:vec3f,${UARGS})->mat4x4f{${USET}
 const plantF=wgslFn(/* wgsl */`fn plantF(P:vec3f,Nin:vec3f,ff:f32,colv:vec3f,tint:vec3f,tex:f32,nrm:vec3f,uvv:vec2f,S4:vec4f,I4:vec4f,trv:vec3f,smap:f32,${UARGS})->vec4f{${USET}
   let h=dot(tint,vec3f(0.333));let dpx=dpdx(P);let dpy=dpdy(P);let dhx=dpdx(h);let dhy=dpdy(h);let du1=dpdx(uvv);let du2=dpdy(uvv);
   let n=normalize(P-uCenter);var N=normalize(Nin)*ff;
-  if(tex>1.5){N=perturbN(N,dpx,dpy,du1,du2,nrm);}else if(tex>0.5){N=dbump(N,dpx,dpy,dhx*0.05,dhy*0.05);}
+  if(tex>1.5&&tex<2.5){N=perturbN(N,dpx,dpy,du1,du2,nrm);}else if(tex>0.5){N=dbump(N,dpx,dpy,dhx*0.05,dhy*0.05);}
   let sunEl=S4.w;let vCs=I4.w;
   let skyAmb=skyAmbient(sunEl);
   let lightIsSun=step(-0.03,dot(uUp,uSun));
@@ -748,6 +760,7 @@ const plantF=wgslFn(/* wgsl */`fn plantF(P:vec3f,Nin:vec3f,ff:f32,colv:vec3f,tin
   let ndl=dot(N,uSun);let wrap=clamp((ndl+0.35)/1.35,0.0,1.0);
   let moonL=vec3f(0.6,0.7,1.0)*uMoonI*(max(dot(N,uMoon),0.0)*0.8*mix(smap,1.0,lightIsSun)+0.25)*ss(-0.05,0.15,dot(n,uMoon));
   var col=colv*tint*(sunL*wrap*0.95+moonL+skyAmb*(0.55+0.45*dot(N,n)));
+  if(tex>2.5){col=colv*(S4.xyz*uSunI*(1.0-0.5*vCs)*(0.6+0.2*max(ndl,0.0))+skyAmb*2.2+moonL);}
   if(tex>0.5&&tex<1.5){let back=pow(max(dot(normalize(P),uSun),0.0),5.0);col+=colv*tint*vec3f(1.0,1.05,0.7)*sunL*back*0.5;}   // light glowing through leaves and grass
   let night=ss(0.1,-0.08,sunEl);col+=colv*vec3f(0.5,0.6,0.8)*0.006*night;
   col=mist(col,length(P),skyAmb,S4.xyz*uSunI);
@@ -767,8 +780,8 @@ const skyF=wgslFn(/* wgsl */`fn skyF(rd:vec3f,fc:vec2f,steps:i32,${UARGS})->vec4
       let hf=select(1.0,0.0,hit);
       let mu=dot(rd,uSun);
       let sun=vec3f(1.0,0.96,0.9)*uSunI*ss(0.99965,0.99995,mu)*sc.tr*hf;
-      let mm=dot(rd,uMoon);var moon=vec3f(0.95,0.95,0.9)*uMoonI*55.0*ss(0.99988,0.99993,mm)*sc.tr*hf;
-      if(mm>0.9998){let t=normalize(rd-uMoon*mm);let lit=clamp(dot(normalize(uSun-uMoon*dot(uSun,uMoon)),t)*0.5+0.5+dot(uSun,uMoon)*0.6,0.0,1.0);moon*=0.15+0.85*lit;}
+      let mm=dot(rd,uMoon);var moon=vec3f(0.55,0.75,1.0)*uMoonI*55.0*ss(0.99958,0.99963,mm)*sc.tr*hf;   // the moon in its visit: sky-blue, larger than the sun, a sea world with islands (encyclopedia rongqiu)
+      if(mm>0.9995){let t=normalize(rd-uMoon*mm);let q=(rd-uMoon*mm)*90.0;moon*=mix(vec3f(1.0),vec3f(1.5,1.35,1.05),ss(0.18,0.3,gfbm(q*4.0+uMoon*7.0)));let lit=clamp(dot(normalize(uSun-uMoon*dot(uSun,uMoon)),t)*0.5+0.5+dot(uSun,uMoon)*0.6,0.0,1.0);moon*=0.15+0.85*lit;}
       col=ins+sun+moon;}}
   let cl=clouds(ro,rd,fc,steps);
   return vec4f(cl.rgb+col*(1.0-cl.a),1.0-cl.a);}`,[WGSL_COMMON,wgsl(/* wgsl */`
@@ -969,6 +982,7 @@ function plantMaterial({tex=false,sway=true,inst=true,map=null,nmap=null}={}){
     if(tex==='sprig'){const tx=texture(sprigTex,uv());If(tx.a.lessThan(.4),()=>{Discard();});tint=tx.rgb.mul(1.45);tf=1;}
     if(tex==='bark'){tint=texture(barkTex,uv()).rgb.mul(1.9);nrm=texture(barkNrm,uv()).xyz;tf=2;}
     if(tex==='rock'){tint=texture(map,uv()).rgb.mul(1.7);nrm=texture(nmap,uv()).xyz;tf=2;}
+    if(tex==='cloud')tf=3;   // cloud sheets and fog: lit through, the same from above and below
     let col=attribute('color','vec3');if(inst)col=col.mul(instanceColor);
     const ff=frontFacing.select(1,-1);const N=normalWorldGeometry;
     const smap=(tex==='sprig'||tex==='atlas'?shadowAtLite:shadowAt)(positionWorld,N.mul(ff));
@@ -994,7 +1008,7 @@ onmessage=e=>{const {A,E,Nn,U,N,S,id}=e.data;const out=new Float32Array(N*N*4);
     const h=terrain(nx,ny,nz,0.5);const r=${R}+Math.max(h,0);
     const y=(nx*r-A[0])*U[0]+(ny*r-A[1])*U[1]+(nz*r-A[2])*U[2];
     const moist=moisture(nx,ny,nz),dry=dryness(nx,ny,nz),la=Math.abs(ny),snow=snowLineAt(nx,ny,nz);
-    const k=(j*N+i)*4;out[k]=y;out[k+1]=sm(2,6,h)*sm(.18,.42,moist)*(1-sm(.25,.6,dry))*sm(snow-150,snow-650,h)*sm(.022,.03,angTo(nx,ny,nz,CRYS_C));out[k+2]=moist;out[k+3]=h;}
+    const k=(j*N+i)*4;out[k]=y;out[k+1]=sm(2,6,h)*sm(.18,.42,moist)*(1-sm(.25,.6,dry))*sm(snow-150,snow-650,h)*sm(.022,.03,angTo(nx,ny,nz,CRYS_C))*sm(.0005,.0009,angTo(nx,ny,nz,F_CPEAK));out[k+2]=moist;out[k+3]=h;}
   for(let j=1;j<N-1;j++)for(let i=1;i<N-1;i++){const k=(j*N+i)*4;const sl=Math.hypot(out[k+4]-out[k-4],out[k+N*4]-out[k-N*4])/(2*S/(N-1));out[k+1]*=sm(1.0,.5,sl);}   // no grass on steep ground
   postMessage({out,id},[out.buffer]);};`],{type:'text/javascript'})));
 const grassTex=new THREE.DataTexture(new Float32Array(GR.N*GR.N*4),GR.N,GR.N,THREE.RGBAFormat,THREE.FloatType);grassTex.needsUpdate=true;
@@ -1242,6 +1256,15 @@ function buildGeos(){
      {g:new THREE.RingGeometry(20,rt+.4,44),m:M4(0,310.2,0,-Math.PI/2),c:[.22,.33,.15]},
      {g:new THREE.CircleGeometry(20,36),m:M4(0,262,0,-Math.PI/2),c:[.05,.06,.05]},
      {g:new THREE.CircleGeometry(10,24),m:M4(0,262.4,0,-Math.PI/2),c:[.06,.14,.2]});
+   // around 100 m a "cloud" of 1 cm floating fluff-ball creatures wraps the trunk (drawn as soft clumps); a waterfall bursts
+   // from a hole at ~190 m and pours down the trunk into a foaming pool
+   const LMR=k=>{const x=Math.sin(k*127.1+311.7)*43758.5453;return x-Math.floor(x);};
+   for(let k=0;k<900;k++){const a=LMR(k*3.1)*6.283,rr=26+Math.pow(LMR(k*5.7),1.8)*14,yy=90+LMR(k*7.3)*24+Math.sin(a*3)*3,s=.25+LMR(k*9.1)*.45;
+     parts.push({g:new THREE.IcosahedronGeometry(s,0),m:M4(Math.cos(a)*rr,yy,Math.sin(a)*rr),c:[2.1,2.1,2.05]});}
+   const rf=25*(1-.09*190/310);
+   parts.push({g:new THREE.CircleGeometry(4.2,16),m:M4(rf+.1,190,0,0,Math.PI/2,0),c:[.03,.03,.03]});
+   for(let k=0;k<3;k++)parts.push({g:new THREE.PlaneGeometry(5.5-k*1.2,190),m:M4(25.6+k*.5,95,(k-1)*1.4,0,Math.PI/2,0),c:[.72+k*.1,.84+k*.06,.9]});
+   parts.push({g:new THREE.CircleGeometry(9,20),m:M4(30,.4,0,-Math.PI/2),c:[1.2,1.25,1.25]});
    GEOS.hometree={solid:merge(parts).solid,tex:null,bark:t.bark,sprig:t.sprig};}
   // 冰河上的巨树：冻死的家园树
   /* 冰河上的巨树 (encyclopedia frozentree): dead home trees, 50 m × 300 m, frost-grey, broken crown rim, no leaves */
@@ -1657,6 +1680,7 @@ function speciesFor(c,night){const w=[];const add=(k,x)=>w.push([k,x]);
     add('pteroS',c.dry>.2||c.slope>.3?1.4:.6);add('pteroRed',c.dry>.25?.8:.2);if(c.slope>.4)add('pteroBomb',.3);if(near(4,-72,.08))add('pteroGiant',.8);   // pterosaurs
     if(c.h>350)add('wyvern',1.2);if(c.h>150||near(12,-88,.04))add('yalong',.7);if(c.h<60)add('giantJelly',.9);}
   else if(c.region===2){if(near(-4,56,.0012)||near(-14,63,.0016))add('yinjia',6);else if(c.dry<.35)add('yinjia',.6);   // 银甲龙 in and around their cities
+    if(near(-5.9,65.7,.0006))add('baihai',6);else if(near(-6.2,66.2,.012))add('baihai',.8);   // 白骸龙 at their Academy and round the great peak (encyclopedia cloudpeak)
     if(c.dry>.35)add(night?'moths':'dust',2);if(c.h<40)add('jiangguai',2);add('jelly',.8);add('guanglong',.5);add('gunlei',night?1.5:.5);}
   else if(c.region===3){}                                     // 南之大陆: an empty ice continent
   else{if(near(4,-112,.012))add('baihai',5);add('jelly',1);add('baoxiao',2);}   // 白骸龙 on their island
@@ -1769,7 +1793,8 @@ function floraLOD(){
    apart, each a few tens of m thick, with holes, hills of cloud 10–20 m high. They are surfaces you could stand on, so they are
    built as meshes (not the volumetric sky), in a camera-following patch rebuilt as you travel; the billows and holes come from
    noise in planet coordinates, so they stay put while the patch moves. */
-const CSEA={alts:[960,1180,1400],R:24000,NR:72,NS:144,group:new THREE.Group(),at:null,mat:plantMaterial({sway:false,inst:false})};
+const CSEA={alts:[150,370,590],   // metres above the smoothed ground: sheets 100–200 m up and ~200 m apart; hills and the 云中山峰 pierce them
+  R:24000,NR:72,NS:144,group:new THREE.Group(),at:null,mat:plantMaterial({tex:'cloud',sway:false,inst:false})};
 scene.add(CSEA.group);
 const CSEA_C=T.V(-12,70);
 function cseaMask(x,y,z){const a=T.angTo(x,y,z,CSEA_C);if(a>.43)return 0;   // ~24° round the east-continent centre
@@ -1778,18 +1803,28 @@ function buildCloudSea(n){
   const g=CSEA.group;for(const m of g.children)m.geometry.dispose();g.clear();
   const ex=-n.z,ez=n.x,el=Math.hypot(ex,ez)||1;const E=[ex/el,0,ez/el];const N=[n.y*E[2]-n.z*E[1],n.z*E[0]-n.x*E[2],n.x*E[1]-n.y*E[0]];
   const {NR,NS}=CSEA;const nv=(NR+1)*(NS+1);
-  CSEA.alts.forEach((alt,li)=>{
+  // the ground the sheets follow: the lowest of nine coarse samples (centre and a ring 6 km out), on a grid 4× coarser than the mesh,
+  // so the plains carry the sheets and mountains rise through them
+  const dirAt=(i,j)=>{const r=CSEA.R*Math.pow(i/NR,1.8),th=j/NS*6.2832,ux=Math.cos(th)*r/R,uy=Math.sin(th)*r/R;
+    let dx=n.x+E[0]*ux+N[0]*uy,dy=n.y+E[1]*ux+N[1]*uy,dz=n.z+E[2]*ux+N[2]*uy;const l=Math.hypot(dx,dy,dz);return [dx/l,dy/l,dz/l];};
+  const GR4=NR/4,GS4=NS/4,base=new Float32Array((GR4+1)*(GS4+1)),o=6000/R;
+  for(let i=0;i<=GR4;i++)for(let j=0;j<=GS4;j++){const [x,y,z]=dirAt(i*4,j*4);let m=1e9;
+    for(const [a,b] of [[0,0],[1,0],[-1,0],[0,1],[0,-1],[.71,.71],[-.71,.71],[.71,-.71],[-.71,-.71]]){const q=[x+E[0]*a*o+N[0]*b*o,y+E[1]*a*o+N[1]*b*o,z+E[2]*a*o+N[2]*b*o];const l=Math.hypot(...q);m=Math.min(m,T.terrain(q[0]/l,q[1]/l,q[2]/l,2000));}
+    base[i*(GS4+1)+j]=Math.max(m,0);}
+  const baseAt=(i,j)=>{const fi=i/4,fj=j/4,i0=Math.min(GR4-1,fi|0),j0=Math.min(GS4-1,fj|0),u=fi-i0,v=fj-j0,B=(a,b)=>base[a*(GS4+1)+b];
+    return (B(i0,j0)*(1-u)+B(i0+1,j0)*u)*(1-v)+(B(i0,j0+1)*(1-u)+B(i0+1,j0+1)*u)*v;};
+  CSEA.alts.forEach((off,li)=>{
     const P=new Float32Array(nv*2*3),C=new Float32Array(nv*2*3),M=new Float32Array(nv);const idx=[];
     for(let i=0;i<=NR;i++){const r=CSEA.R*Math.pow(i/NR,1.8);
       for(let j=0;j<=NS;j++){const th=j/NS*6.2832;const ux=Math.cos(th)*r/R,uy=Math.sin(th)*r/R;
         let dx=n.x+E[0]*ux+N[0]*uy,dy=n.y+E[1]*ux+N[1]*uy,dz=n.z+E[2]*ux+N[2]*uy;const l=Math.hypot(dx,dy,dz);dx/=l;dy/=l;dz/=l;
         const k=i*(NS+1)+j;const m=cseaMask(dx+li*.013,dy,dz);M[k]=m;
         const bil=T.fbm(dx*5200+li*7,dy*5200,dz*5200,3)*.5+.5,fine=T.fbm(dx*26000,dy*26000+li,dz*26000,2);
-        const th2=T.sm(.05,.35,m);const top=alt+(6+16*bil*bil+3*fine)*th2,bot=alt-(5+10*bil)*th2;
-        for(const [o,h,shade] of [[k,top,1],[k+nv,bot,1.85]])   // the underside glows with light diffused through the sheet (encyclopedia east: the glowing cloud ceiling)
+        const alt=baseAt(i,j)+off;const th2=T.sm(.05,.35,m);const top=alt+(6+16*bil*bil+3*fine)*th2,bot=alt-(5+10*bil)*th2;
+        for(const [o,h,shade] of [[k,top,1],[k+nv,bot,1.12]])   // the underside glows with light diffused through the sheet (encyclopedia east: the glowing cloud ceiling)
          {const rr=R+h;P.set([dx*rr-n.x*R,dy*rr-n.y*R,dz*rr-n.z*R],o*3);C.set([.95*shade,.96*shade,.99*shade],o*3);}}}
     for(let i=0;i<NR;i++)for(let j=0;j<NS;j++){const a=i*(NS+1)+j,b=a+1,c=a+NS+1,d=c+1;
-      if(M[a]<.05||M[b]<.05||M[c]<.05||M[d]<.05)continue;
+      if(M[a]<.05&&M[b]<.05&&M[c]<.05&&M[d]<.05)continue;   // keep edge quads: the sheet pinches to nothing there instead of ending in steps
       idx.push(a,c,b,b,c,d, a+nv,b+nv,c+nv,b+nv,d+nv,c+nv);}
     if(!idx.length)return;
     const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(P,3));geo.setAttribute('color',new THREE.BufferAttribute(C,3));
@@ -1800,6 +1835,28 @@ function updateCloudSea(){if(view.cave){CSEA.group.visible=false;return;}const l
   const near=T.angTo(n.x,n.y,n.z,CSEA_C)<.5&&l-R<30000;CSEA.group.visible=near;if(!near)return;
   if(!CSEA.at||Math.acos(Math.min(1,n.x*CSEA.at[0]+n.y*CSEA.at[1]+n.z*CSEA.at[2]))*R>3000)buildCloudSea(n);
   for(const m of CSEA.group.children){const a=m.userData.anchor;m.position.set(a[0]-cam.x,a[1]-cam.y,a[2]-cam.z);}}
+/* ===== 东之大陆's fog pillar (encyclopedia east): a spiral column of white fog over 50 km across, rising through the cloud
+   ceiling, the landmark the 银甲龙 cities stand around. Placed between 银之城, 云中山峰 and 创造之城 [inferred: "cities spaced
+   around it"]; ~34 km tall so its head shows over the horizon from several hundred km. Inside it you stand in a fog bank (FOGZ). */
+const FPIL={c:T.V(-7.5,59),R:25000,H:34000,mesh:null};
+function buildFogPillar(){const n={x:FPIL.c[0],y:FPIL.c[1],z:FPIL.c[2]};
+  const ex=-n.z,ez=n.x,el=Math.hypot(ex,ez)||1;const E=[ex/el,0,ez/el];const N=[n.y*E[2]-n.z*E[1],n.z*E[0]-n.x*E[2],n.x*E[1]-n.y*E[0]];
+  const NH=64,NS=128,nv=(NH+1)*(NS+1);const P=new Float32Array(nv*3),C=new Float32Array(nv*3);const idx=[];
+  for(let i=0;i<=NH;i++){const t=i/NH;const h=-300+t*(FPIL.H+300);
+    const head=t>.9?Math.sqrt(Math.max(0,1-Math.pow((t-.9)/.1,2))):1;            // rounded head
+    const flare=1+.18*T.sm(.25,0,t)+.1*T.sm(.75,.95,t);                             // spreads at the foot and where it meets the upper air
+    for(let j=0;j<=NS;j++){const th=j/NS*6.2832;const sp=th-h/3800;               // the spiral: bulges wind round the column as it rises
+      const band=Math.sin(sp*3)*.5+.5;const nz=T.fbm(Math.cos(th)*3+h/5000,Math.sin(th)*3,h/3100,3);
+      const r=FPIL.R*flare*head*(.86+.14*band+.07*nz);const k=i*(NS+1)+j;
+      P.set([n.x*h+(E[0]*Math.cos(th)+N[0]*Math.sin(th))*r,n.y*h+(E[1]*Math.cos(th)+N[1]*Math.sin(th))*r,n.z*h+(E[2]*Math.cos(th)+N[2]*Math.sin(th))*r],k*3);
+      const sh=1.05+.35*band+.15*nz;C.set([sh*.97,sh*.98,sh],k*3);}}
+  for(let i=0;i<NH;i++)for(let j=0;j<NS;j++){const a=i*(NS+1)+j,b=a+1,c=a+NS+1,d=c+1;idx.push(a,b,c,b,d,c);}
+  const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(P,3));geo.setAttribute('color',new THREE.BufferAttribute(C,3));
+  geo.setAttribute('uv',new THREE.BufferAttribute(new Float32Array(nv*2),2));geo.setIndex(idx);geo.computeVertexNormals();
+  FPIL.mesh=new THREE.Mesh(geo,CSEA.mat);FPIL.mesh.frustumCulled=false;scene.add(FPIL.mesh);}
+function updateFogPillar(){const l=Math.hypot(cam.x,cam.y,cam.z);const a=T.angTo(cam.x/l,cam.y/l,cam.z/l,FPIL.c);
+  const vis=!view.cave&&a<.16&&a*R>FPIL.R*.8;if(vis&&!FPIL.mesh)buildFogPillar();if(!FPIL.mesh)return;FPIL.mesh.visible=vis;if(!vis)return;
+  FPIL.mesh.position.set(FPIL.c[0]*R-cam.x,FPIL.c[1]*R-cam.y,FPIL.c[2]*R-cam.z);}
 /* ===== 地下世界 (encyclopedia under) =====
    A cavern 10+ km wide under the whole north desert, from the 印加 pit toward the volcano: a fern-tree jungle under a ceiling
    ~300 m up that glows over its whole surface (crystal dust and glowing fungus), dimming at night; home trees 50 m thick every
@@ -1916,10 +1973,10 @@ function updateRiftFog(){if(view.cave){RFOG.group.visible=false;return;}const l=
   const near=T.segDist(n.x,n.y,n.z,T.F_RIFT[0],T.F_RIFT[1])*R<30000&&l-R<20000;RFOG.group.visible=near;if(!near)return;
   if(!RFOG.at||Math.acos(Math.min(1,n.x*RFOG.at[0]+n.y*RFOG.at[1]+n.z*RFOG.at[2]))*R>3000)buildRiftFog(n);
   for(const m of RFOG.group.children){const a=m.userData.anchor;m.position.set(a[0]-cam.x,a[1]-cam.y,a[2]-cam.z);}}
-const FOGZ=[[T.V(12,-22),.035],[T.V(8,-33),.02]];
+const FOGZ=[[T.V(12,-22),.035],[T.V(8,-33),.02],[T.V(-7.5,59),25000/R]];   // + inside the east's fog pillar
 function fogZone(lat,lon){const p=fromLL(lat,lon,1);let z=0;for(const [c,r] of FOGZ){const a=T.angTo(p.x,p.y,p.z,c);z=Math.max(z,T.sm(r,r*.55,a)*(.75+.25*T.fbm(p.x*300,p.y*300,p.z*300,2)));}return Math.min(1,z);}
 function placeMeshes(){
-  updateCloudSea();updateCave();updateRiftFog();
+  updateCloudSea();updateFogPillar();updateCave();updateRiftFog();
   for(const o of planet.children){const n=o.userData.node;if(n)o.position.set(n.cx-cam.x,n.cy-cam.y,n.cz-cam.z);}
   for(const o of flora.children){if(!o.visible)continue;const n=o.userData.node;o.position.set(n.cx-cam.x,n.cy-cam.y,n.cz-cam.z);}
   uni.uCenter.value.set(-cam.x,-cam.y,-cam.z);
@@ -2098,7 +2155,7 @@ function goView(k){const v=VIEWS[k]();view.altTarget=undefined;setMode(v.mode);v
 
 
 /* ===== map ===== */
-const PLACES=[{"id":"rongqiu","n":"绒球（母星）","la":20,"lo":0,"r":"sea","s":"琳出生和长大的星球。书中直接称它为“绒球”。"},{"id":"origin","n":"起源之海","la":-4,"lo":44,"r":"sea","s":"莎琳洒下细胞的海面，琳“原来所生活的地方”。"},{"id":"abyss","n":"深渊裂口","la":-26,"lo":36,"r":"sea","s":"海底深处的裂口，有凝固的熔岩和热泉烟柱。"},{"id":"icesea","n":"冰封极海","la":74,"lo":24,"r":"pole","s":"厚冰封住的北方海域，冰晶怪在冰面上挖洞狩猎。"},{"id":"jjzs","n":"结晶之山","la":71,"lo":34,"r":"pole","s":"从深海一直长出冰面的巨大结晶，把阳光导进深渊。"},{"id":"north","n":"北之大陆","la":30,"lo":2,"r":"north","s":"琳第一次登上的大陆：峭壁、尖柱林、无尽荒漠、扭曲丛林。"},{"id":"landing","n":"南岸峭壁","la":3.6,"lo":2,"r":"north","s":"利维坦用吸盘和倒钩挂在峭壁上，扛住了海啸。"},{"id":"spires","n":"尖柱林","la":15,"lo":-1,"r":"north","s":"密密麻麻的绿色巨大尖柱，其实是覆盖苔藓的空心石头。"},{"id":"desert","n":"无尽荒漠","la":25,"lo":-5,"r":"north","s":"炙热到能瞬间杀死细胞的沙海，蠕虫像列车一样穿行。"},{"id":"oasis","n":"中转站","la":27,"lo":-11,"r":"north","s":"荒漠里一座直径数十米的湖，周围围着一圈触须般的植物。"},{"id":"inca_pit","n":"沙漠巨口","la":22,"lo":-10,"r":"north","s":"暴雨汇成的河流灌进沙漠中心的巨坑，坑壁有阶梯与洞穴。"},{"id":"under","n":"地下世界","la":24,"lo":-4,"r":"north","s":"沙漠下方的巨大空间，洞顶的发光粉末如同银河。"},{"id":"canyon","n":"峡谷之海","la":30,"lo":6.35,"r":"north","s":"地下世界崩塌后形成、贯穿大陆南北的海水峡谷。"},{"id":"jungle","n":"扭曲丛林","la":33,"lo":11,"r":"north","s":"树干像触手一样卷绕的森林，长到三十多米后盘成宽大平台。"},{"id":"glow","n":"闪光林地","la":29,"lo":8,"r":"north","s":"一条河分开的两半森林：地面发光的一边，与猎食者的一边。"},{"id":"crystalcave","n":"结晶虫穴","la":28,"lo":9.5,"r":"north","s":"闪光林地地下百米的结晶洞穴，奇布查虫的巢。"},{"id":"peak","n":"山峰","la":33.2,"lo":11.2,"r":"north","s":"丛林中央高逾千米的山，山中有湖、温泉和发光的闪耀鳗。"},{"id":"hometree","n":"家园树","la":32,"lo":8.3,"r":"north","s":"三百多米高的空心巨木，地面和地下都有；地面上那棵是脑袋虫的避难所。"},{"id":"naodaimound","n":"脑袋虫的岩山","la":33.6,"lo":10.4,"r":"north","s":"扭曲丛林空地里三座二十多米高的土石丘，脑袋虫的族群住在里面。"},{"id":"isles","n":"空中群岛","la":34,"lo":10,"r":"north","s":"月接近时升空的鸣石岛，倒挂着一整片扭曲树林。"},{"id":"frozentree","n":"冰河上的巨树","la":40,"lo":6.65,"r":"north","s":"第二卷，好几棵三百多米高的家园树冻死在峡谷化成的冰河上，像高塔一样立着。"},{"id":"jadeport","n":"翡翠港","la":7.5,"lo":16.75,"r":"north","s":"第二卷，龙族在北之大陆建立的城市与港口。"},{"id":"mistsea","n":"迷雾之海","la":12,"lo":-22,"r":"sea","s":"向西航线上的浓雾海域，云里藏着伪装成云的生物。"},{"id":"echo","n":"回音之岛","la":8.9,"lo":-31.6,"r":"sea","s":"琳在这里把天空之舱里的大部分生物放了下来；它就是后来的骷髅岛。"},{"id":"skull","n":"骷髅岛","la":8,"lo":-33,"r":"sea","s":"从高空看像巨兽骸骨的浓雾之岛，上空飘着氧气球。"},{"id":"grave","n":"深渊墓场","la":4,"lo":-38,"r":"sea","s":"铺满两种生物甲壳碎片的古战场海底。"},{"id":"boneisle","n":"只有骨架的岛屿","la":12,"lo":-44,"r":"sea","s":"被风暴扫过、只剩沙砾与尸骨的岛。"},{"id":"fungus","n":"真菌之岛","la":30,"lo":-104,"r":"sea","s":"瘟疫真菌的老巢，五座岛下是深渊与被崇拜的脑。"},{"id":"twin","n":"双子岛","la":1,"lo":-46,"r":"sea","s":"恐龙大陆东海的两座半球形长岛，脑袋虫的新家。"},{"id":"west","n":"西之大陆","la":6,"lo":-76,"r":"west","s":"大型节肢类早早灭绝，爬行类与恐龙占据的大陆。"},{"id":"rift","n":"大裂谷","la":14,"lo":-60,"r":"west","s":"深两千米、迷雾弥漫的裂谷，飞龙在上方筑巢。"},{"id":"linbase","n":"北裂谷外","la":26,"lo":-66,"r":"west","s":"琳把裂谷外的荒地改造成茂密雨林，地下是复杂管道。"},{"id":"salt","n":"盐地","la":4,"lo":-72,"r":"west","s":"干涸的咸水湖，望不到边的盐与沙；地下深处藏着秘密。"},{"id":"longqimu","n":"龙栖木之林","la":-4,"lo":-86,"r":"west","s":"骸龙的森林城市，“没有争执的世界”。"},{"id":"emeraldcity","n":"翡翠龙之城","la":12,"lo":-88,"r":"west","s":"巨蛋形岩石间崛起的帝国都城，分上、中、下三区。"},{"id":"greenpool","n":"绿色深潭","la":12,"lo":-88,"r":"west","s":"创造者之脑被摧毁的地方，后来成了一潭绿水。"},{"id":"scorpion","n":"立蝎之城","la":-12,"lo":-78,"r":"west","s":"平原中央十座一字排开的五十米金字塔。"},{"id":"crystalwood","n":"结晶林地","la":10,"lo":-100,"r":"west","s":"大陆西边长满结晶树的林地，树被咬碎时会尖叫。"},{"id":"atmount","n":"亚特之山","la":22,"lo":-94,"r":"west","s":"高逾千米的山，大河从山腹的巨洞中流出，造脑怪在里面吐出分裂脑。"},{"id":"whiteisle","n":"白骸龙之岛","la":4,"lo":-112,"r":"west","s":"大陆西边的海岛，有巨大城堡、图书室和水下城市。"},{"id":"east","n":"东之大陆","la":-12,"lo":70,"r":"east","s":"银甲龙与“天国”的大陆，三层云海笼罩在它的上空。"},{"id":"silvercity","n":"银之城","la":-4,"lo":56,"r":"east","s":"丛林大道通向的银甲龙城市，两边的植物里没有一棵树。"},{"id":"capital","n":"创造之城","la":-14,"lo":63,"r":"east","s":"以创造者命名的银甲龙首都，金属轰鸣不绝。"},{"id":"cloudsea","n":"天之海","la":-8,"lo":68,"r":"east","s":"某种生物用胶质封住水和轻气做成的云，可以在上面奔跑。"},{"id":"cloudpeak","n":"云中山峰","la":-6.2,"lo":66.2,"r":"east","s":"贯穿三层云海的山峰，山顶的合金建筑就是学院。"},{"id":"dieye","n":"地眼之湖","la":-17,"lo":75,"r":"east","s":"沙漠中心的绿洲巨湖，被称为“生命的休息站”。"},{"id":"xueqiu","n":"血球树","la":-22,"lo":81,"r":"east","s":"沙漠边缘的血红植物带，之后是能抵御风暴的苔藓平原。"},{"id":"tianguo","n":"天国之林","la":-10,"lo":88,"r":"east","s":"东之大陆内陆的远古丛林，“天国”的入口。"},{"id":"south","n":"南之大陆","la":-52,"lo":-18,"r":"south","s":"卷一到卷五里没人去过的南方：从虚空看下去，是一片白色的冰之大陆。"}];
+const PLACES=[{"id":"rongqiu","n":"绒球（母星）","la":20,"lo":0,"r":"sea","s":"琳出生和长大的星球。书中直接称它为“绒球”。"},{"id":"origin","n":"起源之海","la":-4,"lo":44,"r":"sea","s":"莎琳洒下细胞的海面，琳“原来所生活的地方”。"},{"id":"abyss","n":"深渊裂口","la":-26,"lo":36,"r":"sea","s":"海底深处的裂口，有凝固的熔岩和热泉烟柱。"},{"id":"icesea","n":"冰封极海","la":74,"lo":24,"r":"pole","s":"厚冰封住的北方海域，冰晶怪在冰面上挖洞狩猎。"},{"id":"jjzs","n":"结晶之山","la":71,"lo":34,"r":"pole","s":"从深海一直长出冰面的巨大结晶，把阳光导进深渊。"},{"id":"north","n":"北之大陆","la":30,"lo":2,"r":"north","s":"琳第一次登上的大陆：峭壁、尖柱林、无尽荒漠、扭曲丛林。"},{"id":"landing","n":"南岸峭壁","la":3.6,"lo":2,"r":"north","s":"利维坦用吸盘和倒钩挂在峭壁上，扛住了海啸。"},{"id":"spires","n":"尖柱林","la":15,"lo":-1,"r":"north","s":"密密麻麻的绿色巨大尖柱，其实是覆盖苔藓的空心石头。"},{"id":"desert","n":"无尽荒漠","la":25,"lo":-5,"r":"north","s":"炙热到能瞬间杀死细胞的沙海，蠕虫像列车一样穿行。"},{"id":"oasis","n":"中转站","la":27,"lo":-11,"r":"north","s":"荒漠里一座直径数十米的湖，周围围着一圈触须般的植物。"},{"id":"inca_pit","n":"沙漠巨口","la":22,"lo":-10,"r":"north","s":"暴雨汇成的河流灌进沙漠中心的巨坑，坑壁有阶梯与洞穴。"},{"id":"under","n":"地下世界","la":24,"lo":-4,"r":"north","s":"沙漠下方的巨大空间，洞顶的发光粉末如同银河。"},{"id":"canyon","n":"峡谷之海","la":30,"lo":6.35,"r":"north","s":"地下世界崩塌后形成、贯穿大陆南北的海水峡谷。"},{"id":"jungle","n":"扭曲丛林","la":33,"lo":11,"r":"north","s":"树干像触手一样卷绕的森林，长到三十多米后盘成宽大平台。"},{"id":"glow","n":"闪光林地","la":29,"lo":8,"r":"north","s":"一条河分开的两半森林：地面发光的一边，与猎食者的一边。"},{"id":"crystalcave","n":"结晶虫穴","la":28,"lo":9.5,"r":"north","s":"闪光林地地下百米的结晶洞穴，奇布查虫的巢。"},{"id":"peak","n":"山峰","la":33.2,"lo":11.2,"r":"north","s":"丛林中央高逾千米的山，山中有湖、温泉和发光的闪耀鳗。"},{"id":"hometree","n":"家园树","la":32,"lo":8.3,"r":"north","s":"三百多米高的空心巨木，地面和地下都有；地面上那棵是脑袋虫的避难所。"},{"id":"naodaimound","n":"脑袋虫的岩山","la":33.6,"lo":10.4,"r":"north","s":"扭曲丛林空地里三座二十多米高的土石丘，脑袋虫的族群住在里面。"},{"id":"isles","n":"空中群岛","la":34,"lo":10,"r":"north","s":"月接近时升空的鸣石岛，倒挂着一整片扭曲树林。"},{"id":"frozentree","n":"冰河上的巨树","la":40,"lo":6.65,"r":"north","s":"第二卷，好几棵三百多米高的家园树冻死在峡谷化成的冰河上，像高塔一样立着。"},{"id":"jadeport","n":"翡翠港","la":7.5,"lo":16.75,"r":"north","s":"第二卷，龙族在北之大陆建立的城市与港口。"},{"id":"mistsea","n":"迷雾之海","la":12,"lo":-22,"r":"sea","s":"向西航线上的浓雾海域，云里藏着伪装成云的生物。"},{"id":"echo","n":"回音之岛","la":8.9,"lo":-31.6,"r":"sea","s":"琳在这里把天空之舱里的大部分生物放了下来；它就是后来的骷髅岛。"},{"id":"skull","n":"骷髅岛","la":8,"lo":-33,"r":"sea","s":"从高空看像巨兽骸骨的浓雾之岛，上空飘着氧气球。"},{"id":"grave","n":"深渊墓场","la":4,"lo":-38,"r":"sea","s":"铺满两种生物甲壳碎片的古战场海底。"},{"id":"boneisle","n":"只有骨架的岛屿","la":12,"lo":-44,"r":"sea","s":"被风暴扫过、只剩沙砾与尸骨的岛。"},{"id":"fungus","n":"真菌之岛","la":30,"lo":-104,"r":"sea","s":"瘟疫真菌的老巢，五座岛下是深渊与被崇拜的脑。"},{"id":"twin","n":"双子岛","la":1,"lo":-46,"r":"sea","s":"恐龙大陆东海的两座半球形长岛，脑袋虫的新家。"},{"id":"west","n":"西之大陆","la":6,"lo":-76,"r":"west","s":"大型节肢类早早灭绝，爬行类与恐龙占据的大陆。"},{"id":"rift","n":"大裂谷","la":14,"lo":-60,"r":"west","s":"深两千米、迷雾弥漫的裂谷，飞龙在上方筑巢。"},{"id":"linbase","n":"北裂谷外","la":26,"lo":-66,"r":"west","s":"琳把裂谷外的荒地改造成茂密雨林，地下是复杂管道。"},{"id":"salt","n":"盐地","la":4,"lo":-72,"r":"west","s":"干涸的咸水湖，望不到边的盐与沙；地下深处藏着秘密。"},{"id":"longqimu","n":"龙栖木之林","la":-4,"lo":-86,"r":"west","s":"骸龙的森林城市，“没有争执的世界”。"},{"id":"emeraldcity","n":"翡翠龙之城","la":12,"lo":-88,"r":"west","s":"巨蛋形岩石间崛起的帝国都城，分上、中、下三区。"},{"id":"greenpool","n":"绿色深潭","la":12,"lo":-88,"r":"west","s":"创造者之脑被摧毁的地方，后来成了一潭绿水。"},{"id":"scorpion","n":"立蝎之城","la":-12,"lo":-78,"r":"west","s":"平原中央十座一字排开的五十米金字塔。"},{"id":"crystalwood","n":"结晶林地","la":10,"lo":-100,"r":"west","s":"大陆西边长满结晶树的林地，树被咬碎时会尖叫。"},{"id":"atmount","n":"亚特之山","la":22,"lo":-94,"r":"west","s":"高逾千米的山，大河从山腹的巨洞中流出，造脑怪在里面吐出分裂脑。"},{"id":"whiteisle","n":"白骸龙之岛","la":4,"lo":-112,"r":"west","s":"大陆西边的海岛，有巨大城堡、图书室和水下城市。"},{"id":"east","n":"东之大陆","la":-12,"lo":70,"r":"east","s":"银甲龙与“天国”的大陆，三层云海笼罩在它的上空。"},{"id":"academy","n":"学院","la":-5.9,"lo":65.7,"r":"east","s":"山顶刚刚露出第三层云海的山峰，白骸龙在峰顶建起的合金建筑群。"},{"id":"fogpillar","n":"螺旋雾柱","la":-7.5,"lo":59,"r":"east","s":"东之大陆上直径五十多公里、穿过云层的螺旋白雾之柱，银甲龙的城市环绕着它。"},{"id":"silvercity","n":"银之城","la":-4,"lo":56,"r":"east","s":"丛林大道通向的银甲龙城市，两边的植物里没有一棵树。"},{"id":"capital","n":"创造之城","la":-14,"lo":63,"r":"east","s":"以创造者命名的银甲龙首都，金属轰鸣不绝。"},{"id":"cloudsea","n":"天之海","la":-8,"lo":68,"r":"east","s":"某种生物用胶质封住水和轻气做成的云，可以在上面奔跑。"},{"id":"cloudpeak","n":"云中山峰","la":-6.2,"lo":66.2,"r":"east","s":"从地面贯穿三层云海的岩石高山，山腹里是矿道和磁轨。"},{"id":"dieye","n":"地眼之湖","la":-17,"lo":75,"r":"east","s":"沙漠中心的绿洲巨湖，被称为“生命的休息站”。"},{"id":"xueqiu","n":"血球树","la":-22,"lo":81,"r":"east","s":"沙漠边缘的血红植物带，之后是能抵御风暴的苔藓平原。"},{"id":"tianguo","n":"天国之林","la":-10,"lo":88,"r":"east","s":"东之大陆内陆的远古丛林，“天国”的入口。"},{"id":"south","n":"南之大陆","la":-52,"lo":-18,"r":"south","s":"卷一到卷五里没人去过的南方：从虚空看下去，是一片白色的冰之大陆。"}];
 const T1=new Set(['north','west','east','south']),TS=new Set(['origin','mistsea','icesea']);
 const T2=new Set(['landing','desert','jungle','hometree','spires','canyon','rift','emeraldcity','longqimu','scorpion','skull','fungus','silvercity','capital','tianguo','cloudpeak','whiteisle','salt','peak','isles','jadeport','dieye','twin','abyss','jjzs','inca_pit','atmount','crystalwood']);
 const GROUPS=[['north','北之大陆'],['west','西之大陆 · 恐龙大陆'],['east','东之大陆'],['sea','海洋与岛屿'],['pole','极北'],['south','南方']];
@@ -2214,12 +2271,12 @@ addEventListener('keydown',e=>{if(e.target&&e.target.tagName==='INPUT'&&e.target
 const PLACE_VIEW={
   hometree:{t:[32,8.3],d:125,aim:190,b:180},frozentree:{t:[40,6.65],d:700,aim:160,b:200,water:1},
   scorpion:{t:[-12,-78],d:650,aim:25,fly:12,b:180},emeraldcity:{t:[12,-88.00276],d:75,aim:8,b:0},greenpool:{t:[12,-88.00276],d:75,aim:8,b:0},   // the first egg boulder (landmark item +x is local west)
-  naodaimound:{t:[33.6,10.4],d:75,aim:12,b:200},isles:{t:[34,10],d:1100,aim:260,fly:35,b:180},jadeport:{t:[7.5,16.75],d:260,aim:6,b:180,water:1},
+  naodaimound:{t:[33.6,10.4],d:75,aim:12,b:200},fogpillar:{t:[-7.5,59],d:90000,aim:12000,fly:900,b:300},isles:{t:[34,10],d:1100,aim:260,fly:35,b:180},jadeport:{t:[7.5,16.75],d:260,aim:6,b:180,water:1},
   silvercity:{t:[-4,56],d:580,aim:12,fly:45,b:180},capital:{t:[-14,63],d:900,aim:30,fly:90,b:180},
   jjzs:{t:[71,34],d:1300,aim:180,fly:20,b:180,water:1},inca_pit:{t:[22,-10],d:585,aim:0,fly:40,b:0},
   spires:{t:[15,-1],d:250,aim:70,b:180},oasis:{t:[27,-11],d:450,aim:0,b:180},
   canyon:{t:[30,6.35],d:12500,aim:0,fly:150,b:90},rift:{t:[14.5,-59.55],d:5600,aim:1000,fly:150,b:127},
-  peak:{t:[33.2,11.2],d:4300,aim:150,fly:40,b:200},atmount:{t:[22,-94],d:8000,aim:1100,b:180},cloudpeak:{t:[-6.2,66.2],d:9000,aim:1300,b:180}};
+  peak:{t:[33.2,11.2],d:4300,aim:150,fly:40,b:200},atmount:{t:[22,-94],d:8000,aim:1100,b:180},cloudpeak:{t:[-6.2,66.2],d:8500,aim:1600,fly:700,b:200},academy:{t:[-5.9,65.7],d:420,aim:10,fly:30,b:150}};
 function frameView(v){const tla=v.t[0]*D2R,tlo=v.t[1]*D2R;const tp=fromLL(tla,tlo,1);const tv=new THREE.Vector3(tp.x,tp.y,tp.z);const {east,north}=frameAt(tla,tlo);
   const g0=ground(tla,tlo);
   for(let k=0;k<16;k++){const a=(v.b||0)*D2R+(k%2?1:-1)*Math.ceil(k/2)*Math.PI/8;

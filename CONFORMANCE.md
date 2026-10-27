@@ -24,6 +24,10 @@ What the world got wrong against the encyclopedia entries (rongqiu-source `encyc
 | `mistsea` 迷雾之海 | clear sea | fog seas round 骷髅岛 and on the westward route | fog banks you can walk into |
 | `south` 南之大陆 | forest and grass, creatures | an ice continent | snow down to the sea; nothing spawns there |
 | `jingshu` 结晶树 | dark wooden bark on a grassy floor | glittering crystal bark, green leaves; bare rock and gravel floor | pale untextured glassy bark; grey gravel floor, no grass |
+| `east` 东之大陆 | no fog pillar | a white spiral fog pillar over 50 km across rising through the cloud ceiling, the cities spaced round it | a 50 km spiral column ~34 km tall between 银之城, 云中山峰 and 创造之城, fog inside; a map place |
+| `cloudsea` 三层云海 | sheets at fixed altitudes (the plateau poked through them); dark undersides | 100–200 m above the ground, ~200 m apart; the ceiling shines like a clear day | sheets follow the smoothed ground at 150 / 370 / 590 m; lit through, bright from below |
+| `rongqiu` 月 | a pale grey moon smaller than the sun | in a visit the moon shines sky-blue and looks bigger than the sun; a sea world with islands | sky-blue, larger than the sun, pale islands (the sky is set in a moon visit) |
+| `cloudpeak` 云中山峰 · 学院 | one broad 100 km dome, academy merged into it | two peaks: a steep rock mountain through all three cloud sheets, and a lower one whose top just clears the third, crowned by the Academy's alloy buildings | a ~6 km rock spire on the dome; a flat-topped Academy peak ~60 km away with a domed great hall and seven halls round it; both on the map |
 | `jadeport` 翡翠港 | houses half in the sea among islets | a harbour town on the shore | a low shore terrace carries the town |
 
 ### Open
@@ -32,7 +36,7 @@ What the world got wrong against the encyclopedia entries (rongqiu-source `encyc
 |---|---|---|
 | `under` | river (5 m), waterfall lake, glow-worm cave, lava rift, 印加 nests, steam vents; the drain from the pit floor as a walkable way in; creatures of the cavern | 5 (Landscapes L3, Water L3) |
 | `peak` | the crater lake's water (mountain lakes need Water L3) | 5 |
-| `cloudsea` | standing and walking on the sheets; the 50 km fog pillar near 银之城 | 5 |
+| `cloudsea` | standing and walking on the sheets | 5 |
 | `rift` | the 100 m bone bridge; dark mud lakes on the floor | 5 |
 
 ## Pass 1 — tier-1 entries (2026-10-26)
@@ -66,11 +70,6 @@ What the world got wrong against the encyclopedia entries (rongqiu-source `encyc
 
 | Entry | Issue | Phase |
 |---|---|---|
-| `cloudsea` 三层云海 | book: three walkable sheets ~150 / ~380 / ~600 m above the eastern lands, tens of m thick; world: generic volumetric clouds at 1.8–4.2 km everywhere | 3 (Weather L2) |
-| `east` | 50 km spiral fog pillar near 银之城 | 3 |
 | `hometree` | waterfall from ~190 m, fluff-cloud band at ~100 m, clearing round the trunk, underground forest of home trees | 3 / 5 |
-| `jungle` 扭曲树 | crown discs 10 m+ at ~30 m, dark second layer at ~10 m, desert-edge trees 100 m+ | 3 (Vegetation L1) |
-| `siwangjianci` 死亡尖刺 | 50 m tall, 1 m wide, purple trunk, red sticky spikes, planted as a wall | 3 |
 | `emeraldcity`, `whiteisle`, `longqimu`, `jadeport` | full city layouts (walls, districts, castle 500 × 500 × 100 m) | 4 / 6 |
 | `guanglong` 光龙 | ~100 m sky-eel in the book; 42 m in the world (needs its own entry first) | 5 |
-| `rongqiu` | year = 1060 day-night cycles; the moon's 290-year return; current 8-day moon cycle is not the book's | 3 |

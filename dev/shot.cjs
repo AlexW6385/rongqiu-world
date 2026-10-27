@@ -6,6 +6,7 @@ await pg.addInitScript(()=>{window.__noloop=true;});await pg.goto('http://localh
 await pg.evaluate(q=>{__demo.setQuality(q);},process.env.Q||'mid');
 if(process.env.VIEW)await pg.evaluate(v=>{__demo.setView(JSON.parse(v));},process.env.VIEW);
 if(process.env.PLACE)console.log('jump',process.env.PLACE,await pg.evaluate(id=>{__demo.goPlace(id);return window.__jump;},process.env.PLACE));
+if(process.env.POST)await pg.evaluate(v=>{__demo.setView(JSON.parse(v));},process.env.POST);   // view tweaks after the jump
 if(process.env.HOUR)await pg.evaluate(h=>{const e=document.querySelector('#sun');e.value=h;e.dispatchEvent(new Event('input'));},process.env.HOUR);
 for(let i=0;i<(+process.env.N||40);i++){await pg.evaluate(()=>__demo.render());await pg.waitForTimeout(60);}
 await pg.screenshot({path:(process.env.DIR||'shots')+'/'+(process.env.OUT||'v6_ground')+'.png',timeout:600000});

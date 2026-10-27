@@ -2,6 +2,22 @@
 
 What you can see in the world that is new, newest first. Each release follows the encyclopedia written from the novel (`DESIGN.md` §4).
 
+## v2.1 — Nature, first round (2026-10-27)
+
+- **The underworld** under the endless desert: a cavern kilometres wide whose ceiling glows like a sun and dims at night, a forest of fern trees, home trees standing like pillars, and the 死亡尖刺 wall at its edge. Enter it from the map.
+- **The east** lies under three layers of cloud a hundred or two metres above the ground, and in its middle stands **the fog pillar** — a white spiral column fifty kilometres wide rising through the clouds, seen from hundreds of kilometres away (a new map place).
+- **云中山峰** is a steep rock mountain rising through all three cloud layers; sixty kilometres away the lower **Academy peak** just clears the top layer, with the 白骸龙's silver halls on its summit (both on the map).
+- **The home tree** is wrapped at a hundred metres in a cloud of floating fluff-ball creatures, and a waterfall pours from a hole high on its trunk.
+- **The moon** is the moon of a visit: sky-blue and larger than the sun, a sea world with pale islands.
+- **The twisted jungle** has hundred-metre giants along its desert edge and a dark second layer of crossing trunks; **the volcano** rises over a kilometre from its middle with a crater at the top.
+- **The great rift** is filled with fog nearly to its rim; walk into **the fog seas** round 骷髅岛 and visibility drops to a few dozen metres.
+- **The canyon sea** freezes into a glacier in the north, where the dead giant trees stand; **the crystal ring** rises out of the polar ice; **the south** is an empty ice continent.
+- **The crystal woodland**: leafy trees with pale glassy bark, spaced apart on bare grey gravel.
+- **翡翠港** stands on its shore; the peoples of the book — 翡翠龙, 白骸龙, 银甲龙, 立蝎, 脑袋虫 with their mounds, 阿兹特克虫, 印加 wasps — and pterosaurs of four sizes live round their cities.
+- **The sea**: turquoise shallows where the sand shows through, the sky reflected by angle, surf breaking on the beaches.
+- **Skies by region**: clear over the desert and the salt flats, cloudier over the jungle, the east and the fog seas.
+- **Sound**: wind that rises with height, leaves in the forests, surf, sand hiss, the hum and drips of the cave, insects at night.
+
 ## v2.0 — Places as the book describes them (2026-10-26)
 
 The first pass of checking the world against the book. Seventy of the most important places, plants and creatures of 绒球 now have encyclopedia entries written from the text, and the world was corrected wherever it disagreed with them.
