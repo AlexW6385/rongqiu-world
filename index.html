@@ -371,7 +371,7 @@ function features(nx,ny,nz,h,detail,coast,mMask){
   // 山峰 · 山中湖 (encyclopedia peak): a lone mountain over 1000 m high in the middle of the twisted jungle; a crater lake 500 m
   // across and 200 m deep at the top, drilled by a 炼狱蠕虫 (the lake's water waits for Water L3: mountain lakes)
   d=angTo(nx,ny,nz,F_PEAK);
-  if(d<9*km){const u=d/(6.5*km);const cone=Math.exp(-u*u*1.6)*(1+.08*ridge(nx*7000,ny*7000,nz*7000,3));h+=1150*cone;
+  if(d<7*km){const u=d/(4.2*km);const cone=Math.pow(Math.max(0,1-u),1.7)*.92+.08*Math.exp(-u*u)*(1+.1*ridge(nx*7000,ny*7000,nz*7000,3));h+=1250*cone*(1+.06*ridge(nx*9000,ny*9000,nz*9000,3));
     const cr=d/(.25*km);if(cr<1.6)h-=200*sm(1.6,.85,cr);}
   // 地眼之湖：沙漠中心的绿洲巨湖
   d=angTo(nx,ny,nz,F_LAKE);if(d<.012){const t=sm(.012,.007,d);h=h*(1-t)+(-8)*t;}
@@ -2181,8 +2181,8 @@ const PLACE_VIEW={
   silvercity:{t:[-4,56],d:580,aim:12,fly:45,b:180},capital:{t:[-14,63],d:900,aim:30,fly:90,b:180},
   jjzs:{t:[71,34],d:1600,aim:400,fly:20,b:180,water:1},inca_pit:{t:[22,-10],d:585,aim:0,fly:40,b:0},
   spires:{t:[15,-1],d:250,aim:70,b:180},oasis:{t:[27,-11],d:450,aim:0,b:180},
-  canyon:{t:[30,6.47],d:13500,aim:300,fly:150,b:90},rift:{t:[14.5,-59.55],d:5600,aim:1000,fly:150,b:127},
-  peak:{t:[33.2,11.2],d:5500,aim:1100,fly:40,b:200},atmount:{t:[22,-94],d:8000,aim:1100,b:180},cloudpeak:{t:[-6.2,66.2],d:9000,aim:1300,b:180}};
+  canyon:{t:[30,6.35],d:12500,aim:0,fly:150,b:90},rift:{t:[14.5,-59.55],d:5600,aim:1000,fly:150,b:127},
+  peak:{t:[33.2,11.2],d:4300,aim:150,fly:40,b:200},atmount:{t:[22,-94],d:8000,aim:1100,b:180},cloudpeak:{t:[-6.2,66.2],d:9000,aim:1300,b:180}};
 function frameView(v){const tla=v.t[0]*D2R,tlo=v.t[1]*D2R;const tp=fromLL(tla,tlo,1);const tv=new THREE.Vector3(tp.x,tp.y,tp.z);const {east,north}=frameAt(tla,tlo);
   const g0=ground(tla,tlo);
   for(let k=0;k<16;k++){const a=(v.b||0)*D2R+(k%2?1:-1)*Math.ceil(k/2)*Math.PI/8;
