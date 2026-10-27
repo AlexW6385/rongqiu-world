@@ -202,6 +202,8 @@ Append-only. One line per decision: date, decision, reason.
 - 2026-10-27 — Module split begins with the city layer: `src/city.js` is the first static ES module, imported by `index.html`. Code that the terrain workers also run (the city generator and the ground shaping under a city) is exported as source text and appended to the shared terrain source; building geometry is built on the main thread. Further parts move out of `index.html` into `src/` as they are reworked, rather than in one risky rewrite. Reason: §5 expects the split once the city layer lands; the worker-shared source makes a one-shot split fragile.
 - 2026-10-27 — City plan format: a generator function per city in `src/city.js` (wall ring, gate, avenue, districts, landmark buildings) that emits ordinary landmark items, so cities reuse the landmark pipeline (instancing, placement on terrain, collision circles, map framing). Reason: one placement path for everything hand-authored; the plan stays code a reader can follow.
 - 2026-10-27 — First city: 翡翠龙之城, imperial phase (the richest city entry, and the book's best-described street-level layout).
+- 2026-10-27 — Lakes above sea level are flat water discs at a fixed level over basins carved into the terrain (the terrain hides the disc past the shore), with their own small water shading (depth colour, Fresnel sky reflection, sun glint). Reason: the sea is shaded in the terrain at height 0 only; discs are the cheapest correct way to put water anywhere else.
+- 2026-10-27 — Creatures L2: each spawned group shares a heading that wanders slowly and is leashed to where the group was found (its patch of habitat); members keep their place in the group and turn with it; day animals rest through the night and night animals (阿兹特克虫, moths) leave at dawn; big flyers glide with occasional wingbeats. Reason: §8 Creatures L2, and the herd/band sizes from the density table only read as herds if they move together.
 
 ## 11. Roadmap and status
 
@@ -222,6 +224,7 @@ The implementing agent updates this section at the end of every work session: mo
 - Phase 4 — First city, 2026-10-27 (v4.0): 翡翠龙之城 in its imperial phase built to Cities L1–L2 from a plan in `src/city.js` — wall and gate, white avenue, statue plaza, palace, hall of worship and school hall, upper district of tall white houses on white-sand lanes, ~14,000 square stone houses on a street grid, lower-district shanties round the egg boulders with 亚龙 roosts, trodden-earth streets, collision, its people in the streets; checked at the gate, the plaza and a common-district street. `index.html` split into ES modules: `src/city.js`, `src/terrain.js`, `src/creatures.js`, `src/music.js`, `src/ambience.js`; the rest moves out as it is reworked.
 
 **Phase 5 — Depth, round one**
+- In progress (2026-10-27): Creatures L2 (groups, habitat leash, day/night, gliding); Water L3 begun with the peak's crater lake.
 - Creatures L2, Vegetation L2, Water L3, Landscapes L3 for all Phase 2 entries.
 - Remaining encyclopedia entries for the next tier of plants and creatures; add them at L1.
 

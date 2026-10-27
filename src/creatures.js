@@ -59,14 +59,14 @@ function ptero(span,c,crest){const k=span/2,m=tone(c,1.2);const parts=[E(.28*k,.
   if(crest)parts.push(K(.05*k,.22*k,.28*k,.14*k,0,crest,0,0,.6));
   return {body:body(parts),wings:[1,-1].map(s=>({geo:wingGeo(span*.5,.36*k,m),x:.05*k,y:.03*k,z:.06*k*s,side:s}))};}
 def('pteroS',{n:'翼龙',fly:[8,70],speed:7,group:[5,12],build(){return ptero(.55,[.42,.36,.3]);}});
-def('pteroRed',{n:'红冠翼龙',fly:[20,120],speed:9,group:[3,6],build(){return ptero(2,[.5,.4,.32],[.85,.15,.1]);}});
+def('pteroRed',{glide:1,n:'红冠翼龙',fly:[20,120],speed:9,group:[3,6],build(){return ptero(2,[.5,.4,.32],[.85,.15,.1]);}});
 def('pteroBomb',{n:'炸弹翼龙',fly:[30,160],speed:8,group:[1,1],build(){return ptero(7,[.38,.34,.3]);}});
-def('pteroGiant',{n:'原翼龙',fly:[40,220],speed:9,sc:1,group:[1,2],build(){const b=ptero(10,[.46,.42,.36]);return b;}});
+def('pteroGiant',{glide:1,n:'原翼龙',fly:[40,220],speed:9,sc:1,group:[1,2],build(){const b=ptero(10,[.46,.42,.36]);return b;}});
 /* 阿兹特克虫 (encyclopedia aztec): eyeless black arthropods; the small caste ~10 cm in swarms, the large caste ~2 m tall and 4 m+ long with
    saw-edged jaws, small ones riding on its back; they keep the spire forest's moss */
-def('aztecS',{n:'阿兹特克虫',walk:1,speed:.5,sc:.12,group:[10,22],build(){const c=[.06,.06,.07];
+def('aztecS',{nocturnal:1,n:'阿兹特克虫',walk:1,speed:.5,sc:.12,group:[10,22],build(){const c=[.06,.06,.07];
   return {body:body([E(.45,.22,.3,0,.32,0,c),E(.2,.16,.2,.5,.3,0,c),K(.04,.3,.82,.26,.12,c,0,0,-1.3),K(.04,.3,.82,.26,-.12,c,0,0,-1.3)]),legs:[.3,0,-.3].flatMap(x=>[1,-1].map(s=>({geo:legGeo(.34,.035,c),x,y:.3,z:.22*s,splay:.9*s})))};}});
-def('aztecL',{n:'阿兹特克虫（大型）',walk:1,speed:.9,group:[1,2],build(){const c=[.07,.07,.08],j=[.18,.16,.15];
+def('aztecL',{nocturnal:1,n:'阿兹特克虫（大型）',walk:1,speed:.9,group:[1,2],build(){const c=[.07,.07,.08],j=[.18,.16,.15];
   const parts=[E(1.9,.75,.9,0,1.25,0,c),E(.75,.6,.7,2.1,1.2,0,c)];for(const z of [1,-1]){parts.push(K(.14,1.3,3.2,1.0,.4*z,j,0,.3*z,-1.4));for(let k=0;k<5;k++)parts.push(K(.06,.25,2.8+k*.18,.85,.47*z,j,0,0,0));}
   for(let k=0;k<4;k++)parts.push(E(.2,.1,.13,-.9+k*.5,2.05,(k%2?.2:-.2),c));
   return {body:body(parts),legs:[1.2,0,-1.2].flatMap(x=>[1,-1].map(s=>({geo:legGeo(1.3,.12,c),x,y:1.2,z:.75*s,splay:.7*s})))};}});
@@ -87,7 +87,7 @@ def('tyrant',{n:'暴君巨蜥',walk:1,speed:1.8,group:[1,1],build(){const c=[.44
   return {body:body([E(2.6,1.35,1.15,0,3.8,0,c,.12),E(1.8,.9,.9,.3,3.3,0,b,.12),taper([[2,4.2,0],[3,4.7,0],[3.6,4.8,0]],.9,.7,c),E(1.35,.75,.7,4.2,4.75,0,c,-.1),E(1.1,.3,.55,4.3,4.2,0,b,-.15),
     E(.12,.12,.12,4.9,5.1,.48,[.95,.75,.2]),E(.12,.12,.12,4.9,5.1,-.48,[.95,.75,.2]),taper([[-2.3,3.8,0],[-4.5,3.3,0],[-7.2,2.6,0]],1.05,.08,c),C(.14,.1,.9,1.8,3.1,.7,c,0,0,.6),C(.14,.1,.9,1.8,3.1,-.7,c,0,0,.6)]),
     legs:[[.3,3.4,.95],[.3,3.4,-.95]].map(([x,y,z])=>({geo:legGeo(3.4,.55,c,1.6),x,y,z}))};}});
-def('wyvern',{n:'飞龙',fly:[50,180],speed:10,sc:1.3,group:[1,1],build(){const c=[.36,.36,.34],m=[.44,.42,.4];
+def('wyvern',{glide:1,n:'飞龙',fly:[50,180],speed:10,sc:1.3,group:[1,1],build(){const c=[.36,.36,.34],m=[.44,.42,.4];
   return {body:body([E(1.7,.45,.5,0,0,0,c),taper([[1.4,.1,0],[2.3,.4,0],[2.8,.45,0]],.32,.22,c),E(.55,.28,.26,3.15,.42,0,c),K(.12,.6,3.75,.42,0,m,0,0,-1.57),taper([[-1.5,0,0],[-3.5,-.2,0],[-5.5,-.15,0]],.35,.04,c)]),
     legs:[[1,-.2,.35],[1,-.2,-.35],[-1,-.2,.35],[-1,-.2,-.35]].map(([x,y,z])=>({geo:legGeo(.9,.15,c,1.4),x,y,z,splay:.3})),
     wings:[1,-1].map(s=>({geo:wingGeo(5.2,3.2,m),x:.4,y:.25,z:.35*s,side:s}))};}});
@@ -124,7 +124,7 @@ def('jelly',{n:'空水母',fly:[3,25],speed:.6,group:[1,3],swim:1,build(){const 
   for(let k=0;k<8;k++){const a=k*.785;parts.push(taper([[Math.cos(a)*.6,0,Math.sin(a)*.6],[Math.cos(a)*.55,-1.5,Math.sin(a)*.55],[Math.cos(a+.4)*.4,-3.2,Math.sin(a+.4)*.4]],.04,.01,[.6,.7,.9],8,4));}
   return {body:body(parts)};}});
 def('worm',{n:'迷雾蠕虫',walk:1,burrow:1,speed:2.4,group:[3,3],build(){const c=[.38,.31,.26];return {seg:body([E(2.2,2.1,2.1,0,0,0,c)]),head:body([E(2.3,2.2,2.2,0,0,0,c),...Array.from({length:10},(_,k)=>K(.25,1.4,1.9,Math.cos(k*.63)*1.4,Math.sin(k*.63)*1.4,[.92,.86,.7],0,0,-1.57,5))])};}});
-def('moths',{n:'记忆蛾',swarm:'glow',fly:[1,5],speed:.8,group:[1,1]});
+def('moths',{nocturnal:1,n:'记忆蛾',swarm:'glow',fly:[1,5],speed:.8,group:[1,1]});
 def('dust',{n:'尘魔',swarm:'dust',fly:[0,0],speed:2.5,group:[1,1]});
 // ---- 更多物种（体型按原著描述） ----
 def('deepbus',{n:'深沙巴士',walk:1,speed:1.6,group:[1,1],build(){const c=[.12,.11,.11],d=tone(c,.75);const parts=[E(13.5,1.4,4.2,0,1.6,0,c),E(11,1,3.4,0,2.4,0,tone(c,1.25))];
@@ -160,10 +160,10 @@ def('icespider',{n:'冰蛛',walk:1,speed:1.4,group:[1,2],build(){const c=[.5,.75
 def('zaonao',{n:'造脑怪',walk:1,speed:.5,group:[1,1],build(){const c=[.85,.72,.25];
   return {body:body([E(1.5,.9,1.1,0,1.3,0,c),E(.6,.55,.6,1.5,1.4,0,tone(c,.9)),E(.08,.08,.08,2.05,1.55,.22,[.1,.08,.05]),E(.08,.08,.08,2.05,1.55,-.22,[.1,.08,.05])]),
     legs:[.9,.3,-.3,-.9].flatMap(x=>[1,-1].map(s=>({geo:legGeo(1,.13,tone(c,.8)),x,y:.95,z:.85*s,splay:.5*s})))};}});
-def('yalong',{n:'亚龙',fly:[80,240],speed:13,sc:.6,group:[1,2],build(){const c=[.08,.08,.09],m=[.15,.14,.14];
+def('yalong',{glide:1,n:'亚龙',fly:[80,240],speed:13,sc:.6,group:[1,2],build(){const c=[.08,.08,.09],m=[.15,.14,.14];
   return {body:body([E(3,.8,.85,0,0,0,c),taper([[2.5,.2,0],[4.2,.9,0],[5.2,1,0]],.55,.38,c),E(.95,.5,.45,5.8,.95,0,c),K(.2,1,6.8,.95,0,m,0,0,-1.57),taper([[-2.7,0,0],[-6,-.4,0],[-9.5,-.3,0]],.6,.06,c)]),
     wings:[1,-1].map(s=>({geo:wingGeo(9.5,5.5,m),x:.7,y:.45,z:.6*s,side:s}))};}});
-def('guanglong',{n:'光龙',fly:[280,520],speed:16,group:[1,1],glow:1,build(){const pts=[];for(let i=0;i<=20;i++){const t=i/20;pts.push([-t*42,Math.sin(t*9)*2.5,Math.cos(t*7)*2]);}
+def('guanglong',{glide:1,n:'光龙',fly:[280,520],speed:16,group:[1,1],glow:1,build(){const pts=[];for(let i=0;i<=20;i++){const t=i/20;pts.push([-t*42,Math.sin(t*9)*2.5,Math.cos(t*7)*2]);}
   const g=taper(pts,2.2,.15,[1,1,1],60,10).g;paint(g,[1.4,2.4,2.8]);return {body:g};}});
 def('gunlei',{n:'滚雷',swarm:'orb',fly:[180,420],speed:1.5,group:[1,1]});
 def('baoxiao',{n:'爆哮虫',walk:1,speed:.4,group:[1,2],build(){const c=[.55,.45,.38];

@@ -116,7 +116,8 @@ function features(nx,ny,nz,h,detail,coast,mMask){
   // across and 200 m deep at the top, drilled by a 炼狱蠕虫 (the lake's water waits for Water L3: mountain lakes)
   d=angTo(nx,ny,nz,F_PEAK);
   if(d<7*km){const u=d/(4.2*km);const cone=Math.pow(Math.max(0,1-u),1.7)*.92+.08*Math.exp(-u*u)*(1+.1*ridge(nx*7000,ny*7000,nz*7000,3));h+=1250*cone*(1+.06*ridge(nx*9000,ny*9000,nz*9000,3));
-    const cr=d/(.25*km);if(cr<1.6)h-=200*sm(1.6,.85,cr);}
+    // the crater: the cone's point flattened to the rim, then a bowl 200 m deep and ~500 m across (the lake fills it: LAKES in index.html)
+    const cr=d/(.25*km);if(cr<1.25){const cf=x=>Math.pow(Math.max(0,1-x),1.7)*.92+.08*Math.exp(-x*x);h-=1250*Math.max(0,cf(u)-cf(.25/4.2))*sm(1.1,.8,cr);h-=200*sm(1.2,.8,cr)*(1-.15*cr*cr);}}
   // 云中山峰 (encyclopedia cloudpeak): a steep rock mountain rising through all three cloud sheets; and the lower Academy peak
   // ~60 km away whose flat top just clears the third sheet, crowned by the 白骸龙 Academy
   d=angTo(nx,ny,nz,F_CPEAK);

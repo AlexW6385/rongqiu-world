@@ -36,6 +36,7 @@ What the world got wrong against the encyclopedia entries (rongqiu-source `encyc
 | `xueqiu` 血球树 | a blob of 6 m trees | a dense belt of ~2 m blood-ball trees along the inner edge of the east's desert, then a moss plain | a belt ~60 km wide of 2–3 m trees round the desert, then a ~190 km ring of low moss cover |
 | `baozhajq` 爆炸尖球 | scattered over the island | a line of them 1–2 m apart where the moss belt ends | a narrow dense band round the island's interior |
 | `emeraldcity` 翡翠龙之城 | egg boulders in fern jungle only | the imperial capital: 10 m squared-stone wall, 5 m gate, white-paved avenue, white-sand upper district with tall white houses, palace with pyramid roof and skull, hall of worship with its fire basin, statue plaza, common district of square stone houses, lower-district shanties round the boulders, timber 亚龙 roosts; trees cleared | all of these, ~3 km across, from a city plan in `src/city.js` (Cities L1–L2: site, silhouette, walls, main buildings, streets, collision) |
+| `peak` 山中湖 | dry dip at the summit | a crater lake 500 m across and 200 m deep | a crater bowl ~170 m deep with a lake ~500 m across (first lake above sea level) |
 | creature groups | small fixed groups | 角龙 herds of ~30, 骸龙 bands of 15–30, 白骸龙 groups up to ~15, 迷雾蠕虫 in threes; one 晶锥陆龟 per region; 飞龙 nearly extinct, by the volcanoes | group sizes and rarities set from the entries (rongqiu-source `encyclopedia/density.md`) |
 | `jadeport` 翡翠港 | houses half in the sea among islets | a harbour town on the shore | a low shore terrace carries the town |
 
@@ -44,7 +45,6 @@ What the world got wrong against the encyclopedia entries (rongqiu-source `encyc
 | Entry | Issue | Phase |
 |---|---|---|
 | `under` | river (5 m), waterfall lake, glow-worm cave, lava rift, 印加 nests, steam vents; the drain from the pit floor as a walkable way in; creatures of the cavern | 5 (Landscapes L3, Water L3) |
-| `peak` | the crater lake's water (mountain lakes need Water L3) | 5 |
 | `cloudsea` | standing and walking on the sheets | 5 |
 | `rift` | the 100 m bone bridge; dark mud lakes on the floor | 5 |
 

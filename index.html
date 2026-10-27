@@ -574,7 +574,7 @@ const terrainF=wgslFn(/* wgsl */`fn terrainF(P4:vec4f,N4:vec4f,D4:vec4f,DT:vec4f
     col=mix(col,rock*(0.8+0.4*v2)*(0.9+0.2*v3),rk);
     col=mix(col,vec3f(0.25,0.245,0.235)*(0.8+0.4*v3),ss(0.03,0.022,acos(clamp(dot(n,vec3f(-0.1710,0.1736,0.9698)),-1.0,1.0))));   // 结晶林地: bare rock and gravel floor (encyclopedia jingshu)
     col=mix(col,rock*(0.75+0.5*v2)*(0.85+0.3*v3),ss(0.0009,0.0005,length(n-vec3f(0.4012,-0.1080,-0.9096))));   // 云中山峰: mostly hard steep rock (encyclopedia cloudpeak)
-    col=mix(col,vec3f(0.4,0.35,0.28)*(0.85+0.3*v3),ss(0.000233,0.000212,length(n-vec3f(0.034136859,0.207911691,0.97755174))));   // 翡翠龙之城: trodden-earth streets inside the walls
+    col=mix(col,vec3f(0.3,0.26,0.2)*(0.85+0.3*v3),ss(0.000233,0.000212,length(n-vec3f(0.034136859,0.207911691,0.97755174))));   // 翡翠龙之城: trodden-earth streets inside the walls
     if(df2>0.001){ // close-up surface detail: triplanar grass / rock / sand maps at two scales
       col*=mix(vec3f(1.0),det*1.5+0.25,df2*0.9);
       N=dbump(N,dpx,dpy,dhx*0.06*df2,dhy*0.06*df2);
@@ -1400,22 +1400,37 @@ function spawnNear(){if(CREATURES.length>=MAXC)return;
   const night=uni.uUp.value.dot(uni.uSun.value)<-.05;
   const probe=ctxAt(view.lat,view.lon);const w=speciesFor(probe,night);if(!w.length)return;
   let r=Math.random()*w.reduce((a,b)=>a+b[1],0),key=w[0][0];for(const [k,x] of w){r-=x;if(r<=0){key=k;break;}}
-  const sp=SPEC[key];const near=SIZE[key]||[30,160];
+  const sp=SPEC[key];const near=SIZE[key]||[30,160];if(sp.nocturnal&&!night)return;
   const ang=view.heading+(Math.random()-.5)*2.2,dist=(near[0]+Math.random()*(near[1]-near[0]))/R;   // mostly in front of you
   const lat=view.lat+Math.cos(ang)*dist,lon=view.lon+Math.sin(ang)*dist/Math.cos(view.lat);
   const c=ctxAt(lat,lon);if(c.h<=.3&&!sp.fly)return;if(CREATURES.some(o=>o.key===key&&(sp.group[1]===1||o.key==='worm'||o.key==='tyrant')&&Math.abs(o.lat-lat)*R<400))return;
-  const cnt=sp.group[0]+Math.floor(Math.random()*(sp.group[1]-sp.group[0]+1));const heading=Math.random()*6.283;const white=key==='maoyu'&&c.dry>.35;const v=key==='emerald'?Math.floor(Math.random()*3):undefined;
+  const cnt=sp.group[0]+Math.floor(Math.random()*(sp.group[1]-sp.group[0]+1));const heading=Math.random()*6.283;
+  const grp={lat,lon,heading,n:cnt,home:{lat,lon},t:Math.random()*100};   /* a herd, band or flock moves as one (Creatures L2–L3) */
+  const white=key==='maoyu'&&c.dry>.35;const v=key==='emerald'?Math.floor(Math.random()*3):undefined;
   for(let i=0;i<cnt&&CREATURES.length<MAXC;i++){const o=makeCreature(key,{white,v});fauna.add(o);
-    CREATURES.push({sp,key,obj:o,lat:lat+(Math.random()-.5)*16/R,lon:lon+(Math.random()-.5)*16/R,heading:heading+(Math.random()-.5)*.7,alt:sp.fly?sp.fly[0]+Math.random()*(sp.fly[1]-sp.fly[0]):0,ph:Math.random()*6.283,t:0,pause:0});}}
+    CREATURES.push({sp,key,obj:o,lat:lat+(Math.random()-.5)*16/R,lon:lon+(Math.random()-.5)*16/R,heading:heading+(Math.random()-.5)*.7,alt:sp.fly?sp.fly[0]+Math.random()*(sp.fly[1]-sp.fly[0]):0,ph:Math.random()*6.283,t:0,pause:0,grp,slot:[(Math.random()-.5)*2,(Math.random()-.5)*2]});}}
 const _fwd=new THREE.Vector3(),_rgt=new THREE.Vector3(),_mat=new THREE.Matrix4();
 function updateCreatures(dt){if(view.cave)return;
   spawnT-=dt;if(spawnT<=0){spawnT=CREATURES.length<MAXC*.6?.35:1.2;spawnNear();}
   for(let i=CREATURES.length-1;i>=0;i--){const c=CREATURES[i],sp=c.sp,o=c.obj;c.t+=dt;
     const dlat=(c.lat-view.lat)*R,dlon=(c.lon-view.lon)*R*Math.cos(view.lat);const d=Math.hypot(dlat,dlon);
     if(d>(sp.fly&&sp.fly[1]>100?900:560)){fauna.remove(o);o.traverse(m=>{if(m.isPoints)m.geometry.dispose();});CREATURES.splice(i,1);continue;}
+    // day and night: night animals leave at dawn; day animals rest through the night, moving only now and then
+    const night=uni.uUp.value.dot(uni.uSun.value)<-.05;
+    if(sp.nocturnal&&!night){fauna.remove(o);CREATURES.splice(i,1);continue;}
     // wander, sometimes stop to graze or look around; don't walk into the sea
-    if(sp.walk&&!sp.burrow){if(c.pause>0)c.pause-=dt;else if(Math.random()<dt*.06)c.pause=2+Math.random()*5;}
+    if(sp.walk&&!sp.burrow){if(c.pause>0)c.pause-=dt;else if(Math.random()<dt*(night&&!sp.nocturnal?.5:.06))c.pause=night&&!sp.nocturnal?6+Math.random()*14:2+Math.random()*5;}
     c.heading+=(Math.sin(c.t*.6+c.ph)*.5+(Math.random()-.5)*.8)*(sp.dart?2.5:.5)*dt;
+    // the group: its heading wanders slowly and stays within reach of where it was found (its patch of habitat);
+    // each member keeps near its place in the group and turns with it
+    if(c.grp){const g=c.grp;if(g.last!==frameNo){g.last=frameNo;g.t+=dt;g.heading+=Math.sin(g.t*.13)*.08*dt;
+        const hd=Math.hypot(g.lat-g.home.lat,(g.lon-g.home.lon)*Math.cos(g.lat))*R,leash=sp.fly?350:sp.walk?90:200;
+        if(hd>leash){const back=Math.atan2((g.home.lon-g.lon)*Math.cos(g.lat),g.home.lat-g.lat);g.heading+=Math.atan2(Math.sin(back-g.heading),Math.cos(back-g.heading))*Math.min(1,dt*.5);}
+        const gs=sp.speed*(sp.walk?.55:.8);g.lat+=Math.cos(g.heading)*gs*dt/R;g.lon+=Math.sin(g.heading)*gs*dt/R/Math.cos(g.lat);}
+      if(g.n>1||sp.walk){const spread=4+Math.sqrt(g.n)*3*(sp.fly?3:1),tl=g.lat+c.slot[0]*spread/R,tlo=g.lon+c.slot[1]*spread/R/Math.cos(g.lat);
+        const dx=(tlo-c.lon)*Math.cos(c.lat)*R,dy=(tl-c.lat)*R,dd=Math.hypot(dx,dy);
+        if(dd>spread*.6){const want=Math.atan2(dx,dy);c.heading+=Math.atan2(Math.sin(want-c.heading),Math.cos(want-c.heading))*Math.min(1,dt*1.2);if(c.pause>0&&dd>spread*1.5)c.pause=0;}
+        else c.heading+=Math.atan2(Math.sin(g.heading-c.heading),Math.cos(g.heading-c.heading))*Math.min(1,dt*.4);}}
     const moving=c.pause<=0;const sp2=moving?sp.speed*(sp.hop?Math.max(0,Math.sin(c.t*5+c.ph))*1.7:1):0;
     const nl=c.lat+Math.cos(c.heading)*sp2*dt/R,nlo=c.lon+Math.sin(c.heading)*sp2*dt/R/Math.cos(c.lat);
     const q=fromLL(nl,nlo,1);const hn=T.terrain(q.x,q.y,q.z,.5);
@@ -1430,7 +1445,8 @@ function updateCreatures(dt){if(view.cave)return;
     const U=o.userData,gait=moving?1:0,f=sp.speed*1.6;
     if(U.body&&sp.walk)U.body.position.y=Math.abs(Math.sin(c.t*f*2))*.04*gait*(U.legs.length?1:0);
     U.legs.forEach((L,k)=>{const pair=(k%2)^((k>>1)%2);if(L.userData.fin){L.rotation.y=Math.sin(c.t*6+k*3.14)*.6*gait;return;}L.rotation.z=Math.sin(c.t*f+(pair?Math.PI:0)+k*.3)*.45*gait;});
-    U.wings.forEach(W=>{if(W.userData.fast)W.rotation.x=Math.sin(c.t*42+(W.userData.side>0?0:1))*.5*W.userData.side;else W.rotation.x=(Math.sin(c.t*2.6+c.ph)*.7+.1)*W.userData.side;});
+    const flap=sp.glide?Math.max(0,Math.sin(c.t*.35+c.ph)-.55)*2.2:1;   // big flyers glide, beating their wings only now and then
+    U.wings.forEach(W=>{if(W.userData.fast)W.rotation.x=Math.sin(c.t*42+(W.userData.side>0?0:1))*.5*W.userData.side;else W.rotation.x=(Math.sin(c.t*2.6+c.ph)*.7*flap+.1)*W.userData.side;});
     if(sp.swim&&U.body){const sq=1+Math.sin(c.t*2+c.ph)*.12;U.body.scale.set(1/Math.sqrt(sq),sq,1/Math.sqrt(sq));}
     if(U.segs){const em=Math.sin(c.t*.3+c.ph);U.segs.forEach((sg,k)=>{const ph=c.t*2.4-k*.5;sg.position.y=Math.sin(ph)*1.2+(em*7-k*1.3)*(em>0?1:1.8);sg.position.z=Math.sin(ph*.5)*.8;});}
     if(U.pts){const a=U.pts.userData.attr;const n=a.count;for(let j=0;j<n;j+=7){const k=(j+Math.floor(c.t*30))%n;const s=sp.swarm==='glow'?.04:sp.swarm==='orb'?.6:.25;a.setXYZ(k,a.getX(k)+(Math.random()-.5)*s,a.getY(k)+(Math.random()-.5)*s*.6,a.getZ(k)+(Math.random()-.5)*s);}
@@ -1563,6 +1579,24 @@ function buildFogPillar(){const n={x:FPIL.c[0],y:FPIL.c[1],z:FPIL.c[2]};
 function updateFogPillar(){const l=Math.hypot(cam.x,cam.y,cam.z);const a=T.angTo(cam.x/l,cam.y/l,cam.z/l,FPIL.c);
   const vis=!view.cave&&a<.16&&a*R>FPIL.R*.8;if(vis&&!FPIL.mesh)buildFogPillar();if(!FPIL.mesh)return;FPIL.mesh.visible=vis;if(!vis)return;
   FPIL.mesh.position.set(FPIL.c[0]*R-cam.x,FPIL.c[1]*R-cam.y,FPIL.c[2]*R-cam.z);}
+/* ===== lakes above sea level (Water L3): flat water discs over basins carved in the terrain; the terrain hides the disc
+   beyond the shore. 山中湖 in the peak's crater (encyclopedia peak: 500 m across, 200 m deep). ===== */
+const LAKES=[{la:33.2,lo:11.2,r:300,level:1520}];
+const lakeU={up:uniform(new THREE.Vector3(0,1,0)),sun:uniform(new THREE.Vector3(0,1,0)),sky:uniform(new THREE.Vector3(.3,.45,.7)),deep:uniform(new THREE.Vector3(.02,.06,.08)),sunC:uniform(new THREE.Vector3(1,1,1))};
+const lakeMat=new THREE.MeshBasicNodeMaterial();
+lakeMat.colorNode=Fn(()=>{const V=normalize(positionWorld.mul(-1));const N=lakeU.up;const ndv=clamp(dot(N,V),0,1);const q=float(1).sub(ndv);const q2=q.mul(q);
+  const fr=float(.02).add(q2.mul(q2).mul(q).mul(.98));const Rf=V.mul(-1).add(N.mul(dot(V,N).mul(2)));
+  let sp=max(dot(Rf,lakeU.sun),0);for(let i=0;i<8;i++)sp=sp.mul(sp);   // a tight sun glint
+  return mix(lakeU.deep,lakeU.sky,fr).add(lakeU.sunC.mul(sp).mul(fr).mul(6));})();
+const lakeMeshes=LAKES.map(L=>{const g=new THREE.CircleGeometry(L.r,64);g.rotateX(-Math.PI/2);const m=new THREE.Mesh(g,lakeMat);m.frustumCulled=false;m.visible=false;scene.add(m);
+  const n=T.V(L.la,L.lo);L.n=n;L.anchor=[n[0]*(R+L.level),n[1]*(R+L.level),n[2]*(R+L.level)];
+  const up=new THREE.Vector3(...n);m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),up);return m;});
+function updateLakes(){const l=Math.hypot(cam.x,cam.y,cam.z);const el=uni.uUp.value.dot(uni.uSun.value);const day=Math.min(1,Math.max(0,(el+.1)/.45));
+  const dusk=Math.max(0,1-Math.abs(el-.04)/.12);lakeU.sun.value.copy(uni.uSun.value);
+  lakeU.sky.value.set(.24*day+.35*dusk+.012,.38*day+.18*dusk+.016,.62*day+.1*dusk+.03);lakeU.deep.value.set(.015*day+.002,.055*day+.004,.07*day+.006);
+  lakeU.sunC.value.set(1.6*day+1.2*dusk,1.5*day+.7*dusk,1.3*day+.4*dusk);
+  LAKES.forEach((L,i)=>{const m=lakeMeshes[i];const a=T.angTo(cam.x/l,cam.y/l,cam.z/l,L.n);m.visible=!view.cave&&a*R<40000;if(!m.visible)return;
+    m.position.set(L.anchor[0]-cam.x,L.anchor[1]-cam.y,L.anchor[2]-cam.z);lakeU.up.value.set(L.n[0],L.n[1],L.n[2]);});}
 /* ===== 地下世界 (encyclopedia under) =====
    A cavern 10+ km wide under the whole north desert, from the 印加 pit toward the volcano: a fern-tree jungle under a ceiling
    ~300 m up that glows over its whole surface (crystal dust and glowing fungus), dimming at night; home trees 50 m thick every
@@ -1682,7 +1716,7 @@ function updateRiftFog(){if(view.cave){RFOG.group.visible=false;return;}const l=
 const FOGZ=[[T.V(12,-22),.035],[T.V(8,-33),.02],[T.V(-7.5,59),25000/R]];   // + inside the east's fog pillar
 function fogZone(lat,lon){const p=fromLL(lat,lon,1);let z=0;for(const [c,r] of FOGZ){const a=T.angTo(p.x,p.y,p.z,c);z=Math.max(z,T.sm(r,r*.55,a)*(.75+.25*T.fbm(p.x*300,p.y*300,p.z*300,2)));}return Math.min(1,z);}
 function placeMeshes(){
-  updateCloudSea();updateFogPillar();updateCave();updateRiftFog();
+  updateCloudSea();updateFogPillar();updateLakes();updateCave();updateRiftFog();
   for(const o of planet.children){const n=o.userData.node;if(n)o.position.set(n.cx-cam.x,n.cy-cam.y,n.cz-cam.z);}
   for(const o of flora.children){if(!o.visible)continue;const n=o.userData.node;o.position.set(n.cx-cam.x,n.cy-cam.y,n.cz-cam.z);}
   uni.uCenter.value.set(-cam.x,-cam.y,-cam.z);
