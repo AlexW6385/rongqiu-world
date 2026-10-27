@@ -1,54 +1,48 @@
-# 绒球世界
+# 绒球世界 · Rongqiu World
 
-小说《进化的四十六亿重奏》里，琳出生和长大的星球叫「绒球」。这个项目把绒球做成一个可以亲自走进去的 3D 世界：按真实尺度，以地面视角游览，世界有昼夜和月相。
+In the novel 《进化的四十六亿重奏》, the planet where 琳 is born and grows up is called 绒球. This project makes 绒球 a 3D world you can walk into: real scale, seen from the ground, with day and night and the moon.
 
-它和 [重奏展览馆](https://github.com/AlexW6385/4.6-billion-symphony) 是两个方向：展览馆轻便、信息全，覆盖整本书；这里只做绒球，追求真实感、细节和视觉美术。
+It is the counterpart of the [重奏展览馆](https://github.com/AlexW6385/4.6-billion-symphony): the exhibition is light and covers the whole book as information; this project covers only 绒球 and aims at realism, detail and visual art. Everything in it is built from a design encyclopedia written from the novel's text; see [`DESIGN.md`](DESIGN.md) for the brief and [`CHANGELOG.md`](CHANGELOG.md) for what is new.
 
-**在线游玩：<https://alexw6385.github.io/rongqiu-world/>**（建议用电脑和独立显卡；手机会自动降低画质）
+**Live: <https://alexw6385.github.io/rongqiu-world/>** (a computer with a discrete GPU is best; phones lower the quality automatically)
 
-整个项目是一个 `index.html`，不需要构建。用任意静态服务器打开即可，three.js 从 jsDelivr 加载。渲染只用 WebGPU（较新的 Chrome、Edge、Safari、Firefox）；不支持 WebGPU 的浏览器会显示一条提示，不再有 WebGL 版本（旧的 `webgl.html` 在 git 历史里）。
+The whole project is one `index.html` with no build step; serve it from any static server. three.js loads from jsDelivr. It renders with WebGPU only (recent Chrome, Edge, Safari, Firefox); browsers that cannot use WebGPU get a short notice.
 
-## 怎么玩
+## Controls
 
-| 操作 | 电脑 | 手机 |
+| Action | Computer | Phone |
 |---|---|---|
-| 转头 | 拖动画面（双击锁定鼠标，Esc 释放） | 右侧拖动 |
-| 行走 | W A S D | 左下摇杆 |
-| 奔跑 | Shift | 摇杆推到边缘 |
-| 飞行 | 按住空格慢慢升空，松开缓缓降落；飞得越高走得越快 | 按住右下角「飞」 |
-| 调整速度 | − / = 按档，0 复位；滚轮或触控板无级（最高 400 倍）；设置里的速度滑块 | 双指捏合 |
-| 地图与传送 | M 或右上角地图按钮 | 地图按钮 |
+| Look | drag (double-click locks the mouse, Esc releases) | drag on the right |
+| Walk | W A S D | stick, bottom left |
+| Run | Shift | push the stick to its edge |
+| Fly | hold Space to rise, release to sink; the higher you fly, the faster you travel | hold 「飞」 bottom right |
+| Speed | − / = in steps, 0 resets; wheel or trackpad smoothly (up to ×400); slider in settings — climbing and sinking scale with it too | pinch |
+| Map and jumps | M or the map button | map button |
 
-右上角另有音乐开关和观测设置（时间、身高、音乐音量、云量、画质）。身高默认 3 米，可以在 1.5～12 米之间调，步幅跟着变。
+A jump from the map sets you down beside the place, facing it; if the view needs height you hover there until you move. The settings hold the time of day, eye height (1.5–12 m, default 3 m), music, cloud cover and quality.
 
-## 世界里有什么
+## What is in the world
 
-- **地理按原著布局**：北之大陆、西之大陆（恐龙大陆）、东之大陆、南方未探索区，以及骷髅岛、双子岛、真菌之岛、白骸龙之岛等岛屿。
-- **原著地貌**：峡谷之海、大裂谷、印加巨坑、无尽荒漠、盐地、结晶之山、地眼之湖。
-- **地标**：家园树、冰河上的巨树、立蝎之城的十座金字塔、翡翠龙之城的巨蛋石、空中群岛、翡翠港、银之城与创造之城。
-- **植物**：扭曲树、蔓藤蕨、尖柱、龙栖木、结晶树、血球树、爆炸尖球、死亡尖刺、瘟疫真菌、天国之林的远古巨树。
-- **生物**：角龙、骸龙、毛玉、暴君巨蜥、飞龙、海空水母（西之大陆）；巨脉蜻蜓、陆行鲨、鳞甲虫、沙漠蝎、晶鳞蜥蜴、黑角巨蠊、迷雾蠕虫（北之大陆）；大鸵龙、坚甲龙、晶锥陆龟、肋骨蜈蚣、冰蛛、造脑怪、亚龙（也在西之大陆）；深沙巴士、银甲虫、红蛛（也在北之大陆）；僵怪、尘魔、光龙、滚雷（东之大陆）；爆哮虫（海岛）；空水母，以及夜里发光的记忆蛾。会在你前方按地貌出现，体型按原著。
-- **时间**：绒球的一天约等于现实 24 分钟，月亮 8 天绕行一周。地图上有实时的暗面和晨昏线。
-- **配乐**：浏览器实时合成。每种地貌有自己的调式、速度和乐器，夜里会更慢、更轻。
+- **Geography after the book:** the north continent, the west (dinosaur) continent, the east continent, the ice continent of the south, and islands such as 骷髅岛, 双子岛, the fungus islands and 白骸龙之岛.
+- **Landscapes:** the endless desert with the spiral-terraced 印加 pit; the twisted jungle with its 100 m edge giants and dark second layer; the spire forest; the volcano in the jungle's centre; the canyon sea, frozen into a glacier in the north; the great rift, filled with fog; the salt flats; the crystal ring rising out of the polar ice; the fog seas round 骷髅岛.
+- **The underworld:** a cavern under the desert, its ceiling glowing like a sun, a fern-tree forest, home trees standing as pillars, and the 死亡尖刺 wall (enter it from the map).
+- **Landmarks and cities:** the home tree; the frozen giants; 立蝎之城's pyramids on their grass plain; 翡翠龙之城's egg boulders in the ferns; the floating islands; 翡翠港; 银之城 and 创造之城 behind their metal-bar walls; the 脑袋虫 mounds; the three-layer cloud sea over the east.
+- **Plants:** twisted trees, 龙栖木, crystal-barked trees, the east's tree-less succulent jungle, blood-ball trees, spiny explosive balls, fern trees, death spikes, and more.
+- **Creatures and peoples:** 骸龙, 翡翠龙, 白骸龙, 银甲龙, 立蝎, 脑袋虫, 阿兹特克虫, 印加 wasps, pterosaurs of four sizes, 飞龙, 亚龙, 毛玉, the 深沙巴士, sky jellyfish and many others — each where the book puts it, at the size the book gives.
+- **Time:** a 绒球 day lasts about 24 real minutes. The map shows the night side and the terminator live.
+- **Music:** synthesised in the browser.
 
-本仓库不包含小说原文，只有地名、坐标和一两句概括。
+This repository holds none of the novel's text — only names, coordinates and one- or two-sentence summaries. External assets and their licences are listed in [`ASSETS.md`](ASSETS.md).
 
-树皮（Poly Haven，CC0）和叶片照片取自 [ez-tree](https://github.com/dgreenheck/ez-tree)（MIT），运行时从 jsDelivr 加载；树的生长算法也参考了 ez-tree。所有外部素材及其来源和许可见 [`ASSETS.md`](ASSETS.md)。
+## Technical notes
 
-## 技术要点
+- **A real-scale planet:** radius 6371 km, units in metres. Terrain is a cube-sphere quadtree LOD, 18 levels, finest vertex spacing ≈ 1.2 m, generated in Web Workers. Camera position in double precision; rendering is camera-relative; logarithmic depth.
+- **Terrain:** one deterministic height function shared by the workers and the main thread; continents, mountain belts and the book's landscapes are carved into it by coordinates.
+- **Light:** single-scattering Rayleigh + Mie atmosphere, ray-marched volumetric clouds, low mist at dawn and dusk, ACES tone mapping and a light grade. Terrain self-shadowing from per-tile horizon angles; two-cascade shadow maps for objects.
+- **WebGPU:** three.js WebGPU renderer, WGSL shaders wired through TSL. Post chain: scene → GTAO → TAAU → bloom → tone mapping and grade.
+- **Places you stand in or under** — the cloud sea, the rift's fog, the underworld — are meshes in camera-following patches shaped by noise in planet coordinates.
+- **Vegetation:** recursively grown trees with real bark and leaf photos in three LODs (full, simplified, and an 8-view impostor atlas); GPU-drawn grass placed from a background height sampler.
 
-- **真实尺度的星球**：半径 6371 km，单位是米。地形是立方体球面四叉树 LOD，共 18 级，最细一级顶点间距约 1.2 m。瓦片在 Web Worker 里生成。相机位置用双精度计算，渲染时以相机为原点，深度用对数缓冲。
-- **地形**：一个确定性的高度函数，在 Worker 和主线程里共用。大陆轮廓、山脉带、原著地貌都是在这个函数里按坐标雕出来的。
-- **光照**：Rayleigh + Mie 单次散射大气，光线步进体积云，晨昏时贴地的薄雾，ACES 色调映射后再做一道轻微的调色和暗角。叶片和草有逆光透射，树冠按球形法线着色，模型烘焙了高度方向的环境光遮蔽，地面和叶片纹理用屏幕空间导数做凹凸。阴影分两部分：地形自遮挡用每块瓦片预先算好的 8 方向地平线角；物体之间用两级级联阴影贴图，阴影格对齐到星球坐标，走动时边缘不抖；阴影边缘用旋转泊松盘采样做柔化。
-- **WebGPU**：three.js 的 WebGPU 渲染器。地形、大气、云、植物的着色器用 WGSL 编写，由 TSL 连接。后期依次为：场景（颜色、法线、运动矢量）→ GTAO 环境光遮蔽 → TAAU 时间累积超分 → 泛光 → 色调映射和调色。
-- **性能**：
-  - 画质档只决定开哪些效果；内部渲染分辨率每秒按帧率自动调整（最低到 50%），再由 TAAU 用多帧抖动采样重建全分辨率画面。所以慢的电脑也能保留阴影、泛光和完整的云。
-  - 天空和云半分辨率渲染，星星在合成时按全分辨率程序生成。
-  - 大气透视放在顶点阶段计算。
-  - 远处的树换简化模型，植物按组做视锥剔除，地平线以下的瓦片不生成。
-- **植被**：树由递归分枝算法生成，带真实树皮（法线贴图）和叶片照片；树分三档：身边几十米内是完整模型，一两百米内是同一棵树的简化版，再远是“替身”——启动时把每种树从 8 个方向拍成图集，远处的树只画一张随视角转动、在相邻两张图之间渐变的卡片，所以森林可以很密。地面细节和岩石用真实照片与扫描模型。草是显卡逐根绘制的：一个后台线程采样摄像机周围的地面高度，顶点着色器把每根草放到对应格子上，随风摆动，随距离变短淡出。
-- **碰撞**：树干、岩石、建筑和地标都有碰撞半径，人走不进模型里；海水在浅滩处挡住人。
+## Development
 
-## 开发
-
-见 [`dev/README.md`](dev/README.md)。
+See [`dev/README.md`](dev/README.md).
