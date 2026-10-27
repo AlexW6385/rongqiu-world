@@ -186,7 +186,10 @@ Append-only. One line per decision: date, decision, reason.
 - 2026-10-26 — Landmark items' fifth field is now a compass heading (0 = east, π/2 = north) converted to the instance yaw in the worker. Reason: walls and rows of buildings must line up with the plan; the old value was an arbitrary spin.
 - 2026-10-26 — Visual checks with `dev/shot.cjs` run one browser at a time with N≥150. Reason: under software WebGPU, parallel runs starve the tile workers and the screenshots show unloaded terrain.
 - 2026-10-26 — Encyclopedia entries gain a *Sound* section (WRITING.md); the 70 tier-1 entries written before it get a sound pass before Sound L2 is built. Reason: the soundscape-first sound design needs every described sound on record.
-- 2026-10-26 — v2.0 prepared at the end of Phase 2 (Phases 0–2 together; no earlier tags existed): `CHANGELOG.md` entry written, release notes = that entry. The agent's session cannot push tags or create GitHub releases, so the author creates tag `v2.0` on the commit that adds this line and publishes the release. Reason: §12, end of a phase.
+- 2026-10-26 — v2.0 = the end of Phase 2, recorded in `CHANGELOG.md`. Per the author, no git tags and no GitHub release objects: a release is a CHANGELOG entry plus the live site. Reason: author's instruction.
+
+- 2026-10-26 — Map jumps use per-place viewpoints (`PLACE_VIEW`): a target, a distance, a look-at height and a preferred side; the camera lands where terrain does not hide the target and holds any vantage height until the player moves. Reason: author asked that every jump lands beside the place with it in view.
+- 2026-10-26 — Climb and descent speed scale linearly with the speed setting (they scaled with its square root). Reason: author asked that flying speed rise with the speed setting.
 
 ## 11. Roadmap and status
 
@@ -235,7 +238,6 @@ The implementing agent updates this section at the end of every work session: mo
 ## 12. Releases
 
 Every push to `main` deploys to GitHub Pages, so the live site is always current. On top of that, cut a **release** whenever a meaningful chunk is done — the end of a phase, a new city, a new tier of creatures, a visible quality jump:
-- Tag `vMAJOR.MINOR` (MAJOR for a phase, MINOR for a chunk inside it) and create a GitHub release with a short note of what is new and a few screenshots from `dev/shot.cjs`.
+- Number it `vMAJOR.MINOR` (MAJOR for a phase, MINOR for a chunk inside it). No git tags or GitHub release objects — the release is its `CHANGELOG.md` entry and the live site.
 - Keep `CHANGELOG.md` with one entry per release, newest first, in plain language a reader of the novel would understand (what they can now see), not a list of commits.
 - Never release with a known regression in the picture or a budget breach; fix first.
-
