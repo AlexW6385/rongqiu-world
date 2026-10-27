@@ -2,6 +2,16 @@
 
 What you can see in the world that is new, newest first. Each release follows the encyclopedia written from the novel (`DESIGN.md` §4).
 
+## v3.0 — Nature as the book places it (2026-10-27)
+
+The end of the nature phase: plants, landscapes and creatures are now spread the way the encyclopedia entries describe them.
+
+- **The spire forest** is what the book describes: hundred-metre moss-green pillars packed in rows with gaps a few metres wide, so dense that little light reaches the ground, ringed by a wall of the tallest pillars and standing on open rock.
+- **The floating archipelago** is a dozen forested islands and hundreds of bare song-stone chunks drifting two to three hundred metres over the jungle.
+- **骷髅岛** is a flat island some twenty kilometres long in its fog sea, set with a thousand click-eggs in their rocks, whose double clicks you hear before you see anything.
+- **立蝎 pyramids** stand alone and in short rows in clearings all through the southern jungle; **the blood-ball trees** make a red belt round the east's desert, with the moss plain beyond; **the spiny explosive balls** grow in one line where their island's moss ends.
+- **Herds and rarities**: horned dinosaurs in herds of a few dozen, 骸龙 in bands, 迷雾蠕虫 in threes; one crystal tortoise to a region; the last 飞龙 only by the volcanoes.
+
 ## v2.1 — Nature, first round (2026-10-27)
 
 - **The underworld** under the endless desert: a cavern kilometres wide whose ceiling glows like a sun and dims at night, a forest of fern trees, home trees standing like pillars, and the 死亡尖刺 wall at its edge. Enter it from the map.
