@@ -186,7 +186,7 @@ Append-only. One line per decision: date, decision, reason.
 - 2026-10-26 — Landmark items' fifth field is now a compass heading (0 = east, π/2 = north) converted to the instance yaw in the worker. Reason: walls and rows of buildings must line up with the plan; the old value was an arbitrary spin.
 - 2026-10-26 — Visual checks with `dev/shot.cjs` run one browser at a time with N≥150. Reason: under software WebGPU, parallel runs starve the tile workers and the screenshots show unloaded terrain.
 - 2026-10-26 — Encyclopedia entries gain a *Sound* section (WRITING.md); the 70 tier-1 entries written before it get a sound pass before Sound L2 is built. Reason: the soundscape-first sound design needs every described sound on record.
-- 2026-10-26 — Release v2.0 cut at the end of Phase 2 (Phases 0–2 together; no earlier tags existed). Reason: §12, end of a phase.
+- 2026-10-26 — v2.0 prepared at the end of Phase 2 (Phases 0–2 together; no earlier tags existed): `CHANGELOG.md` entry written, release notes = that entry. The agent's session cannot push tags or create GitHub releases, so the author creates tag `v2.0` on the commit that adds this line and publishes the release. Reason: §12, end of a phase.
 
 ## 11. Roadmap and status
 
