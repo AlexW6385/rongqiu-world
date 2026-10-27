@@ -1420,30 +1420,33 @@ function speciesFor(c,night){const w=[];const add=(k,x)=>w.push([k,x]);
   return w.filter(x=>x[1]>0);}
 function ctxAt(lat,lon){const n=fromLL(lat,lon,1);const h=T.terrain(n.x,n.y,n.z,2);const dl=3/(R*Math.cos(lat));const q=fromLL(lat,lon+dl,1);const hx=T.terrain(q.x,q.y,q.z,2);
   return {n,h,moist:T.moisture(n.x,n.y,n.z),dry:T.dryness(n.x,n.y,n.z),region:T.regionIdx(n.x,n.y,n.z),slope:Math.abs(hx-h)/3};}
-const SIZE={anying:[15,80],pensha:[90,320],zhenjun:[25,120],zhenjunS:[10,60],slime:[60,320],dianzhuru:[5,25],feilixie:[60,300],pteroS:[20,120],pteroRed:[60,260],pteroBomb:[120,400],pteroGiant:[150,500],aztecS:[3,15],aztecL:[25,110],incaWasp:[3,14],naodai:[8,40],naoInf:[10,60],emerald:[12,70],baihai:[12,70],yinjia:[12,70],lixie:[12,70],deepbus:[90,260],silverbeetle:[6,30],redspider:[10,50],dachuolong:[25,120],jianjia:[30,140],jingzhui:[90,320],centipede:[10,50],icespider:[18,90],zaonao:[25,110],yalong:[120,380],guanglong:[250,600],gunlei:[150,500],baoxiao:[25,120],maoyu:[3,14],dragonfly:[12,70],gulong:[14,70],jelly:[15,90],moths:[6,35],lizard:[15,80],landshark:[15,80],scorpion:[18,90],roach:[20,100],beetle:[20,110],ceratops:[30,150],jiangguai:[40,180],tyrant:[60,220],wyvern:[80,300],giantJelly:[150,420],worm:[60,200],dust:[60,220]};
+const SIZE={baojia:[12,70],liedizhe:[90,260],lianyu:[120,300],lavaSpider:[40,160],anying:[15,80],pensha:[90,320],zhenjun:[25,120],zhenjunS:[10,60],slime:[60,320],dianzhuru:[5,25],feilixie:[60,300],pteroS:[20,120],pteroRed:[60,260],pteroBomb:[120,400],pteroGiant:[150,500],aztecS:[3,15],aztecL:[25,110],incaWasp:[3,14],naodai:[8,40],naoInf:[10,60],emerald:[12,70],baihai:[12,70],yinjia:[12,70],lixie:[12,70],deepbus:[90,260],silverbeetle:[6,30],redspider:[10,50],dachuolong:[25,120],jianjia:[30,140],jingzhui:[90,320],centipede:[10,50],icespider:[18,90],zaonao:[25,110],yalong:[120,380],guanglong:[250,600],gunlei:[150,500],baoxiao:[25,120],maoyu:[3,14],dragonfly:[12,70],gulong:[14,70],jelly:[15,90],moths:[6,35],lizard:[15,80],landshark:[15,80],scorpion:[18,90],roach:[20,100],beetle:[20,110],ceratops:[30,150],jiangguai:[40,180],tyrant:[60,220],wyvern:[80,300],giantJelly:[150,420],worm:[60,200],dust:[60,220]};
 let spawnT=0;
 function spawnNear(){if(CREATURES.length>=MAXC)return;
   const night=uni.uUp.value.dot(uni.uSun.value)<-.05;
-  const probe=ctxAt(view.lat,view.lon);const w=speciesFor(probe,night);if(!w.length)return;
+  const probe=view.cave?null:ctxAt(view.lat,view.lon);const w=view.cave?caveSpecies():speciesFor(probe,night);if(!w.length)return;
   let r=Math.random()*w.reduce((a,b)=>a+b[1],0),key=w[0][0];for(const [k,x] of w){r-=x;if(r<=0){key=k;break;}}
-  const sp=SPEC[key];const near=SIZE[key]||[30,160];if(sp.nocturnal&&!night)return;
+  const sp=SPEC[key];const near=SIZE[key]||[30,160];if(sp.nocturnal&&!night&&!view.cave)return;
   const ang=view.heading+(Math.random()-.5)*2.2,dist=(near[0]+Math.random()*(near[1]-near[0]))/R;   // mostly in front of you
   const lat=view.lat+Math.cos(ang)*dist,lon=view.lon+Math.sin(ang)*dist/Math.cos(view.lat);
-  const c=ctxAt(lat,lon);if(c.h<=.3&&!sp.fly)return;if(CREATURES.some(o=>o.key===key&&(sp.group[1]===1||o.key==='worm'||o.key==='tyrant')&&Math.abs(o.lat-lat)*R<400))return;
+  const c=view.cave?{h:caveFloorAt(lat,lon),dry:0}:ctxAt(lat,lon);if(!view.cave&&c.h<=.3&&!sp.fly)return;if(CREATURES.some(o=>o.key===key&&(sp.group[1]===1||o.key==='worm'||o.key==='tyrant')&&Math.abs(o.lat-lat)*R<400))return;
   const cnt=sp.group[0]+Math.floor(Math.random()*(sp.group[1]-sp.group[0]+1));const heading=Math.random()*6.283;
   const grp={lat,lon,heading,n:cnt,home:{lat,lon},t:Math.random()*100};   /* a herd, band or flock moves as one (Creatures L2–L3) */
   const white=key==='maoyu'&&c.dry>.35;const v=key==='emerald'?Math.floor(Math.random()*3):undefined;
   for(let i=0;i<cnt&&CREATURES.length<MAXC;i++){const o=makeCreature(key,{white,v});fauna.add(o);
     CREATURES.push({sp,key,obj:o,lat:lat+(Math.random()-.5)*16/R,lon:lon+(Math.random()-.5)*16/R,heading:heading+(Math.random()-.5)*.7,alt:sp.fly?sp.fly[0]+Math.random()*(sp.fly[1]-sp.fly[0]):0,ph:Math.random()*6.283,t:0,pause:0,grp,slot:[(Math.random()-.5)*2,(Math.random()-.5)*2]});}}
 const _fwd=new THREE.Vector3(),_rgt=new THREE.Vector3(),_mat=new THREE.Matrix4();
-function updateCreatures(dt){if(view.cave)return;
+/* the underworld's creatures: the 印加 castes of the fern forest and the rock flats (encyclopedia heifeng, baojia, anying, liedizhe, lianyu, hongzhu) */
+function caveSpecies(){return [['incaWasp',3],['baojia',2],['anying',1.4],['lavaSpider',.5],['liedizhe',.22],['lianyu',.07]];}
+let caveWas=false;
+function updateCreatures(dt){if(view.cave!==caveWas){caveWas=view.cave;for(const c of CREATURES)fauna.remove(c.obj);CREATURES.length=0;spawnT=0;}   // a fresh set when you go under or come up
   spawnT-=dt;if(spawnT<=0){spawnT=CREATURES.length<MAXC*.6?.35:1.2;spawnNear();}
   for(let i=CREATURES.length-1;i>=0;i--){const c=CREATURES[i],sp=c.sp,o=c.obj;c.t+=dt;
     const dlat=(c.lat-view.lat)*R,dlon=(c.lon-view.lon)*R*Math.cos(view.lat);const d=Math.hypot(dlat,dlon);
     if(d>(sp.fly&&sp.fly[1]>100?900:560)){fauna.remove(o);o.traverse(m=>{if(m.isPoints)m.geometry.dispose();});CREATURES.splice(i,1);continue;}
     // day and night: night animals leave at dawn; day animals rest through the night, moving only now and then
     const night=uni.uUp.value.dot(uni.uSun.value)<-.05;
-    if(sp.nocturnal&&!night){fauna.remove(o);CREATURES.splice(i,1);continue;}
+    if(sp.nocturnal&&!night&&!view.cave){fauna.remove(o);CREATURES.splice(i,1);continue;}
     // wander, sometimes stop to graze or look around; don't walk into the sea
     if(sp.walk&&!sp.burrow){if(c.pause>0)c.pause-=dt;else if(Math.random()<dt*(night&&!sp.nocturnal?.5:.06))c.pause=night&&!sp.nocturnal?6+Math.random()*14:2+Math.random()*5;}
     c.heading+=(Math.sin(c.t*.6+c.ph)*.5+(Math.random()-.5)*.8)*(sp.dart?2.5:.5)*dt;
@@ -1459,12 +1462,12 @@ function updateCreatures(dt){if(view.cave)return;
         else c.heading+=Math.atan2(Math.sin(g.heading-c.heading),Math.cos(g.heading-c.heading))*Math.min(1,dt*.4);}}
     const moving=c.pause<=0;const sp2=moving?sp.speed*(sp.hop?Math.max(0,Math.sin(c.t*5+c.ph))*1.7:1):0;
     const nl=c.lat+Math.cos(c.heading)*sp2*dt/R,nlo=c.lon+Math.sin(c.heading)*sp2*dt/R/Math.cos(c.lat);
-    const q=fromLL(nl,nlo,1);const hn=T.terrain(q.x,q.y,q.z,.5);
-    if(sp.walk&&hn<.3){c.heading+=Math.PI*.7;}else{c.lat=nl;c.lon=nlo;}
-    let h=Math.max(hn,0);
+    let hn;if(view.cave)hn=caveFloorAt(nl,nlo);else{const q=fromLL(nl,nlo,1);hn=T.terrain(q.x,q.y,q.z,.5);}
+    if(sp.walk&&hn<.3&&!view.cave){c.heading+=Math.PI*.7;}else{c.lat=nl;c.lon=nlo;}
+    let h=view.cave?hn:Math.max(hn,0);
     const {up,east,north}=frameAt(c.lat,c.lon);
     _fwd.copy(north).multiplyScalar(Math.cos(c.heading)).addScaledVector(east,Math.sin(c.heading));
-    if(sp.fly){const want=h+c.alt;c.y=c.y===undefined?want:c.y+(want-c.y)*Math.min(1,dt*.6);h=c.y+Math.sin(c.t*1.1+c.ph)*(sp.dart?.6:.4);}
+    if(sp.fly){const want=view.cave?Math.min(h+c.alt,caveCeilAt(c.lat,c.lon)-8):h+c.alt;c.y=c.y===undefined?want:c.y+(want-c.y)*Math.min(1,dt*.6);h=c.y+Math.sin(c.t*1.1+c.ph)*(sp.dart?.6:.4);}
     else if(sp.hop)h+=Math.max(0,Math.sin(c.t*5+c.ph))*.28;
     const p=fromLL(c.lat,c.lon,R+h);o.position.set(p.x-cam.x,p.y-cam.y,p.z-cam.z);
     _rgt.crossVectors(_fwd,up);_mat.makeBasis(_fwd,up,_rgt);o.quaternion.setFromRotationMatrix(_mat);
@@ -1735,7 +1738,7 @@ function updateCave(){if(!UW.on)return;const l=Math.hypot(cam.x,cam.y,cam.z);con
   if(!UW.at||Math.acos(Math.min(1,n.x*UW.at[0]+n.y*UW.at[1]+n.z*UW.at[2]))*R>1500)buildCave(n);
   for(const m of UW.group.children){const a=m.userData.anchor;m.position.set(a[0]-cam.x,a[1]-cam.y,a[2]-cam.z);}
   cvL.value+=((uni.uUp.value.dot(uni.uSun.value)>-.05?1:.32)-cvL.value)*.02;}   // the ceiling dims at night
-function setCave(on){UW.on=on;view.cave=on;UW.group.visible=on;planet.visible=flora.visible=fauna.visible=!on;CSEA.group.visible=false;UW.at=null;
+function setCave(on){UW.on=on;view.cave=on;UW.group.visible=on;planet.visible=flora.visible=!on;fauna.visible=true;CSEA.group.visible=false;UW.at=null;
   if(on){for(const c of CREATURES)fauna.remove(c.obj);CREATURES.length=0;}}
 function enterCave(){setCave(true);const s0=UW.L*.18;const A=UW.A,Tt=UW.T,G=UW.g;const ang=s0/R,xa=900/R;
   const pc=[A[0]*Math.cos(ang)+Tt[0]*Math.sin(ang),A[1]*Math.cos(ang)+Tt[1]*Math.sin(ang),A[2]*Math.cos(ang)+Tt[2]*Math.sin(ang)];

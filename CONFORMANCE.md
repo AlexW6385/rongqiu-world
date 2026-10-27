@@ -43,6 +43,7 @@ What the world got wrong against the encyclopedia entries (rongqiu-source `encyc
 | `hometree` | dry ground round the trunk | the tree stands on a river; the waterfall's water runs off | a 7–14 m river from the tree's pool east through the jungle |
 | tier 2 creatures | absent (光龙 42 m) | 暗影怪 2 m black night hunters; 喷沙虫 20 m sand-coloured blasters by the jungle edge; 真菌怪 on the fungus islands; 大气史莱姆 5 m transparent rays in the east's skies; 电侏儒 30 cm among the 翡翠龙; 飞立蝎 swarms; 光龙 101 m | all added at L1 in those habitats; 光龙 now 101 m |
 | `yundao` 云岛 | absent | white honeycomb base islands a few tens of metres across, one windowless white building each, floating over the east's desert | 14 of them, 260–780 m up over the central desert |
+| `under` creatures | an empty cavern | the 印加 castes in the fern forest and on the rock flats: black wasps, 爆甲, 暗影怪, 裂地者, 炼狱蠕虫, lava spiders | all of these spawn and move on the cavern floor |
 | creature groups | small fixed groups | 角龙 herds of ~30, 骸龙 bands of 15–30, 白骸龙 groups up to ~15, 迷雾蠕虫 in threes; one 晶锥陆龟 per region; 飞龙 nearly extinct, by the volcanoes | group sizes and rarities set from the entries (rongqiu-source `encyclopedia/density.md`) |
 | `jadeport` 翡翠港 | houses half in the sea among islets | a harbour town on the shore | a low shore terrace carries the town |
 
@@ -50,7 +51,7 @@ What the world got wrong against the encyclopedia entries (rongqiu-source `encyc
 
 | Entry | Issue | Phase |
 |---|---|---|
-| `under` | river (5 m), waterfall lake, glow-worm cave, lava rift, 印加 nests, steam vents; the drain from the pit floor as a walkable way in; creatures of the cavern | 5 (Landscapes L3, Water L3) |
+| `under` | river (5 m), waterfall lake, glow-worm cave, lava rift, 印加 nests, steam vents; the drain from the pit floor as a walkable way in | 5 (Landscapes L3, Water L3) |
 | `cloudsea` | standing and walking on the sheets | 5 |
 | `rift` | the 100 m bone bridge; dark mud lakes on the floor | 5 |
 

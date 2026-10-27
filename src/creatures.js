@@ -198,5 +198,23 @@ def('dianzhuru',{n:'电侏儒',walk:1,speed:1.1,sc:.3,group:[4,12],build(){const
 def('feilixie',{n:'飞立蝎',fly:[60,170],speed:6,group:[8,18],build(){const c=[.07,.06,.06];
   const parts=[E(.6,.18,.2,0,0,0,c),E(.22,.16,.18,.6,.05,0,c),taper([[-.5,0,0],[-1.1,.15,0],[-1.3,.45,0]],.08,.02,c,8,5),K(.03,.2,-1.25,.6,0,[.3,.1,.08],0,0,-2.4)];
   return {body:body(parts),wings:[1,-1].map(s=>({geo:wingGeo(1.8,.9,[.12,.1,.1]),x:.1,y:.02,z:.12*s,side:s}))};}});
+// ---- the underworld (encyclopedia baojia, liedizhe, lianyu, hongzhu) ----
+/* 爆甲: a 2–3 m beetle whose red abdomen glows hot; it mixes its fluids and explodes */
+def('baojia',{n:'爆甲',walk:1,speed:1,group:[3,8],build(){const c=[.12,.08,.07],r=[1.7,.35,.1];
+  const parts=[E(.7,.45,.6,.6,.9,0,c),E(1.15,.7,.85,-.75,1,0,r),E(.35,.3,.35,1.35,.85,0,c),E(1.2,.25,.9,-.5,1.55,0,tone(c,1.3))];
+  return {body:body(parts),legs:[.8,.3,-.2].flatMap(x=>[1,-1].map(s=>({geo:legGeo(1,.08,c),x,y:.85,z:.55*s,splay:.8*s})))};}});
+/* 裂地者: the swarm's ultimate caste, 30–40 m long, glossy armour, serrated jaws 6–9 m long */
+def('liedizhe',{n:'裂地者',walk:1,speed:2.4,group:[1,1],build(){const c=[.13,.11,.1],j=[.2,.17,.14];
+  const parts=[E(9,3.6,5.2,0,7,0,c),E(8,3.2,4.8,-14,7.2,0,tone(c,.9)),E(4.2,3,4,11.5,7.4,0,c)];
+  for(const s of [1,-1]){parts.push(taper([[14,7,2*s],[18,6.6,4.2*s],[21.5,6.4,2.2*s]],.9,.15,j,10,6));for(let k=0;k<5;k++)parts.push(K(.3,1.4,15.5+k*1.2,6.3,(3+k*.2)*s*.9,j,Math.PI,0,0));}
+  return {body:body(parts),legs:[6,0,-6,-12].flatMap(x=>[1,-1].map(s=>({geo:legGeo(7,.7,c),x,y:6.5,z:4.6*s,splay:.7*s})))};}});
+/* 炼狱蠕虫: the largest caste, ~30 m standing above ground, a head over 10 m wide, rock-like segmented armour, ten red eyes */
+def('lianyu',{n:'炼狱蠕虫',walk:1,speed:.35,group:[1,1],build(){const c=[.3,.27,.24];const pts=[];for(let i=0;i<=10;i++){const t=i/10;pts.push([-14+t*10+Math.sin(t*3)*3,t*t*26+.5,0]);}
+  const parts=[taper(pts,4.5,5.5,c,30,12)];for(let i=0;i<10;i++){const a=(i-4.5)*.28;parts.push(E(.45,.35,.35,-3.2+Math.cos(a)*5.2,27.5+Math.sin(i*1.7)*.8,Math.sin(a)*5.2,[1.8,.25,.1]));}
+  return {body:body(parts)};}});
+/* 熔岩蜘蛛: a 10 m body on legs spanning more than 20 m, lava-bright, on the underworld's rock flats and the lava-rift walls */
+def('lavaSpider',{n:'熔岩蜘蛛',walk:1,speed:1.2,group:[1,2],build(){const c=[1.25,.38,.1],d=[.35,.12,.06];
+  const parts=[E(3.2,2,3,0,5.5,0,c),E(4.6,3.2,4,-6.6,6.2,0,tone(c,.85)),E(1.4,1.1,1.4,3.6,5.2,0,d)];
+  return {body:body(parts),legs:[2.2,.8,-.8,-2.2].flatMap(x=>[1,-1].map(s=>({geo:legGeo(7.5,.4,d),x,y:5.4,z:2.4*s,splay:1.15*s})))};}});
 return { SPEC, geoCache };
 }
