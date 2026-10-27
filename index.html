@@ -384,7 +384,7 @@ function faceUV(d){const ax=Math.abs(d[0]),ay=Math.abs(d[1]),az=Math.abs(d[2]);l
   else{if(d[2]>0){f=4;u=d[0]/az;v=d[1]/az;}else{f=5;u=-d[0]/az;v=d[1]/az;}}
   return [f,Math.atan(u)/(Math.PI/4),Math.atan(v)/(Math.PI/4)];}
 /* fixed landmarks: [lat, lon, kind, [[east m, north m, scale, lift m, yaw], ...]] */
-/* landmark tables: [lat, lon, kind, items]; item = [east m, north m, scale, lift m, heading rad (0 = east)].
+/* landmark tables: [lat, lon, kind, items]; item = [x m, y m, scale, lift m, heading rad] in the landmark's local frame, where +x points WEST and +y points north-ish (the tangent frame the worker uses); heading 0 = along +x.
    Sizes and layouts follow the encyclopedia entries named in the comments (rongqiu-source/encyclopedia/<id>.md). */
 const LMR=k=>{let x=Math.sin(k*127.1+311.7)*43758.5453;return x-Math.floor(x);};
 const ring=(n,r,f)=>Array.from({length:n},(_,i)=>f(i*6.2832/n,r,i));
