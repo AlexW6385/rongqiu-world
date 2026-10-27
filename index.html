@@ -365,7 +365,7 @@ function features(nx,ny,nz,h,detail,coast,mMask){
   if(d<.075){const t=sm(.075,.045,d);h=h*(1-t)+(90+(detail<400?fbm(nx*300000,ny*300000,nz*300000,2)*.4:0))*t;}
   // 结晶之山：从深海一直长出冰面的巨大结晶
   d=angTo(nx,ny,nz,F_CRYSTAL);
-  if(d<.02){const t=sm(.02,.0,d);h+=t*t*2600*(1+.3*ridge(nx*8000,ny*8000,nz*8000,3));}
+
   // 扭曲丛林、尖柱林、龙栖木之林：低地（把山脉带压下去）
   for(const [c,rad,base,k] of [[V(33,11),.06,220,.12],[V(15,-1),.04,160,.3],[V(-4,-86),.05,120,.15]]){d=angTo(nx,ny,nz,c);if(d<rad){const t=sm(rad,rad*.45,d);if(h>0)h=h*(1-t)+(base+h*k)*t;}}
   // 山峰 · 山中湖 (encyclopedia peak): a lone mountain over 1000 m high in the middle of the twisted jungle; a crater lake 500 m
@@ -409,7 +409,7 @@ const LANDMARKS=[
   [-14,63,'barMetal',ring(240,760,(a,r,i)=>(i>=118&&i<=121)?null:[Math.cos(a)*r,Math.sin(a)*r,1,0,a+1.5708]).filter(Boolean)],
   [-14,63,'squareHall',ring(10,95,(a,r,i)=>[Math.cos(a)*r,Math.sin(a)*r,.8+(i%3)*.2,0,a])],
   [-14,63,'silverPyramid',[[0,0,1,0,0]]],
-  [71,34,'crystalPeak',[[0,0,1,0,0],[400,300,.6,0,1],[-500,200,.5,0,2]]]
+  [71,34,'crystalPeak',[[0,0,1,0,0]]]   // jjzs: a ring wall of crystal rising out of the polar sea ice
 ];
 function regionIdx(nx,ny,nz){let b=0,k=-1;REG.forEach((r,i)=>{const m=sm(r[3]*1.22,r[3]*.72,angTo(nx,ny,nz,r));if(m>b){b=m;k=i;}});return b>.5?k:-1;}
 function moisture(nx,ny,nz){return fbm(nx*7+11,ny*7,nz*7+5,3)*.5+.5;}
@@ -1262,7 +1262,12 @@ function buildGeos(){
   GEOS.silverPyramid=merge([{g:new THREE.ConeGeometry(30,34,4),m:M4(0,17,0),c:[.84,.86,.9]}]);
   GEOS.tower=merge([{g:new THREE.CylinderGeometry(6,9,60,8),m:M4(0,30,0),c:[.7,.72,.76]},{g:new THREE.CylinderGeometry(3,6,25,8),m:M4(0,72,0),c:[.78,.8,.85]},{g:new THREE.ConeGeometry(3,10,8),m:M4(0,89,0),c:[.9,.9,.95]}]);
   // 结晶之山顶部的巨型结晶
-  {const parts=[];for(let k=0;k<7;k++){const a=k*.9;parts.push({g:new THREE.ConeGeometry(25+k*4,220+k*40,6),m:M4(Math.cos(a)*40,110,Math.sin(a)*40,Math.sin(a)*.25,0,-Math.cos(a)*.25),c:[.7,.88,.95]});}GEOS.crystalPeak=merge(parts);}
+  /* 结晶之山 (encyclopedia jjzs): one giant ring of crystal rising from the deep straight up through the sea ice into the air, blazing by
+     day; no size is given — a ring ~700 m across with walls 120–260 m above the ice [inferred: wide enough for hundreds of 利维坦] */
+  {const parts=[];for(let k=0;k<44;k++){const a=k/44*6.2832,h=120+140*(.5+.5*Math.sin(k*1.7)*Math.cos(k*.6)),r=350+12*Math.sin(k*2.3),w=26+10*Math.abs(Math.sin(k*3.1));
+     parts.push({g:new THREE.CylinderGeometry(w*.35,w*.55,h,6),m:new THREE.Matrix4().compose(new THREE.Vector3(Math.cos(a)*r,h/2-6,Math.sin(a)*r),new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.sin(a)*.12,0,-Math.cos(a)*.12)),new THREE.Vector3(1,1,1)),c:[1.05,1.35,1.55]},
+       {g:new THREE.ConeGeometry(w*.35,w*.9,6),m:new THREE.Matrix4().compose(new THREE.Vector3(Math.cos(a)*(r-h*.06),h-6+w*.45,Math.sin(a)*(r-h*.06)),new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.sin(a)*.12,0,-Math.cos(a)*.12)),new THREE.Vector3(1,1,1)),c:[1.3,1.6,1.8]});}
+   GEOS.crystalPeak=merge(parts);}
   // 爆炸尖球
   {const parts=[{g:new THREE.IcosahedronGeometry(.8,1),m:M4(0,.85,0),c:[.12,.3,.1]}];for(let k=0;k<10;k++){const a=k*.63,b=(k%3-1)*.7;parts.push({g:new THREE.ConeGeometry(.08,1,4),m:M4(Math.cos(a)*Math.cos(b)*.9,.85+Math.sin(b)*.9,Math.sin(a)*Math.cos(b)*.9,Math.sin(b)>0?-Math.cos(a)*.9:Math.cos(a)*.9,0,0),c:[.3,.5,.2]});}GEOS.spikeBall=merge(parts);}
 }
@@ -1384,7 +1389,7 @@ function splitNear(g,set,rHi,rMid){const P=set.pos,n=set.n,nd=g.userData.node,gx
 
 /* ===== solid things you cannot walk through: trunk / footprint radius in metres at scale 1 ===== */
 const COLL={mound:7,tangle:1.2,succColumn:1.7,succBall:6,succCoral:1.6,twistTree:2,platformTree:3.6,bigTree:.9,longqi:5.4,ancientTree:6.5,crystalTree:1.3,spire:2.1,mushroom:1.3,deathSpike:1.1,bloodTree:.45,spikeBall:1,rock:1.25,
-  hometree:26,deadGiant:26,pyramid:36,eggRock:17,house:9,tower:9,crystalPeak:80,coneHouse:3.6,barMetal:1,squareHall:12,roundHall:15,silverPyramid:22};
+  hometree:26,deadGiant:26,pyramid:36,eggRock:17,house:9,tower:9,crystalPeak:0,coneHouse:3.6,barMetal:1,squareHall:12,roundHall:15,silverPyramid:22};
 function makeColliders(data){const out=[];for(const k in data){const r0=COLL[k];if(!r0)continue;const a=data[k];
   for(let i=0;i<a.length;i+=8){const sc=a[i+6];if(k==='rock'&&sc<.6)continue;out.push(a[i],a[i+1],a[i+2],r0*sc);}}return out.length?new Float32Array(out):null;}
 let BODY=.55;
@@ -1398,7 +1403,7 @@ function resolveCollisions(){const h=ground(view.lat,view.lon);const p=fromLL(vi
       const k=(rr-dd)/dd;px+=hx*k;py+=hy*k;pz+=hz*k;hit=true;}}
   if(hit){const ll=toLL(px,py,pz);view.lat=ll.lat;view.lon=ll.lon;}}
 /* landmark framing for travel: where each landmark item stands, and how far back to stand to see it whole */
-const LM_VIEW={hometree:{r:26,h:320,v:260},deadGiant:{r:26,h:300,v:340},pyramid:{r:36,h:50,v:380},eggRock:{r:24,h:18,v:140},floatIsle:{r:0,h:0,v:950},house:{r:9,h:14,v:110},tower:{r:9,h:95,v:240},mound:{r:7,h:22,v:70},coneHouse:{r:3.6,h:7,v:60},barMetal:{r:1,h:6,v:60},squareHall:{r:12,h:11,v:120},roundHall:{r:15,h:20,v:110},silverPyramid:{r:22,h:34,v:160},crystalPeak:{r:80,h:450,v:560}};
+const LM_VIEW={hometree:{r:26,h:320,v:260},deadGiant:{r:26,h:300,v:340},pyramid:{r:36,h:50,v:380},eggRock:{r:24,h:18,v:140},floatIsle:{r:0,h:0,v:950},house:{r:9,h:14,v:110},tower:{r:9,h:95,v:240},mound:{r:7,h:22,v:70},coneHouse:{r:3.6,h:7,v:60},barMetal:{r:1,h:6,v:60},squareHall:{r:12,h:11,v:120},roundHall:{r:15,h:20,v:110},silverPyramid:{r:22,h:34,v:160},crystalPeak:{r:380,h:240,v:950}};
 function landmarkItems(){const out=[];for(const [la,lo,kind,items] of T.LANDMARKS){const p=T.V(la,lo);const ex=-p[2],ez=p[0];const el=Math.hypot(ex,ez)||1;const E=[ex/el,0,ez/el];const N=[p[1]*E[2]-p[2]*E[1],p[2]*E[0]-p[0]*E[2],p[0]*E[1]-p[1]*E[0]];
   for(const [ox,oz,sc,lift] of items){let x=p[0]+(E[0]*ox+N[0]*oz)/R,y=p[1]+(E[1]*ox+N[1]*oz)/R,z=p[2]+(E[2]*ox+N[2]*oz)/R;const l=Math.hypot(x,y,z);out.push({kind,x:x/l,y:y/l,z:z/l,sc,lift});}}return out;}
 const LM_ITEMS=landmarkItems();
@@ -2179,7 +2184,7 @@ const PLACE_VIEW={
   scorpion:{t:[-12,-78],d:650,aim:25,fly:12,b:180},emeraldcity:{t:[12,-88.00276],d:75,aim:8,b:0},greenpool:{t:[12,-88.00276],d:75,aim:8,b:0},   // the first egg boulder (landmark item +x is local west)
   naodaimound:{t:[33.6,10.4],d:75,aim:12,b:200},isles:{t:[34,10],d:1100,aim:260,fly:35,b:180},jadeport:{t:[7.5,16.75],d:260,aim:6,b:180,water:1},
   silvercity:{t:[-4,56],d:580,aim:12,fly:45,b:180},capital:{t:[-14,63],d:900,aim:30,fly:90,b:180},
-  jjzs:{t:[71,34],d:1600,aim:400,fly:20,b:180,water:1},inca_pit:{t:[22,-10],d:585,aim:0,fly:40,b:0},
+  jjzs:{t:[71,34],d:1300,aim:180,fly:20,b:180,water:1},inca_pit:{t:[22,-10],d:585,aim:0,fly:40,b:0},
   spires:{t:[15,-1],d:250,aim:70,b:180},oasis:{t:[27,-11],d:450,aim:0,b:180},
   canyon:{t:[30,6.35],d:12500,aim:0,fly:150,b:90},rift:{t:[14.5,-59.55],d:5600,aim:1000,fly:150,b:127},
   peak:{t:[33.2,11.2],d:4300,aim:150,fly:40,b:200},atmount:{t:[22,-94],d:8000,aim:1100,b:180},cloudpeak:{t:[-6.2,66.2],d:9000,aim:1300,b:180}};
