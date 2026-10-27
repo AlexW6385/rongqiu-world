@@ -604,7 +604,9 @@ fn gn(p:vec3f)->f32{let i=floor(p);let f=fract(p);let u=f*f*(3.0-2.0*f);
 fn gfbm(pi:vec3f)->f32{var p=pi;var a=0.5;var s=0.0;for(var i=0;i<3;i++){s+=a*gn(p);p=p*2.02+vec3f(5.1,1.7,9.3);a*=0.5;}return s;}
 fn cloudCov(n:vec3f)->f32{var c=gfbm(n*21.7+vec3f(uTime*0.003,0.0,uTime*0.002))*0.5+0.5;c+=0.2*gn(n*63.0+vec3f(uTime*0.005));return ss(1.0-uCover,1.4-uCover,c);}
 fn skyAmbient(sunEl:f32)->vec3f{return (vec3f(0.18,0.3,0.55)*ss(-0.1,0.35,sunEl)+vec3f(0.5,0.3,0.15)*ss(0.1,-0.05,sunEl)*ss(-0.25,0.0,sunEl))*uSunI*0.145;}
-fn mist(col:vec3f,dist:f32,skyAmb:vec3f,sunC:vec3f)->vec3f{let f=(1.0-exp(-dist*0.00045*uMist))*0.85;return mix(col,skyAmb*2.4+sunC*0.12,f);}
+fn mist(col:vec3f,dist:f32,skyAmb:vec3f,sunC:vec3f)->vec3f{let dense=clamp((uMist-10.0)/40.0,0.0,1.0);   /* uMist above 10 = standing in a fog bank */
+  let m=select(uMist,0.6,dense>0.0);var f=(1.0-exp(-dist*0.00045*m))*0.85;f=mix(f,(1.0-exp(-dist*(0.0008+0.006*dense)))*0.985,dense);
+  return mix(col,mix(skyAmb*2.4+sunC*0.12,skyAmb*3.2+sunC*0.3,dense),f);}
 fn bumpN(q:vec3f,n:vec3f,f:f32,k:f32)->vec3f{let e=0.3/f;let a=gn(q*f);let bx=gn((q+vec3f(e,0.0,0.0))*f);let by=gn((q+vec3f(0.0,e,0.0))*f);let bz=gn((q+vec3f(0.0,0.0,e))*f);
   var g=vec3f(bx-a,by-a,bz-a)/e;g-=n*dot(g,n);return normalize(n-g*k);}
 /* bump a normal by a per-pixel height, from screen-space derivatives the caller took in uniform control flow */
@@ -1886,6 +1888,8 @@ function updateRiftFog(){if(view.cave){RFOG.group.visible=false;return;}const l=
   const near=T.segDist(n.x,n.y,n.z,T.F_RIFT[0],T.F_RIFT[1])*R<30000&&l-R<20000;RFOG.group.visible=near;if(!near)return;
   if(!RFOG.at||Math.acos(Math.min(1,n.x*RFOG.at[0]+n.y*RFOG.at[1]+n.z*RFOG.at[2]))*R>3000)buildRiftFog(n);
   for(const m of RFOG.group.children){const a=m.userData.anchor;m.position.set(a[0]-cam.x,a[1]-cam.y,a[2]-cam.z);}}
+const FOGZ=[[T.V(12,-22),.035],[T.V(8,-33),.02]];
+function fogZone(lat,lon){const p=fromLL(lat,lon,1);let z=0;for(const [c,r] of FOGZ){const a=T.angTo(p.x,p.y,p.z,c);z=Math.max(z,T.sm(r,r*.55,a)*(.75+.25*T.fbm(p.x*300,p.y*300,p.z*300,2)));}return Math.min(1,z);}
 function placeMeshes(){
   updateCloudSea();updateCave();updateRiftFog();
   for(const o of planet.children){const n=o.userData.node;if(n)o.position.set(n.cx-cam.x,n.cy-cam.y,n.cz-cam.z);}
@@ -2388,7 +2392,9 @@ function tick(now,force){
   if(!mapEl.hidden){mapT+=dt;if(mapT>1||force){mapT=0;updateMapLive();}if(!force){requestAnimationFrame(tick);return;}}   // the chart covers the view: skip 3D work
   applyCamera();camera.updateMatrixWorld();frameNo++;if(!view.cave){updateTree();floraLOD();}placeMeshes();updateGrass();updateCreatures(dt);
   {const el=uni.uUp.value.dot(uni.uSun.value);uStars.value=1-smooth01((el+.1)/.25);
-   {const dq=(el-.06)/.13;uni.uMist.value=.35+2.2*Math.exp(-dq*dq);}
+   {const dq=(el-.06)/.13;uni.uMist.value=.35+2.2*Math.exp(-dq*dq);
+    // fog banks you can walk into (encyclopedia mistsea: the fog seas round 骷髅岛 and on the westward route)
+    const fz=view.cave?0:fogZone(view.lat,view.lon);if(fz>.01)uni.uMist.value=10+40*fz;}
    const want=THREE.MathUtils.lerp(3.2,1.0,smooth01((el+.15)/.3));renderer.toneMappingExposure+=(want-renderer.toneMappingExposure)*Math.min(1,dt*1.5);}
   packU();updateShadows();
   uInvVP.value.multiplyMatrices(camera.matrixWorld,camera.projectionMatrixInverse);
