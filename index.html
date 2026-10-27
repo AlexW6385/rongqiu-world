@@ -1700,6 +1700,12 @@ function uwGeoSpike(){const parts=[{g:new THREE.CylinderGeometry(.5,.5,1,8,1,tru
   for(let k=0;k<26;k++){const a=k*2.4,y=.04+(k/26)*.92;parts.push({g:new THREE.ConeGeometry(.08,.9,4).translate(0,.45,0),m:new THREE.Matrix4().makeTranslation(Math.cos(a)*.5,y,Math.sin(a)*.5).multiply(new THREE.Matrix4().makeScale(1,1/60,1)).multiply(new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(0,-a,-1.45,'YXZ'))),c:[.75,.1,.08]});}   /* horizontal spikes, pre-squashed for the ~60 m column stretch */
   return merge(parts).solid;}
 UW.geoFern=uwGeoFernTree();UW.geoPillar=uwGeoPillar();UW.geoSpike=uwGeoSpike();
+{const g=new THREE.CylinderGeometry(.03,.03,1,3,1,true);g.translate(0,.5,0);const n=g.attributes.position.count,c=new Float32Array(n*3);
+ for(let i=0;i<n;i++){const y=g.attributes.position.getY(i);c.set(y<.02?[.4,2.2,1]:[.25,.4,.3],i*3);}g.setAttribute('color',new THREE.BufferAttribute(c,3));UW.geoThread=g;}   // a glowing bead at the tip
+{const parts=[];for(let k=0;k<5;k++)parts.push({g:new THREE.SphereGeometry(1,10,8),m:new THREE.Matrix4().makeScale(2+k*2.4,.12+.03*k,2+k*2.4).premultiply(M4(Math.sin(k*2.1)*.06,.05+k*.2,Math.cos(k*1.7)*.06)),c:[1,1,1]});
+ parts.push({g:new THREE.CylinderGeometry(.9,1.4,.4,10),m:M4(0,.2,0),c:[.25,.22,.2]});UW.geoSteam=merge(parts,false).solid;}   // a crack venting white steam that rises toward the ceiling
+{const g=new THREE.IcosahedronGeometry(.35,0);const n=g.attributes.position.count;g.setAttribute('color',new THREE.BufferAttribute(new Float32Array(n*3).map((_,i)=>[.6,3.2,1.4][i%3]),3));UW.geoStar=g;}   // a glow worm's green light
+UW.matSteam=(()=>{const m=new THREE.MeshBasicNodeMaterial({vertexColors:true,transparent:true,depthWrite:false});m.colorNode=Fn(()=>vec4(attribute('color','vec3').mul(cvL.mul(.55).add(.2)),float(.32)))();return m;})();
 /* the 印加 domain near the pit (encyclopedia under): huge oval rock nests up to 230 m long and 40 m thick lying on the ground */
 {const g=new THREE.SphereGeometry(1,20,12);g.scale(1,.2,.42);const n=g.attributes.position.count,c=new Float32Array(n*3);
  for(let i=0;i<n;i++){const y=g.attributes.position.getY(i),v=.85+.3*Math.sin(i*12.9898)*.5;c.set([.36*v,.31*v,.25*v].map(x=>x*(y>.12?1.1:.85)),i*3);}g.setAttribute('color',new THREE.BufferAttribute(c,3));UW.geoNest=g;}
@@ -1720,7 +1726,9 @@ function buildCave(n){
       const fc=[.3+.1*v,.26+.08*v,.19+.05*v].map((x,ii)=>x*(1-forest)+[.2,.3,.13][ii]*forest*(.8+.4*v));
       {const dr=Math.abs(w.s-UWRIFT.s+40*Math.sin(w.x/700));if(dr<UWRIFT.w*.85){const crack=T.sm(.08,.0,Math.abs(T.fbm(dx*90000,dy*90000,dz*90000,2)));const base=[.07,.06,.06];for(let ii=0;ii<3;ii++)fc[ii]=base[ii]*(1-crack)+[2.2,.7,.12][ii]*crack;}}
       const glow=.75+.5*Math.max(0,T.fbm(dx*60000,dy*60000+9,dz*60000,2));      // crystal dust and glowing fungus, warm white-green with orange
-      put(k,[dx,dy,dz],f,fc);put(k+nv,[dx,dy,dz],c,[1.05*glow,1.0*glow,.7*glow+.08*(1-glow)]);}}
+      let cc=[1.05*glow,1.0*glow,.7*glow+.08*(1-glow)];
+      {const dl=uwWater(w).dl;if(dl<900){const t=T.sm(900,500,dl);cc=cc.map((v,ii)=>v*(1-t)+[.05,.08,.06][ii]*t);}}   // the glow-worm cave: the ceiling goes dark (its 'stars' are the worms' lights, below)
+      put(k,[dx,dy,dz],f,fc);put(k+nv,[dx,dy,dz],c,cc);}}
   for(let i=0;i<NR;i++)for(let j=0;j<NS;j++){const a=i*(NS+1)+j,b=a+1,c=a+NS+1,d=c+1;
     if(Q[a]>1.12&&Q[b]>1.12&&Q[c]>1.12&&Q[d]>1.12)continue;idx.push(a,c,b,b,c,d);idx.push(a+nv,b+nv,c+nv,b+nv,d+nv,c+nv);}
   const mk=(pos,col,ix,mat)=>{const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(pos,3));geo.setAttribute('color',new THREE.BufferAttribute(col,3));geo.setIndex(ix);
@@ -1753,6 +1761,13 @@ function buildCave(n){
       if(Math.acos(Math.min(1,d[0]*n.x+d[1]*n.y+d[2]*n.z))*R>UW.R*.95)continue;const w=uwSX(d[0],d[1],d[2]);if(w.q>1)continue;
       const f=uwFloor(d[0],d[1],d[2],w.q),c=uwCeil(d[0],d[1],d[2],w.q,f);spikes.push([d,f-.5,1,k*1.7,c-f+2]);}}
   inst(UW.geoFern,ferns,UW.matRock);inst(UW.geoPillar,pillars,UW.matRock);inst(UW.geoSpike,spikes,UW.matRock);
+  // glow worms' sticky threads hanging from that ceiling, some reaching within a metre of the floor; steam vents on the rock plains
+  {const th=[],st=[],stars=[];for(let i=0;i<9000;i++){const r=3600*Math.sqrt(rnd()),a=rnd()*6.2832;const d=at(Math.cos(a)*r,Math.sin(a)*r);const w=uwSX(d[0],d[1],d[2]);
+     const dlw=uwWater(w).dl;
+     if(w.q<1&&dlw<520&&rnd()<.5){const f=uwFloor(d[0],d[1],d[2],w.q),c=uwCeil(d[0],d[1],d[2],w.q,f);const len=8+rnd()*(c-f-9);th.push([d,c-len,1,0,len]);}
+     if(w.q<1&&dlw<700){const f=uwFloor(d[0],d[1],d[2],w.q),c=uwCeil(d[0],d[1],d[2],w.q,f);for(let k=0;k<3;k++)stars.push([at(Math.cos(a)*r+rnd()*30-15,Math.sin(a)*r+rnd()*30-15),c-1-rnd()*6,.6+rnd()*.8,0]);}
+     else if(w.q>.66&&w.q<.98&&dlw>1000&&rnd()<.012){const f=uwFloor(d[0],d[1],d[2],w.q),c=uwCeil(d[0],d[1],d[2],w.q,f);st.push([d,f,1+rnd(),rnd()*6.28,Math.max(8,c-f-4)]);}}
+   inst(UW.geoThread,th,UW.matRock);inst(UW.geoSteam,st,UW.matSteam);inst(UW.geoStar,stars,UW.matRock);}
   {const nl=[];for(const ne of UW.nests){const A=UW.A,Tt=UW.T,G=UW.g;const ang=ne.s/R;const pc=[A[0]*Math.cos(ang)+Tt[0]*Math.sin(ang),A[1]*Math.cos(ang)+Tt[1]*Math.sin(ang),A[2]*Math.cos(ang)+Tt[2]*Math.sin(ang)];
      const xa=ne.x/R;const d=[pc[0]*Math.cos(xa)+G[0]*Math.sin(xa),pc[1]*Math.cos(xa)+G[1]*Math.sin(xa),pc[2]*Math.cos(xa)+G[2]*Math.sin(xa)];
      if(Math.acos(Math.min(1,d[0]*n.x+d[1]*n.y+d[2]*n.z))*R>UW.R*.9)continue;const w=uwSX(d[0],d[1],d[2]);nl.push([d,uwFloor(d[0],d[1],d[2],w.q)-6,ne.len/2,ne.yaw]);}

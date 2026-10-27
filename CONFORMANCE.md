@@ -46,6 +46,7 @@ What the world got wrong against the encyclopedia entries (rongqiu-source `encyc
 | `under` creatures | an empty cavern | the 印加 castes in the fern forest and on the rock flats: black wasps, 爆甲, 暗影怪, 裂地者, 炼狱蠕虫, lava spiders | all of these spawn and move on the cavern floor |
 | `under` water | dry cavern | a river bursts from the cave as a great waterfall into a lake and runs on, ~5 m wide | a waterfall column from the ceiling into a ~240 m lake, a 5 m river winding on through the forest; its roar in the soundscape; no sky showing at the cavern's far edge |
 | `under` rift and nests | absent | a rift floored with hardened lava, lava spiders on its walls, 10+ km on from the waterfall; the 印加 domain's oval rock nests up to 230 m long | a ~70 m rift of black lava with glowing cracks across the cavern 10.5 km past the falls; 14 oval rock nests 110–230 m long near the pit end |
+| `under` glow worms, steam | absent | over the lake a ceiling full of green 'stars' — glow worms on sticky hanging threads, some reaching near the floor; cracks venting white steam on the rock plains | a dark ceiling over the lake with thousands of green lights and hanging threads; steam plumes rising from vents on the rock plains |
 | creature groups | small fixed groups | 角龙 herds of ~30, 骸龙 bands of 15–30, 白骸龙 groups up to ~15, 迷雾蠕虫 in threes; one 晶锥陆龟 per region; 飞龙 nearly extinct, by the volcanoes | group sizes and rarities set from the entries (rongqiu-source `encyclopedia/density.md`) |
 | `jadeport` 翡翠港 | houses half in the sea among islets | a harbour town on the shore | a low shore terrace carries the town |
 
@@ -53,7 +54,7 @@ What the world got wrong against the encyclopedia entries (rongqiu-source `encyc
 
 | Entry | Issue | Phase |
 |---|---|---|
-| `under` | glow-worm cave, steam vents; the drain from the pit floor as a walkable way in | 5–7 |
+| `under` | the drain from the pit floor as a walkable way in; 闪耀鳗 eels and flat fish in the lake | 5–7 |
 | `cloudsea` | standing and walking on the sheets | 5 |
 | `rift` | the 100 m bone bridge; dark mud lakes on the floor | 5 |
 
