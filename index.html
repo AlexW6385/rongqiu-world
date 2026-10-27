@@ -1442,6 +1442,29 @@ def('gulong',{n:'骸龙',walk:1,sc:.62,speed:1.5,group:[2,5],build(){const c=[.5
   for(let k=0;k<6;k++)parts.push({g:new THREE.TorusGeometry(1,.035,5,16),m:new THREE.Matrix4().compose(new THREE.Vector3(.55-k*.24,.6,0),new THREE.Quaternion().setFromEuler(new THREE.Euler(0,1.5708,0)),new THREE.Vector3(.33-k*.012,.3-k*.01,1)),c:w});
   parts.push(E(.035,.035,.035,1.28,.78,.11,[.9,.8,.2]),E(.035,.035,.035,1.28,.78,-.11,[.9,.8,.2]));
   return {body:body(parts).translate(0,1,0),legs:[[.55,1.55,.28],[.55,1.55,-.28],[-.5,1.55,.28],[-.5,1.55,-.28]].map(([x,y,z])=>({geo:legGeo(1.55,.08,c),x,y,z,splay:.35}))};}});
+/* the dragon peoples (encyclopedia emerald, baihai, yinjia): 骸龙 offshoots, upright bipeds about 1.8–2 m tall with a long tail;
+   翡翠龙 leaf-green and glittering, some with a horned-dinosaur skull worn as a helmet and a long pole; 白骸龙 pure white and thin;
+   银甲龙 metallic silver scales under silver armour, helmet hiding the face, shield and blade */
+function folk(c,o={}){const b=tone(c,1.15),d=[.05,.04,.04];
+  const parts=[E(.26,.42,.24,.05,1.38,0,c,-.35),E(.21,.3,.19,.12,1.2,0,b,-.3),taper([[.14,1.68,0],[.24,1.84,0],[.33,1.93,0]],.1,.075,c),
+    E(.2,.13,.14,.42,1.96,0,c),E(.15,.08,.1,.64,1.9,0,c),E(.03,.03,.03,.5,2.01,.1,[.9,.75,.2]),E(.03,.03,.03,.5,2.01,-.1,[.9,.75,.2]),
+    taper([[-.12,1.05,0],[-.7,.82,0],[-1.3,.48,0],[-1.75,.3,0]],.16,.02,c)];
+  for(const z of [1,-1])parts.push(taper([[.12,1.58,.2*z],[.28,1.32,.28*z],[.42,1.16,.22*z]],.055,.035,c));
+  if(o.skull)parts.push(E(.25,.15,.21,.42,2.08,0,[.86,.83,.74]),K(.04,.45,.62,2.3,0,[.9,.88,.8],0,0,-.9));
+  if(o.pole)parts.push(C(.025,.025,2.7,.46,1.35,.26,[.45,.35,.22],0,0,.15));
+  if(o.armour){const s=[.82,.84,.88];parts.push(E(.29,.38,.27,.06,1.42,0,s,-.35),E(.23,.17,.18,.4,2.0,0,s),C(.32,.32,.05,.3,1.25,-.36,s,Math.PI/2,0,0,18),C(.02,.02,.9,.5,1.2,.3,s,0,0,.6));}
+  return {body:body(parts),legs:[[0,1.02,.16],[0,1.02,-.16]].map(([x,y,z])=>({geo:legGeo(1.02,.075,c,1.6),x,y,z}))};}
+def('emerald',{n:'翡翠龙',walk:1,speed:1.3,group:[2,6],build(o){return folk([.17,.5,.22],{skull:o&&o.v===0,pole:o&&o.v<2});}});
+def('baihai',{n:'白骸龙',walk:1,speed:1.4,group:[2,5],build(){return folk([.9,.9,.87]);}});
+def('yinjia',{n:'银甲龙',walk:1,speed:1.3,group:[2,6],build(){return folk([.74,.76,.8],{armour:1});}});
+/* 立蝎 (encyclopedia lixie): a scorpion walking upright — ten limbs, four of them legs under a level rear body, the fore-body raised
+   with six free limbs (the front pair claw-like grippers), a tail curling up behind, a faintly glowing carapace */
+def('lixie',{n:'立蝎',walk:1,speed:1.1,group:[3,7],build(){const c=[.42,.6,.48],d=tone(c,.7),g=[.75,.95,.8];
+  const parts=[E(.55,.24,.34,-.35,.72,0,c),E(.17,.44,.21,.22,1.2,0,c,-.2),E(.14,.12,.14,.34,1.72,0,c),E(.025,.025,.025,.46,1.76,.06,[.05,.05,.05]),E(.025,.025,.025,.46,1.76,-.06,[.05,.05,.05]),
+    taper([[-.85,.74,0],[-1.25,.98,0],[-1.35,1.38,0],[-1.15,1.62,0]],.12,.05,d),K(.05,.22,-1.05,1.68,0,g,0,0,-2.3)];
+  for(const [y,len,fwd] of [[1.48,.62,.5],[1.32,.5,.42],[1.16,.42,.36]])for(const z of [1,-1])parts.push(taper([[.25,y,.17*z],[.25+fwd*.6,y-.12,.3*z],[.25+fwd,y-.05,.24*z]],.045,.025,d));
+  for(const z of [1,-1])parts.push(K(.04,.14,.8,1.48,.24*z,g,0,0,-1.57));
+  return {body:body(parts),legs:[[-.05,.72,.3],[-.05,.72,-.3],[-.6,.72,.3],[-.6,.72,-.3]].map(([x,y,z])=>({geo:legGeo(.72,.05,d,1.3),x,y,z,splay:.5*Math.sign(z)}))};}});
 def('maoyu',{n:'毛玉',walk:1,hop:1,speed:.5,sc:.2,group:[8,20],build(o){const c=o&&o.white?[.95,.95,.93]:[.74,.6,.45];
   return {body:body([E(.22,.2,.21,0,.22,0,c),E(.13,.12,.12,.17,.3,0,c),K(.045,.12,.16,.45,.07,c,0,0,.25),K(.045,.12,.16,.45,-.07,c,0,0,.25),E(.025,.025,.025,.29,.33,.06,[.05,.04,.04]),E(.025,.025,.025,.29,.33,-.06,[.05,.04,.04]),E(.08,.08,.08,-.22,.3,0,tone(c,1.1))])};}});
 def('tyrant',{n:'暴君巨蜥',walk:1,speed:1.8,group:[1,1],build(){const c=[.44,.13,.1],b=[.6,.35,.28];
@@ -1535,7 +1558,7 @@ def('baoxiao',{n:'爆哮虫',walk:1,speed:.4,group:[1,2],build(){const c=[.55,.4
 function makeCreature(key,opt){const sp=SPEC[key];const g=new THREE.Group();g.userData.key=key;
   if(sp.swarm){const orb=sp.swarm==='orb';const n=sp.swarm==='glow'?28:orb?14:220,pos=new Float32Array(n*3);for(let i=0;i<n;i++){const r=sp.swarm==='glow'?4:orb?70:3+Math.random()*2;const a=Math.random()*6.283,h=sp.swarm==='glow'?Math.random()*3:orb?Math.random()*50:Math.random()*14;pos.set([Math.cos(a)*r*Math.random(),h,Math.sin(a)*r*Math.random()],i*3);}
     const pts=swarmSprite(sp.swarm,pos,n);pts.layers.set(1);pts.frustumCulled=false;g.add(pts);g.userData.pts=pts;g.userData.legs=[];g.userData.wings=[];return g;}
-  const ck=key+(opt&&opt.white?'w':'');const B=geoCache[ck]||(geoCache[ck]=sp.build(opt));
+  const ck=key+(opt&&opt.white?'w':'')+(opt&&opt.v!==undefined?'v'+opt.v:'');const B=geoCache[ck]||(geoCache[ck]=sp.build(opt));
   if(B.body){const m=new THREE.Mesh(B.body,sp.glow?glowBodyMat:crMat);if(sp.glow)m.layers.set(1);g.add(m);g.userData.body=m;}
   g.userData.legs=(B.legs||[]).map(L=>{const p=new THREE.Group();p.position.set(L.x,L.y,L.z);const m=new THREE.Mesh(L.geo,crMat);if(L.splay)m.rotation.x=-L.splay*.5;p.add(m);g.add(p);p.userData=L;return p;});
   g.userData.wings=(B.wings||[]).map(W=>{const p=new THREE.Group();p.position.set(W.x,W.y,W.z);const geo=W.side<0&&!W.fast?W.geo.clone().scale(1,1,-1):W.geo;const m=new THREE.Mesh(W.fast?geo:(W.side<0?geo:W.geo),crMat);
@@ -1553,14 +1576,17 @@ function speciesFor(c,night){const w=[];const add=(k,x)=>w.push([k,x]);
     else{add('landshark',c.moist>.45?2:.5);add('beetle',c.moist>.5?2:.8);add('roach',1.2);add('lizard',1.5);add('dragonfly',night?0:1.5);add('silverbeetle',1.6);add('redspider',night?2:.4);}}
   else if(c.region===1){if(c.dry>.35)add('maoyu',3);else{add('ceratops',c.slope<.25?3:0);add('gulong',c.moist>.45?2.5:1);add('maoyu',2.5);add('tyrant',.35);add('dachuolong',c.slope<.3?2:.3);add('jianjia',1);
       add('centipede',c.moist>.45?1:.3);add('icespider',c.moist>.5?.9:.2);add('jingzhui',near(10,-100,.06)?3:.5);if(near(22,-94,.05))add('zaonao',2);}
+    if(near(12,-88,.0009))add('emerald',5);else if(near(12,-88,.05))add('emerald',.8);   // 翡翠龙 round their city, fewer through the southern jungles
+    if(near(-12,-78,.0009))add('lixie',6);else if(near(-12,-78,.03))add('lixie',.8);       // 立蝎 on the pyramid plain
     if(c.h>350)add('wyvern',1.2);if(c.h>150||near(12,-88,.04))add('yalong',.7);if(c.h<60)add('giantJelly',.9);}
-  else if(c.region===2){if(c.dry>.35)add(night?'moths':'dust',2);if(c.h<40)add('jiangguai',2);add('jelly',.8);add('lizard',.6);add('guanglong',.5);add('gunlei',night?1.5:.5);}
-  else{add('jelly',1);add('baoxiao',2);}
+  else if(c.region===2){if(near(-4,56,.0012)||near(-14,63,.0016))add('yinjia',6);else if(c.dry<.35)add('yinjia',.6);   // 银甲龙 in and around their cities
+    if(c.dry>.35)add(night?'moths':'dust',2);if(c.h<40)add('jiangguai',2);add('jelly',.8);add('lizard',.6);add('guanglong',.5);add('gunlei',night?1.5:.5);}
+  else{if(near(4,-112,.012))add('baihai',5);add('jelly',1);add('baoxiao',2);}   // 白骸龙 on their island
   if(!night)add('jelly',.5);
   return w.filter(x=>x[1]>0);}
 function ctxAt(lat,lon){const n=fromLL(lat,lon,1);const h=T.terrain(n.x,n.y,n.z,2);const dl=3/(R*Math.cos(lat));const q=fromLL(lat,lon+dl,1);const hx=T.terrain(q.x,q.y,q.z,2);
   return {n,h,moist:T.moisture(n.x,n.y,n.z),dry:T.dryness(n.x,n.y,n.z),region:T.regionIdx(n.x,n.y,n.z),slope:Math.abs(hx-h)/3};}
-const SIZE={deepbus:[90,260],silverbeetle:[6,30],redspider:[10,50],dachuolong:[25,120],jianjia:[30,140],jingzhui:[90,320],centipede:[10,50],icespider:[18,90],zaonao:[25,110],yalong:[120,380],guanglong:[250,600],gunlei:[150,500],baoxiao:[25,120],maoyu:[3,14],dragonfly:[12,70],gulong:[14,70],jelly:[15,90],moths:[6,35],lizard:[15,80],landshark:[15,80],scorpion:[18,90],roach:[20,100],beetle:[20,110],ceratops:[30,150],jiangguai:[40,180],tyrant:[60,220],wyvern:[80,300],giantJelly:[150,420],worm:[60,200],dust:[60,220]};
+const SIZE={emerald:[12,70],baihai:[12,70],yinjia:[12,70],lixie:[12,70],deepbus:[90,260],silverbeetle:[6,30],redspider:[10,50],dachuolong:[25,120],jianjia:[30,140],jingzhui:[90,320],centipede:[10,50],icespider:[18,90],zaonao:[25,110],yalong:[120,380],guanglong:[250,600],gunlei:[150,500],baoxiao:[25,120],maoyu:[3,14],dragonfly:[12,70],gulong:[14,70],jelly:[15,90],moths:[6,35],lizard:[15,80],landshark:[15,80],scorpion:[18,90],roach:[20,100],beetle:[20,110],ceratops:[30,150],jiangguai:[40,180],tyrant:[60,220],wyvern:[80,300],giantJelly:[150,420],worm:[60,200],dust:[60,220]};
 let spawnT=0;
 function spawnNear(){if(CREATURES.length>=MAXC)return;
   const night=uni.uUp.value.dot(uni.uSun.value)<-.05;
@@ -1570,8 +1596,8 @@ function spawnNear(){if(CREATURES.length>=MAXC)return;
   const ang=view.heading+(Math.random()-.5)*2.2,dist=(near[0]+Math.random()*(near[1]-near[0]))/R;   // mostly in front of you
   const lat=view.lat+Math.cos(ang)*dist,lon=view.lon+Math.sin(ang)*dist/Math.cos(view.lat);
   const c=ctxAt(lat,lon);if(c.h<=.3&&!sp.fly)return;if(CREATURES.some(o=>o.key===key&&(sp.group[1]===1||o.key==='worm'||o.key==='tyrant')&&Math.abs(o.lat-lat)*R<400))return;
-  const cnt=sp.group[0]+Math.floor(Math.random()*(sp.group[1]-sp.group[0]+1));const heading=Math.random()*6.283;const white=key==='maoyu'&&c.dry>.35;
-  for(let i=0;i<cnt&&CREATURES.length<MAXC;i++){const o=makeCreature(key,{white});fauna.add(o);
+  const cnt=sp.group[0]+Math.floor(Math.random()*(sp.group[1]-sp.group[0]+1));const heading=Math.random()*6.283;const white=key==='maoyu'&&c.dry>.35;const v=key==='emerald'?Math.floor(Math.random()*3):undefined;
+  for(let i=0;i<cnt&&CREATURES.length<MAXC;i++){const o=makeCreature(key,{white,v});fauna.add(o);
     CREATURES.push({sp,key,obj:o,lat:lat+(Math.random()-.5)*16/R,lon:lon+(Math.random()-.5)*16/R,heading:heading+(Math.random()-.5)*.7,alt:sp.fly?sp.fly[0]+Math.random()*(sp.fly[1]-sp.fly[0]):0,ph:Math.random()*6.283,t:0,pause:0});}}
 const _fwd=new THREE.Vector3(),_rgt=new THREE.Vector3(),_mat=new THREE.Matrix4();
 function updateCreatures(dt){
