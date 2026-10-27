@@ -2,7 +2,7 @@
 
 What you can see in the world that is new, newest first. Each release follows the encyclopedia written from the novel (`DESIGN.md` §4).
 
-## v3.1 — 翡翠龙之城 (2026-10-27)
+## v4.0 — 翡翠龙之城 (2026-10-27)
 
 The first city, as the book describes it at the height of the 翡翠龙 empire.
 
