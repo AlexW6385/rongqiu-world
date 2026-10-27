@@ -2322,9 +2322,48 @@ const MUSIC=(()=>{
     mood=md;night=nt;next=.1;step=0;bar=0;phrase=null;rest=0;pend=null;schedule(sec-1);const buf=await ctx.startRendering();({ctx,out,dry,wet,mood,night,next,step,bar,phrase,rest,pend}=keep);return buf;}
   return {start,stop,setMood,setVol,preview,get on(){return on;},get mood(){return mood;}};
 })();
+/* ===== soundscape (DESIGN.md §5 Sound, L1): the world's own sounds, synthesised — wind, leaves, surf, sand, the cave — mixed by
+   where you are and crossfaded as you move; the music sits on top of it and the same button and volume govern both ===== */
+const AMB=(()=>{let ctx=null,out,on=false,vol=.7,L={},timer=null;
+  function noise(sec,brown){const n=ctx.sampleRate*sec,b=ctx.createBuffer(1,n,ctx.sampleRate),d=b.getChannelData(0);let last=0;
+    for(let i=0;i<n;i++){const w=Math.random()*2-1;if(brown){last=(last+.02*w)/1.02;d[i]=last*3.5;}else d[i]=w;}return b;}
+  function layer(buf,filters){const src=ctx.createBufferSource();src.buffer=buf;src.loop=true;let node=src;
+    for(const [type,f,q] of filters){const bq=ctx.createBiquadFilter();bq.type=type;bq.frequency.value=f;if(q)bq.Q.value=q;node.connect(bq);node=bq;}
+    const g=ctx.createGain();g.gain.value=0;node.connect(g);g.connect(out);src.start();return {g,f:node};}
+  function init(){const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return false;try{ctx=new AC();}catch(e){return false;}
+    const comp=ctx.createDynamicsCompressor();comp.threshold.value=-20;comp.connect(ctx.destination);out=ctx.createGain();out.gain.value=0;out.connect(comp);
+    const wn=noise(5,false),bn=noise(7,true);
+    L.wind=layer(bn,[['bandpass',420,.6]]);L.leaves=layer(wn,[['highpass',2400],['bandpass',5200,.6]]);
+    L.surf=layer(bn,[['lowpass',520]]);L.sand=layer(wn,[['bandpass',6800,1.2]]);L.cave=layer(bn,[['lowpass',140]]);
+    L.night=ctx.createGain();L.night.gain.value=0;L.night.connect(out);return true;}
+  /* the environment, read four times a second */
+  let env={wind:.3,leaves:0,surf:0,sand:0,cave:0,night:0},t0=0,chirp=0,drip=0;
+  function sense(){const cave=!!view.cave;let water=0,n=0;
+    if(!cave){const {east,north}=frameAt(view.lat,view.lon);const up=fromLL(view.lat,view.lon,1);
+      for(let k=0;k<8;k++){const a=k*Math.PI/4;for(const dd of [150,500]){const v=new THREE.Vector3(up.x,up.y,up.z).addScaledVector(north,Math.cos(a)*dd/R).addScaledVector(east,Math.sin(a)*dd/R).normalize();
+        if(T.terrain(v.x,v.y,v.z,20)<=0)water++;n++;}}}
+    const d=cave?null:describe(view.lat,view.lon),alt=view.fly||0,night=uni.uUp.value.dot(uni.uSun.value)<-.05;
+    const forest=!cave&&d.terr==='林地',desert=!cave&&d.terr==='荒漠',high=!cave&&(d.terr==='高山'||d.terr==='冰原');
+    env={wind:cave?0:Math.min(1,.18+(high?.45:0)+(desert?.2:0)+alt/600),leaves:forest?(night?.25:.45):0,surf:cave?0:Math.min(1,(n?water/n:0)*1.6),
+      sand:desert?.35:0,cave:cave?1:0,night:night&&(forest||d&&d.terr==='原野')?1:0};}
+  function tick(){if(!on)return;const t=ctx.currentTime;sense();
+    const gust=.65+.35*Math.sin(t*.37)*Math.sin(t*.11+1),swell=.55+.45*Math.sin(t*.8)*Math.sin(t*.13);
+    const set=(l,v)=>l.g.gain.setTargetAtTime(v,t,.8);
+    set(L.wind,env.wind*.5*gust);L.wind.f.frequency.setTargetAtTime(300+260*gust,t,1);
+    set(L.leaves,env.leaves*.18*gust*gust);set(L.surf,env.surf*.55*swell);set(L.sand,env.sand*.08*gust);set(L.cave,env.cave*.35);
+    // night insects in grass and woods: soft high chirps in short trains
+    if(env.night&&t>chirp){chirp=t+.6+Math.random()*1.8;const f=4200+Math.random()*1800;for(let i=0;i<3+Math.floor(Math.random()*4);i++){const o=ctx.createOscillator(),g=ctx.createGain();o.frequency.value=f;g.gain.setValueAtTime(0,t+i*.07);g.gain.linearRampToValueAtTime(.018,t+i*.07+.01);g.gain.exponentialRampToValueAtTime(.0001,t+i*.07+.05);o.connect(g);g.connect(out);o.start(t+i*.07);o.stop(t+i*.07+.06);}}
+    // the cave: water dripping somewhere in the dark, with a long echo
+    if(env.cave&&t>drip){drip=t+1.2+Math.random()*4;const o=ctx.createOscillator(),g=ctx.createGain(),dl=ctx.createDelay(1),fb=ctx.createGain();o.frequency.setValueAtTime(1400+Math.random()*900,t);o.frequency.exponentialRampToValueAtTime(600,t+.08);
+      g.gain.setValueAtTime(.05,t);g.gain.exponentialRampToValueAtTime(.0001,t+.12);dl.delayTime.value=.33;fb.gain.value=.45;o.connect(g);g.connect(out);g.connect(dl);dl.connect(fb);fb.connect(dl);dl.connect(out);o.start(t);o.stop(t+.15);}}
+  function start(){if(!ctx&&!init())return;if(ctx.state==='suspended')ctx.resume();if(on)return;on=true;out.gain.setTargetAtTime(vol,ctx.currentTime,1.2);if(!timer)timer=setInterval(tick,250);}
+  function stop(){if(!ctx||!on)return;on=false;out.gain.setTargetAtTime(0,ctx.currentTime,.4);setTimeout(()=>{if(!on){clearInterval(timer);timer=null;ctx.suspend();}},1500);}
+  function setVol(v){vol=v;if(ctx&&on)out.gain.setTargetAtTime(v,ctx.currentTime,.2);}
+  return {start,stop,setVol};})();
+{const s0=MUSIC.start,s1=MUSIC.stop,s2=MUSIC.setVol;MUSIC.start=()=>{s0();AMB.start();};MUSIC.stop=()=>{s1();AMB.stop();};MUSIC.setVol=v=>{s2(v);AMB.setVol(v);};}
 {let pref=true;try{pref=localStorage.getItem('rqw-music')!=='off';}catch(e){}
  const btn=$('#bSnd'),volEl=$('#vol');
- const paint=()=>{btn.setAttribute('aria-pressed',String(MUSIC.on));btn.classList.toggle('muted',!MUSIC.on);btn.title=MUSIC.on?'关闭音乐':'打开音乐';};
+ const paint=()=>{btn.setAttribute('aria-pressed',String(MUSIC.on));btn.classList.toggle('muted',!MUSIC.on);btn.title=MUSIC.on?'关闭声音':'打开声音';};
  btn.addEventListener('click',e=>{e.stopPropagation();if(MUSIC.on){MUSIC.stop();pref=false;}else{MUSIC.start();pref=true;}try{localStorage.setItem('rqw-music',pref?'on':'off');}catch(e){}paint();});
  volEl.addEventListener('input',()=>{MUSIC.setVol(+volEl.value);$('#volv').textContent=Math.round(volEl.value*100)+'%';});
  // browsers only allow sound after a tap or key press: begin with the first one
