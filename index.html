@@ -1682,7 +1682,8 @@ function buildCloudSea(n){
         const k=i*(NS+1)+j;const m=cseaMask(dx+li*.013,dy,dz);M[k]=m;
         const bil=T.fbm(dx*5200+li*7,dy*5200,dz*5200,3)*.5+.5,fine=T.fbm(dx*26000,dy*26000+li,dz*26000,2);
         const th2=T.sm(.05,.35,m);const top=alt+(6+16*bil*bil+3*fine)*th2,bot=alt-(5+10*bil)*th2;
-        for(const [o,h,shade] of [[k,top,1],[k+nv,bot,.78]]){const rr=R+h;P.set([dx*rr-n.x*R,dy*rr-n.y*R,dz*rr-n.z*R],o*3);C.set([.95*shade,.96*shade,.99*shade],o*3);}}}
+        for(const [o,h,shade] of [[k,top,1],[k+nv,bot,1.85]])   // the underside glows with light diffused through the sheet (encyclopedia east: the glowing cloud ceiling)
+         {const rr=R+h;P.set([dx*rr-n.x*R,dy*rr-n.y*R,dz*rr-n.z*R],o*3);C.set([.95*shade,.96*shade,.99*shade],o*3);}}}
     for(let i=0;i<NR;i++)for(let j=0;j<NS;j++){const a=i*(NS+1)+j,b=a+1,c=a+NS+1,d=c+1;
       if(M[a]<.05||M[b]<.05||M[c]<.05||M[d]<.05)continue;
       idx.push(a,c,b,b,c,d, a+nv,b+nv,c+nv,b+nv,d+nv,c+nv);}
