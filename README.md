@@ -15,7 +15,7 @@ The whole project is one `index.html` with no build step; serve it from any stat
 | Look | drag (double-click locks the mouse, Esc releases) | drag on the right |
 | Walk | W A S D | stick, bottom left |
 | Run | Shift | push the stick to its edge |
-| Fly | hold Space to rise, release to sink; the higher you fly, the faster you travel | hold 「飞」 bottom right |
+| Fly | hold Space to rise, release to sink; hold it for a second to lock flight at that height (press again to release); the higher you fly, the faster you travel | hold 「飞」 bottom right (same lock) |
 | Speed | − / = in steps, 0 resets; wheel or trackpad smoothly (up to ×400); slider in settings — climbing and sinking scale with it too | pinch |
 | Map and jumps | M or the map button | map button |
 

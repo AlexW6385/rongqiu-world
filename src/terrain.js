@@ -130,6 +130,7 @@ function features(nx,ny,nz,h,detail,coast,mMask){
   d=angTo(nx,ny,nz,F_JADE);if(d<.42*km){const t=sm(.42*km,.27*km,d);h=h*(1-t)+(4+1.2*fbm(nx*400000,ny*400000,nz*400000,2))*t;}
   // 地眼之湖：沙漠中心的绿洲巨湖
   d=angTo(nx,ny,nz,F_LAKE);if(d<.012){const t=sm(.012,.007,d);h=h*(1-t)+(-8)*t;}
+  h=riverCarve(nx,ny,nz,h);    // river channels and their valleys (RIVERS, below)
   h=cityFlatten(nx,ny,nz,h);   // city sites (src/city.js)
   return h;
 }
@@ -184,4 +185,39 @@ const LANDMARKS=[
 function regionIdx(nx,ny,nz){let b=0,k=-1;REG.forEach((r,i)=>{const m=sm(r[3]*1.22,r[3]*.72,angTo(nx,ny,nz,r));if(m>b){b=m;k=i;}});return b>.5?k:-1;}
 function moisture(nx,ny,nz){return fbm(nx*7+11,ny*7,nz*7+5,3)*.5+.5;}
 ${CITY_SRC}
+/* ===== rivers (Water L3): a centre line, a width growing downstream and a water level that only falls from source to mouth
+   (the lowest ground met so far along the line). The channel is cut below that level and a valley is cut down to it wherever
+   the land is higher, so a river through high ground runs in a gorge. index.html draws the water surface along the same line.
+   巨龙之河 (encyclopedia atmount): from the cave at the foot of the mountain across the dinosaur continent to the south coast,
+   ~200 m wide upstream, muddy and shallow. The 2 m stream that divides the 闪光林地 from the 黑暗之原 (encyclopedia glow). */
+var RIV;
+const RIVERS=[
+  {id:'julong',pts:[[21.45,-93.25],[19,-90],[15,-86],[11,-82],[8,-78],[5,-75],[2,-75.5],[-2,-77],[-8,-79.5],[-13,-81.5],[-17,-82],[-20.5,-82.5]],w0:180,w1:420,depth:6,muddy:1,sea:1},
+  {id:'glow',pts:[[29.16,7.93],[29.09,7.97],[29.03,7.99],[28.97,8.03],[28.92,8.07],[28.86,8.12]],w0:2.4,w1:3.2,depth:1.1,muddy:0}];
+function prepRivers(){const out=[];
+  for(const r of RIVERS){const P=r.pts.map(([la,lo])=>V(la,lo));const seg=[];let L=0;
+    for(let i=0;i<P.length-1;i++){const a=P[i],b=P[i+1];const d=[b[0]-a[0],b[1]-a[1],b[2]-a[2]];const l2=d[0]*d[0]+d[1]*d[1]+d[2]*d[2];const len=Math.sqrt(l2)*${6371000};seg.push({a,d,l2,s0:L,len});L+=len;}
+    const step=Math.min(1500,L/400),n=Math.ceil(L/step)+1,lev=new Float32Array(n);let m=1e9;
+    for(let k=0;k<n;k++){const sk=Math.min(L,k*step);let j=0;while(j<seg.length-1&&seg[j].s0+seg[j].len<sk)j++;const g=seg[j],t=(sk-g.s0)/g.len;
+      const q=[g.a[0]+g.d[0]*t,g.a[1]+g.d[1]*t,g.a[2]+g.d[2]*t];const ql=Math.hypot(q[0],q[1],q[2]);m=Math.min(m,terrain(q[0]/ql,q[1]/ql,q[2]/ql,step*.5)-1.5);lev[k]=Math.max(m,.4);}
+    if(r.sea){lev[n-1]=Math.min(lev[n-1],.4);for(let k=n-2;k>=0;k--)lev[k]=Math.min(lev[k],lev[k+1]+.004*step);}   // and it runs down to the sea gently, not over a cliff at the coast
+    // a cap round the whole line for a quick rejection
+    let cx=0,cy=0,cz=0;for(const p of P){cx+=p[0];cy+=p[1];cz+=p[2];}const cl=Math.hypot(cx,cy,cz);cx/=cl;cy/=cl;cz/=cl;let cap=0;for(const p of P)cap=Math.max(cap,Math.acos(Math.min(1,p[0]*cx+p[1]*cy+p[2]*cz)));
+    out.push({...r,seg,L,step,lev,c:[cx,cy,cz],cosCap:Math.cos(cap+4000/${6371000})});}
+  RIV=out;}
+function riverAt(rv,s){const f=Math.min(rv.lev.length-1.001,Math.max(0,s/rv.step));const k=Math.floor(f);return rv.lev[k]+(rv.lev[k+1]-rv.lev[k])*(f-k);}
+function riverCarve(nx,ny,nz,h){if(!RIV)return h;
+  for(const rv of RIV){if(nx*rv.c[0]+ny*rv.c[1]+nz*rv.c[2]<rv.cosCap)continue;const reach=rv.w1*.5+3500;
+    for(const g of rv.seg){const ex=nx-g.a[0],ey=ny-g.a[1],ez=nz-g.a[2];let t=(ex*g.d[0]+ey*g.d[1]+ez*g.d[2])/g.l2;if(t<-.002||t>1.002)continue;t=Math.min(1,Math.max(0,t));
+      const qx=ex-g.d[0]*t,qy=ey-g.d[1]*t,qz=ez-g.d[2]*t;const x=Math.sqrt(qx*qx+qy*qy+qz*qz)*${6371000};if(x>reach)continue;
+      const sd=g.s0+t*g.len,lv=riverAt(rv,sd),w=rv.w0+(rv.w1-rv.w0)*sd/rv.L;
+      if(x<w*.5){const u=2*x/w;h=Math.min(h,lv-.4-rv.depth*(1-u*u));}else h=Math.min(h,lv+.8+(x-w*.5)*.35);}}
+  return h;}
+/* metres from the nearest river's water edge (negative inside the water), for keeping trees and grass off the channel */
+function riverEdge(nx,ny,nz){if(!RIV)return 1e9;let best=1e9;
+  for(const rv of RIV){if(nx*rv.c[0]+ny*rv.c[1]+nz*rv.c[2]<rv.cosCap)continue;
+    for(const g of rv.seg){const ex=nx-g.a[0],ey=ny-g.a[1],ez=nz-g.a[2];let t=(ex*g.d[0]+ey*g.d[1]+ez*g.d[2])/g.l2;if(t<-.002||t>1.002)continue;t=Math.min(1,Math.max(0,t));
+      const x=Math.hypot(ex-g.d[0]*t,ey-g.d[1]*t,ez-g.d[2]*t)*${6371000};const w=rv.w0+(rv.w1-rv.w0)*(g.s0+t*g.len)/rv.L;best=Math.min(best,x-w*.5);}}
+  return best;}
+prepRivers();
 `;

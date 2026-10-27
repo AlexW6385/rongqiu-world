@@ -73,6 +73,9 @@ body.touch #stick{display:block}
 #flyBtn{position:fixed;right:max(28px,env(safe-area-inset-right,0px));bottom:calc(48px + env(safe-area-inset-bottom,0px));width:72px;height:72px;border-radius:50%;border:1px solid var(--line);background:radial-gradient(circle,rgba(233,207,152,.1),rgba(9,13,21,.4));color:#e9cf98;font:500 15px/72px inherit;text-align:center;display:none;touch-action:none;user-select:none;-webkit-user-select:none}
 #flyBtn.on{background:radial-gradient(circle,rgba(233,207,152,.35),rgba(9,13,21,.4))}
 body.touch #flyBtn{display:block}
+#flyBtn.lock{box-shadow:0 0 0 3px rgba(233,207,152,.85)}
+#toast{position:fixed;left:50%;top:22%;transform:translate(-50%,-6px);padding:8px 16px;border-radius:18px;background:rgba(20,24,30,.62);color:#f2efe6;font-size:14px;letter-spacing:.04em;pointer-events:none;opacity:0;transition:opacity .25s,transform .25s;z-index:30}
+#toast.on{opacity:1;transform:translate(-50%,0)}
 body.touch #hint{bottom:calc(160px + env(safe-area-inset-bottom,0px))}
 
 /* loading + errors */
@@ -267,7 +270,7 @@ const SEG=32;               // tile segments
 const MAXL=18;              // deepest quadtree level: tile ≈ 38 m, vertex ≈ 1.2 m
 
 /* terrain source (TERRAIN_SRC) lives in src/terrain.js */
-const T=new Function(TERRAIN_SRC+';return {terrain,moisture,dryness,fbm,pn,angTo,V,regionIdx,LANDMARKS,sm,segDist,F_RIFT};')();
+const T=new Function(TERRAIN_SRC+';return {terrain,moisture,dryness,fbm,pn,angTo,V,regionIdx,LANDMARKS,sm,segDist,F_RIFT,RIV,riverAt};')();
 
 /* ===== tile worker ===== */
 const WORKER_SRC=TERRAIN_SRC+`
@@ -376,6 +379,7 @@ onmessage=e=>{
       if(h>snowLineAt(d[0],d[1],d[2]))continue;
       if(angTo(d[0],d[1],d[2],F_CPEAK)<.00085&&rnd()>.03)continue;   // 云中山峰: bare rock
       if(cityInside(d[0],d[1],d[2])>.5)continue;   // city streets (src/city.js)
+      if(riverEdge(d[0],d[1],d[2])<(level===16?2:10))continue;   // nothing grows in a river or right on its bank
       const moist=moisture(d[0],d[1],d[2]),dry=dryness(d[0],d[1],d[2]);
       const r=R+h;const x=d[0]*r,y=d[1]*r,z=d[2]*r;const yaw=rnd()*6.283;
       if(level===16){ // dense ground cover only
@@ -869,7 +873,7 @@ onmessage=e=>{const {A,E,Nn,U,N,S,id}=e.data;const out=new Float32Array(N*N*4);
     const h=terrain(nx,ny,nz,0.5);const r=${R}+Math.max(h,0);
     const y=(nx*r-A[0])*U[0]+(ny*r-A[1])*U[1]+(nz*r-A[2])*U[2];
     const moist=moisture(nx,ny,nz),dry=dryness(nx,ny,nz),la=Math.abs(ny),snow=snowLineAt(nx,ny,nz);
-    const k=(j*N+i)*4;out[k]=y;out[k+1]=sm(2,6,h)*sm(.18,.42,moist)*(1-sm(.25,.6,dry))*sm(snow-150,snow-650,h)*sm(.022,.03,angTo(nx,ny,nz,CRYS_C))*sm(.0005,.0009,angTo(nx,ny,nz,F_CPEAK))*(1-cityInside(nx,ny,nz));out[k+2]=moist;out[k+3]=h;}
+    const k=(j*N+i)*4;out[k]=y;out[k+1]=sm(2,6,h)*sm(.18,.42,moist)*(1-sm(.25,.6,dry))*sm(snow-150,snow-650,h)*sm(.022,.03,angTo(nx,ny,nz,CRYS_C))*sm(.0005,.0009,angTo(nx,ny,nz,F_CPEAK))*(1-cityInside(nx,ny,nz))*sm(0,3,riverEdge(nx,ny,nz));out[k+2]=moist;out[k+3]=h;}
   for(let j=1;j<N-1;j++)for(let i=1;i<N-1;i++){const k=(j*N+i)*4;const sl=Math.hypot(out[k+4]-out[k-4],out[k+N*4]-out[k-N*4])/(2*S/(N-1));out[k+1]*=sm(1.0,.5,sl);}   // no grass on steep ground
   postMessage({out,id},[out.buffer]);};`],{type:'text/javascript'})));
 const grassTex=new THREE.DataTexture(new Float32Array(GR.N*GR.N*4),GR.N,GR.N,THREE.RGBAFormat,THREE.FloatType);grassTex.needsUpdate=true;
@@ -945,7 +949,7 @@ function requestGrass(){const {up,east,north}=frameAt(view.lat,view.lon);const h
   grassPend={A:[p.x,p.y,p.z],E:[east.x,east.y,east.z],Nn:[north.x,north.y,north.z],U:[up.x,up.y,up.z]};grassReq++;
   grassWorker.postMessage({...grassPend,N:GR.N,S:GR.S,id:grassReq});}
 function updateGrass(){const W=quality.grass||0;
-  if(!W||view.fly>30){grassMesh.visible=false;return;}
+  if(!W||view.fly>30||view.cave){grassMesh.visible=false;return;}   // no surface grass in the underworld
   const s=quality.grassS,Rr=W*s*.5-1;gW.value=W;gS.value=s;gR.value=Rr;grassMesh.geometry.instanceCount=W*W;
   let cx=1e9,cz=1e9;
   if(grassAnchor){const A=grassAnchor.A,E=grassAnchor.E,N=grassAnchor.Nn;const dx=cam.x-A[0],dy=cam.y-A[1],dz=cam.z-A[2];cx=dx*E[0]+dy*E[1]+dz*E[2];cz=dx*N[0]+dy*N[1]+dz*N[2];}
@@ -1597,6 +1601,35 @@ function updateLakes(){const l=Math.hypot(cam.x,cam.y,cam.z);const el=uni.uUp.va
   lakeU.sunC.value.set(1.6*day+1.2*dusk,1.5*day+.7*dusk,1.3*day+.4*dusk);
   LAKES.forEach((L,i)=>{const m=lakeMeshes[i];const a=T.angTo(cam.x/l,cam.y/l,cam.z/l,L.n);m.visible=!view.cave&&a*R<40000;if(!m.visible)return;
     m.position.set(L.anchor[0]-cam.x,L.anchor[1]-cam.y,L.anchor[2]-cam.z);lakeU.up.value.set(L.n[0],L.n[1],L.n[2]);});}
+/* ===== river water (Water L3): ribbons along the river lines of src/terrain.js at their water level, built for the stretch
+   within ~25 km of the viewer and rebuilt as you travel; muddy rivers get a brown water colour ===== */
+const riverU={deep:uniform(new THREE.Vector3(.09,.075,.05))};
+const riverMat=new THREE.MeshBasicNodeMaterial();
+riverMat.colorNode=Fn(()=>{const V=normalize(positionWorld.mul(-1));const N=normalize(attribute('normal','vec3'));const ndv=clamp(dot(N,V),0,1);const q=float(1).sub(ndv);const q2=q.mul(q);
+  const fr=float(.03).add(q2.mul(q2).mul(q).mul(.97));const Rf=V.mul(-1).add(N.mul(dot(V,N).mul(2)));let sp=max(dot(Rf,lakeU.sun),0);for(let i=0;i<7;i++)sp=sp.mul(sp);
+  const deep=mix(lakeU.deep,riverU.deep.mul(lakeU.sunC.x.mul(.6).add(.05)),attribute('color','vec3').x);
+  return mix(deep,lakeU.sky,fr).add(lakeU.sunC.mul(sp).mul(fr).mul(5));})();
+const RIVW={group:new THREE.Group(),at:null};scene.add(RIVW.group);
+function buildRivers(cn){const g=RIVW.group;for(const m of g.children)m.geometry.dispose();g.clear();const reach=25000;
+  for(const rv of T.RIV)for(const sg of rv.seg){
+    // the part of this straight stretch within reach of the viewer
+    const a=sg.a,d=sg.d;const ex=cn[0]-a[0],ey=cn[1]-a[1],ez=cn[2]-a[2];const tc=(ex*d[0]+ey*d[1]+ez*d[2])/sg.l2;const tcl=Math.min(1,Math.max(0,tc));
+    const off=Math.hypot(ex-d[0]*tcl,ey-d[1]*tcl,ez-d[2]*tcl)*R;if(off>reach)continue;const half=Math.sqrt(Math.max(0,reach*reach-off*off))/sg.len;
+    const t0=Math.max(0,tc-half),t1=Math.min(1,tc+half);if(t1<=t0)continue;
+    const piece=Math.max(rv.w0*.6,25),nP=Math.max(2,Math.ceil((t1-t0)*sg.len/piece)+1);const P=new Float32Array(nP*2*3),Nn=new Float32Array(nP*2*3),C=new Float32Array(nP*2*3);const idx=[];
+    const dl=Math.sqrt(sg.l2);const dir=[d[0]/dl,d[1]/dl,d[2]/dl];
+    for(let i=0;i<nP;i++){const t=t0+(t1-t0)*i/(nP-1);let px=a[0]+d[0]*t,py=a[1]+d[1]*t,pz=a[2]+d[2]*t;const pl=Math.hypot(px,py,pz);px/=pl;py/=pl;pz/=pl;
+      const s=sg.s0+t*sg.len,lv=T.riverAt(rv,s)+.15,w=(rv.w0+(rv.w1-rv.w0)*s/rv.L)*.5*1.04;
+      let sx=dir[1]*pz-dir[2]*py,sy=dir[2]*px-dir[0]*pz,sz=dir[0]*py-dir[1]*px;const sl=Math.hypot(sx,sy,sz);sx/=sl;sy/=sl;sz/=sl;
+      for(const [k,sgn] of [[0,-1],[1,1]]){const o=(i*2+k)*3;const rr=R+lv;P[o]=px*rr+sx*w*sgn-cn[0]*R;P[o+1]=py*rr+sy*w*sgn-cn[1]*R;P[o+2]=pz*rr+sz*w*sgn-cn[2]*R;
+        Nn[o]=px;Nn[o+1]=py;Nn[o+2]=pz;C[o]=rv.muddy?1:0;}
+      if(i<nP-1){const q=i*2;idx.push(q,q+2,q+1,q+1,q+2,q+3);}}
+    const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(P,3));geo.setAttribute('normal',new THREE.BufferAttribute(Nn,3));geo.setAttribute('color',new THREE.BufferAttribute(C,3));geo.setIndex(idx);
+    const m=new THREE.Mesh(geo,riverMat);m.frustumCulled=false;m.userData.anchor=[cn[0]*R,cn[1]*R,cn[2]*R];g.add(m);}
+  RIVW.at=cn;}
+function updateRivers(){if(view.cave){RIVW.group.visible=false;return;}RIVW.group.visible=true;const l=Math.hypot(cam.x,cam.y,cam.z);const cn=[cam.x/l,cam.y/l,cam.z/l];
+  if(!RIVW.at||Math.acos(Math.min(1,cn[0]*RIVW.at[0]+cn[1]*RIVW.at[1]+cn[2]*RIVW.at[2]))*R>4000)buildRivers(cn);
+  for(const m of RIVW.group.children){const a=m.userData.anchor;m.position.set(a[0]-cam.x,a[1]-cam.y,a[2]-cam.z);}}
 /* ===== 地下世界 (encyclopedia under) =====
    A cavern 10+ km wide under the whole north desert, from the 印加 pit toward the volcano: a fern-tree jungle under a ceiling
    ~300 m up that glows over its whole surface (crystal dust and glowing fungus), dimming at night; home trees 50 m thick every
@@ -1716,7 +1749,7 @@ function updateRiftFog(){if(view.cave){RFOG.group.visible=false;return;}const l=
 const FOGZ=[[T.V(12,-22),.035],[T.V(8,-33),.02],[T.V(-7.5,59),25000/R]];   // + inside the east's fog pillar
 function fogZone(lat,lon){const p=fromLL(lat,lon,1);let z=0;for(const [c,r] of FOGZ){const a=T.angTo(p.x,p.y,p.z,c);z=Math.max(z,T.sm(r,r*.55,a)*(.75+.25*T.fbm(p.x*300,p.y*300,p.z*300,2)));}return Math.min(1,z);}
 function placeMeshes(){
-  updateCloudSea();updateFogPillar();updateLakes();updateCave();updateRiftFog();
+  updateCloudSea();updateFogPillar();updateLakes();updateRivers();updateCave();updateRiftFog();
   for(const o of planet.children){const n=o.userData.node;if(n)o.position.set(n.cx-cam.x,n.cy-cam.y,n.cz-cam.z);}
   for(const o of flora.children){if(!o.visible)continue;const n=o.userData.node;o.position.set(n.cx-cam.x,n.cy-cam.y,n.cz-cam.z);}
   uni.uCenter.value.set(-cam.x,-cam.y,-cam.z);
@@ -1789,8 +1822,12 @@ const smooth01=x=>{x=Math.min(Math.max(x,0),1);return x*x*(3-2*x);};
 const isTouch=matchMedia('(pointer:coarse)').matches;
 if(isTouch){document.body.classList.add('touch');$('#hint').textContent='左下摇杆行走 · 右侧拖动转头 · 按住“飞”升空 · 双指捏合调速';
   $('#keys').innerHTML='<kbd>摇杆</kbd><span>行走（推到边缘奔跑）</span><kbd>右侧拖动</kbd><span>转头</span><kbd>双指捏合</kbd><span>调整速度</span>';}
-const keys={};addEventListener('keydown',e=>{keys[e.code]=true;if(e.code==='Space'&&!/INPUT|TEXTAREA/.test(e.target.tagName)){e.preventDefault();}});
-{const fb=$('#flyBtn');const on=v=>{keys.Fly=v;fb.classList.toggle('on',v);};fb.addEventListener('pointerdown',e=>{e.stopPropagation();fb.setPointerCapture(e.pointerId);on(true);});['pointerup','pointercancel','lostpointercapture'].forEach(t=>fb.addEventListener(t,()=>on(false)));}addEventListener('keyup',e=>{keys[e.code]=false;});
+/* fly lock: hold Space (or 飞) for a second and you keep flying at that height after letting go; the next press releases it */
+const FLY={lock:false,t0:0};
+function toast(msg){let t=$('#toast');if(!t){t=document.createElement('div');t.id='toast';document.body.appendChild(t);}t.textContent=msg;t.classList.add('on');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('on'),1800);}
+function flyPress(){if(FLY.lock){FLY.lock=false;FLY.t0=0;$('#flyBtn').classList.remove('lock');toast('飞行锁定已解除');}else FLY.t0=performance.now();}
+const keys={};addEventListener('keydown',e=>{if(e.code==='Space'&&!e.repeat&&!keys.Space&&!/INPUT|TEXTAREA/.test(e.target.tagName))flyPress();keys[e.code]=true;if(e.code==='Space'&&!/INPUT|TEXTAREA/.test(e.target.tagName)){e.preventDefault();}});
+{const fb=$('#flyBtn');const on=v=>{keys.Fly=v;fb.classList.toggle('on',v);};fb.addEventListener('pointerdown',e=>{e.stopPropagation();fb.setPointerCapture(e.pointerId);flyPress();on(true);});['pointerup','pointercancel','lostpointercapture'].forEach(t=>fb.addEventListener(t,()=>on(false)));}addEventListener('keyup',e=>{keys[e.code]=false;});
 let drag=null;const pts=new Map();let pinch=null;
 canvas.addEventListener('pointerdown',e=>{pts.set(e.pointerId,{x:e.clientX,y:e.clientY});canvas.setPointerCapture(e.pointerId);
   if(pts.size===2){const [a,b]=[...pts.values()];pinch={d:Math.hypot(a.x-b.x,a.y-b.y),alt:view.altTarget||view.alt,k0:view.speedK};drag=null;return;}
@@ -1951,7 +1988,7 @@ const fmtLL=(la,lo)=>`${Math.abs(la).toFixed(1)}°${la>=0?'N':'S'} · ${Math.abs
 function selectPlace(id,center){const p=PLACES.find(x=>x.id===id);if(!p)return;
   if(selected){pinEls[selected]?.classList.remove('sel');giEls[selected]?.classList.remove('sel');}
   selected=id;pinEls[id]?.classList.add('sel');const gi=giEls[id];if(gi){gi.classList.add('sel');gi.scrollIntoView({block:'nearest'});}
-  target={la:p.la,lo:p.lo,n:p.n};showCard(RNAME[regionOf(p)]||'',p.n,p.s||'',fmtLL(p.la,p.lo));
+  target={id:p.id,la:p.la,lo:p.lo,n:p.n};showCard(RNAME[regionOf(p)]||'',p.n,p.s||'',fmtLL(p.la,p.lo));
   if(center)centerOn(p.la,p.lo,T1.has(id)?1.6:2.6);}
 function selectSpot(la,lo){if(selected){pinEls[selected]?.classList.remove('sel');giEls[selected]?.classList.remove('sel');selected=null;}
   const d=describe(la*D2R,lo*D2R);const np=nearestPlace(la*D2R,lo*D2R);
@@ -2031,7 +2068,7 @@ function frameView(v){const tla=v.t[0]*D2R,tlo=v.t[1]*D2R;const tp=fromLL(tla,tl
     view.lat=cl.lat;view.lon=cl.lon;view.heading=a+Math.PI;view.fly=v.fly||0;view.hover=view.fly>0;
     view.pitch=Math.max(-.6,Math.min(.75,Math.atan2(g0+v.aim-(gc+view.eye+view.fly),v.d)));return true;}
   return false;}
-function goPlace(p){view.fly=0;view.vz=0;arriveCurtain(p.n||'此地');
+function goPlace(p){view.fly=0;view.vz=0;if(FLY.lock){FLY.lock=false;$('#flyBtn').classList.remove('lock');}arriveCurtain(p.n||'此地');
   if(p.id==='under'){enterCave();camLeafSpan=1e6;closeMap();updatePlaque();return;}if(view.cave)setCave(false);
   const v=PLACE_VIEW[p.id];
   view.hover=false;const ok=!!(v&&frameView(v));window.__jump=ok?'view':'fallback';if(!ok){const [a,b]=landNear(p.la*D2R,p.lo*D2R);view.lat=a;view.lon=b;view.pitch=.04;view.heading=Math.random()*6.28;frameLandmark(a,b);}
@@ -2134,7 +2171,9 @@ function tick(now,force){
   {// flight: hold Space to climb slowly, release to sink back down to the ground
    const up=(keys.Space||keys.Fly)&&mapEl.hidden;const k=Math.pow(view.eye/1.6,.5)*Math.max(1,view.speedK);   // climbing and sinking scale with the speed setting, like walking
    if(up||keys.KeyW||keys.KeyS||keys.KeyA||keys.KeyD||keys.ArrowUp||keys.ArrowDown||keys.ArrowLeft||keys.ArrowRight||(typeof stick!=='undefined'&&stick))view.hover=false;   // after a map jump the camera holds its vantage height until you move
-   const want=up?3.2*k*(1+(view.fly||0)/120):view.hover?0:-(2.2+(view.fly||0)*.08)*k;view.vz=THREE.MathUtils.lerp(view.vz||0,want,1-Math.exp(-dt*(up?1.6:1.1)));
+   if(up&&!FLY.lock&&FLY.t0&&performance.now()-FLY.t0>1000&&(view.fly||0)>.5){FLY.lock=true;FLY.t0=0;$('#flyBtn').classList.add('lock');toast('飞行已锁定 · 再按一次'+(document.body.classList.contains('touch')?'「飞」':'空格')+'解除');}
+   if(!up)FLY.t0=0;
+   const want=up?3.2*k*(1+(view.fly||0)/120):(view.hover||FLY.lock)?0:-(2.2+(view.fly||0)*.08)*k;view.vz=THREE.MathUtils.lerp(view.vz||0,want,1-Math.exp(-dt*(up?1.6:1.1)));
    view.fly=Math.min(Math.max((view.fly||0)+view.vz*dt,0),6000);
    {const q=fromLL(view.lat,view.lon,1);if(T.terrain(q.x,q.y,q.z,2)<-1.2&&view.fly<1.5){view.fly=1.5;view.vz=Math.max(view.vz,0);}}   // never sink into the sea: hover just above it
    if(view.fly===0&&view.vz<0)view.vz=0;}
@@ -2175,7 +2214,7 @@ function tick(now,force){
 }
 function fail(msg){const d=document.createElement('div');d.id='err';d.textContent=msg;document.body.appendChild(d);$('#load').classList.add('off');}
 window.__music=MUSIC;window.__demo={goPlace:id=>goPlace(PLACES.find(p=>p.id===id)),crdbg:()=>CREATURES.map(c=>{const q=c.obj.position.clone().project(camera);const wp=new THREE.Vector3();c.obj.children[0].getWorldPosition(wp);return c.key+' ndc '+q.x.toFixed(2)+','+q.y.toFixed(2)+','+q.z.toFixed(4)+' child0 '+wp.toArray().map(v=>v.toFixed(1)).join(',');}).join(' | ')+' heading '+view.heading.toFixed(2),showcase:list=>{for(const c of CREATURES)fauna.remove(c.obj);CREATURES.length=0;spawnT=1e9;const {east,north}=frameAt(view.lat,view.lon);
-  list.forEach(([k,dist,side],i)=>{const sp=SPEC[k];const o=makeCreature(k,{});fauna.add(o);const a=view.heading+side;CREATURES.push({sp,key:k,obj:o,lat:view.lat+Math.cos(a)*dist/R,lon:view.lon+Math.sin(a)*dist/R/Math.cos(view.lat),heading:view.heading+Math.PI/2,alt:sp.fly?sp.fly[0]+2:0,ph:i,t:0,pause:0});});},levels:()=>{const c={};const walk=n=>{const k=n.level+':'+n.state+(n.flora?'F':'')+(n.mesh&&n.mesh.visible?'v':'');c[k]=(c[k]||0)+1;if(n.kids)n.kids.forEach(walk);};roots.forEach(walk);return JSON.stringify(c);},flora:()=>{let g=0,i=0;flora.children.forEach(o=>{if(o.visible){g++;o.children.forEach(m=>{i+=m.count;});}});return [g,i];},creatures:()=>CREATURES.map(c=>c.key).join(','),kinds:()=>{const c={};flora.children.forEach(g=>g.children.forEach(m=>{const k=m.userData.k;if(k)c[k]=(c[k]||0)+(g.visible&&m.visible?m.count:0);}));return JSON.stringify(c);},dbg:n=>{terrainMat.uniforms.uDbg.value=n;},goPlace:id=>goPlace(PLACES.find(p=>p.id===id)),hide:o=>{if(o.cloud!==undefined)cloud.visible=!o.cloud;if(o.terrain!==undefined)planet.visible=!o.terrain;},openMap,closeMap,goView,setSun,setQuality:q=>{qmode=q;applyQuality();},render:()=>tick(performance.now(),true),ready:()=>busy===0&&queue.length===0,view,setView:o=>{Object.assign(view,o);if(o.mode)setMode(o.mode);},tiles:()=>visibleTiles};
+  list.forEach(([k,dist,side],i)=>{const sp=SPEC[k];const o=makeCreature(k,{});fauna.add(o);const a=view.heading+side;CREATURES.push({sp,key:k,obj:o,lat:view.lat+Math.cos(a)*dist/R,lon:view.lon+Math.sin(a)*dist/R/Math.cos(view.lat),heading:view.heading+Math.PI/2,alt:sp.fly?sp.fly[0]+2:0,ph:i,t:0,pause:0});});},levels:()=>{const c={};const walk=n=>{const k=n.level+':'+n.state+(n.flora?'F':'')+(n.mesh&&n.mesh.visible?'v':'');c[k]=(c[k]||0)+1;if(n.kids)n.kids.forEach(walk);};roots.forEach(walk);return JSON.stringify(c);},flora:()=>{let g=0,i=0;flora.children.forEach(o=>{if(o.visible){g++;o.children.forEach(m=>{i+=m.count;});}});return [g,i];},creatures:()=>CREATURES.map(c=>c.key).join(','),state:()=>JSON.stringify({cave:view.cave,planet:planet.visible,flora:flora.visible,uw:UW.group.visible,uwn:UW.group.children.length,uwpos:UW.group.children.map(m=>Math.round(m.position.length())),uwvis:UW.group.children.map(m=>m.visible),camh:Math.round(Math.hypot(cam.x,cam.y,cam.z)-R),grp:UW.group.parent===scene,lat:view.lat,lon:view.lon}),kinds:()=>{const c={};flora.children.forEach(g=>g.children.forEach(m=>{const k=m.userData.k;if(k)c[k]=(c[k]||0)+(g.visible&&m.visible?m.count:0);}));return JSON.stringify(c);},dbg:n=>{terrainMat.uniforms.uDbg.value=n;},goPlace:id=>goPlace(PLACES.find(p=>p.id===id)),hide:o=>{if(o.cloud!==undefined)cloud.visible=!o.cloud;if(o.terrain!==undefined)planet.visible=!o.terrain;},openMap,closeMap,goView,setSun,setQuality:q=>{qmode=q;applyQuality();},render:()=>tick(performance.now(),true),ready:()=>busy===0&&queue.length===0,view,setView:o=>{Object.assign(view,o);if(o.mode)setMode(o.mode);},tiles:()=>visibleTiles};
 applyQuality();{const [a,b]=landNear(view.lat,view.lon);view.lat=a;view.lon=b;}setMode('ground');updateSun(0);updatePlaque();
 let curtain={t:0,max:9};function arriveCurtain(name){const l=$('#load');l.textContent=name?'前往 '+name:'正在生成绒球';l.classList.remove('off');curtain={t:0,max:name?5:9};}
 if(!window.__noloop)requestAnimationFrame(tick);else $('#load').classList.add('off');
