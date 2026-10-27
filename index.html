@@ -335,9 +335,9 @@ const PIT_R=560/6371000,PIT_D=420,PIT_RINGS=24,PIT_LA=22,PIT_LO=-10,PIT_E=[-Math
 const CLEARINGS=[[V(33.6,10.4),120/6371000],[V(-12,-78),1100/6371000],[V(32,8.3),140/6371000],[V(-4,56),500/6371000],[V(-14,63),790/6371000],[V(7.5,16.75),520/6371000]];  // + the 翡翠港 town  // + inside the walls of 银之城 and 创造之城
 /* tall-fern jungle, no trees: the egg-boulder field of 翡翠龙之城 (encyclopedia emeraldcity) */
 const FERNZONES=[[V(12,-88),1400/6371000]];
-const F_PEAK=V(33.2,11.2);
+const F_PEAK=V(33.2,11.2),F_JADE=V(7.5,16.75);
 /* snowline (m): falls with latitude; the whole southern continent is ice (encyclopedia south: 南之大陆, a white ice continent) */
-const SOUTH_C=V(-52,-18);
+const SOUTH_C=V(-52,-18),CRYS_C=V(10,-100);   // CRYS_C: 结晶林地, bare floor
 function snowLineAt(nx,ny,nz){const la=Math.abs(ny);return 4300-3600*la*la-(4360-3600*la*la)*sm(.314,.244,angTo(nx,ny,nz,SOUTH_C));}
 const SPIRE_C=V(15,-1),SPIRE_R=1600/6371000*6;
 const F_PIT=V(PIT_LA,PIT_LO), F_DESERT=V(25,-5), F_SALT=V(4,-72), F_CRYSTAL=V(71,34), F_OASIS=V(27,-11), F_LAKE=V(-17,75);
@@ -376,6 +376,8 @@ function features(nx,ny,nz,h,detail,coast,mMask){
   d=angTo(nx,ny,nz,F_PEAK);
   if(d<7*km){const u=d/(4.2*km);const cone=Math.pow(Math.max(0,1-u),1.7)*.92+.08*Math.exp(-u*u)*(1+.1*ridge(nx*7000,ny*7000,nz*7000,3));h+=1250*cone*(1+.06*ridge(nx*9000,ny*9000,nz*9000,3));
     const cr=d/(.25*km);if(cr<1.6)h-=200*sm(1.6,.85,cr);}
+  // 翡翠港 (encyclopedia jadeport): the harbour town sits on a low shore terrace among the coastal islets
+  d=angTo(nx,ny,nz,F_JADE);if(d<.42*km){const t=sm(.42*km,.27*km,d);h=h*(1-t)+(4+1.2*fbm(nx*400000,ny*400000,nz*400000,2))*t;}
   // 地眼之湖：沙漠中心的绿洲巨湖
   d=angTo(nx,ny,nz,F_LAKE);if(d<.012){const t=sm(.012,.007,d);h=h*(1-t)+(-8)*t;}
   return h;
@@ -690,6 +692,7 @@ const terrainF=wgslFn(/* wgsl */`fn terrainF(P4:vec4f,N4:vec4f,D4:vec4f,DT:vec4f
     veg*=0.85+0.3*v3;
     col=mix(veg,sand,sandM);
     col=mix(col,rock*(0.8+0.4*v2)*(0.9+0.2*v3),rk);
+    col=mix(col,vec3f(0.25,0.245,0.235)*(0.8+0.4*v3),ss(0.03,0.022,acos(clamp(dot(n,vec3f(-0.1710,0.1736,0.9698)),-1.0,1.0))));   // 结晶林地: bare rock and gravel floor (encyclopedia jingshu)
     if(df2>0.001){ // close-up surface detail: triplanar grass / rock / sand maps at two scales
       col*=mix(vec3f(1.0),det*1.5+0.25,df2*0.9);
       N=dbump(N,dpx,dpy,dhx*0.06*df2,dhy*0.06*df2);
@@ -980,7 +983,7 @@ onmessage=e=>{const {A,E,Nn,U,N,S,id}=e.data;const out=new Float32Array(N*N*4);
     const h=terrain(nx,ny,nz,0.5);const r=${R}+Math.max(h,0);
     const y=(nx*r-A[0])*U[0]+(ny*r-A[1])*U[1]+(nz*r-A[2])*U[2];
     const moist=moisture(nx,ny,nz),dry=dryness(nx,ny,nz),la=Math.abs(ny),snow=snowLineAt(nx,ny,nz);
-    const k=(j*N+i)*4;out[k]=y;out[k+1]=sm(2,6,h)*sm(.18,.42,moist)*(1-sm(.25,.6,dry))*sm(snow-150,snow-650,h);out[k+2]=moist;out[k+3]=h;}
+    const k=(j*N+i)*4;out[k]=y;out[k+1]=sm(2,6,h)*sm(.18,.42,moist)*(1-sm(.25,.6,dry))*sm(snow-150,snow-650,h)*sm(.022,.03,angTo(nx,ny,nz,CRYS_C));out[k+2]=moist;out[k+3]=h;}
   for(let j=1;j<N-1;j++)for(let i=1;i<N-1;i++){const k=(j*N+i)*4;const sl=Math.hypot(out[k+4]-out[k-4],out[k+N*4]-out[k-N*4])/(2*S/(N-1));out[k+1]*=sm(1.0,.5,sl);}   // no grass on steep ground
   postMessage({out,id},[out.buffer]);};`],{type:'text/javascript'})));
 const grassTex=new THREE.DataTexture(new Float32Array(GR.N*GR.N*4),GR.N,GR.N,THREE.RGBAFormat,THREE.FloatType);grassTex.needsUpdate=true;
@@ -1287,7 +1290,7 @@ buildGeos();
  GEOS_LO.twistTree=merge([{g:new THREE.CylinderGeometry(.7,1.4,22,5),m:M4(0,11,0),c:bk,t:'bark'},...cards(13,9,21)]);
  GEOS_LO.platformTree=merge([{g:new THREE.CylinderGeometry(1.4,2.2,36,5),m:M4(0,18,0),c:bk,t:'bark'},{g:new THREE.CylinderGeometry(13,10,.9,8),m:M4(0,36.5,0),c:[.15,.32,.13]},...cards(18,8,38.5)]);
  GEOS_LO.bigTree=merge([{g:new THREE.CylinderGeometry(.45,.9,17,4),m:M4(0,8.5,0),c:bk,t:'bark'},...cards(12,11,17)]);
- GEOS_LO.crystalTree=merge([{g:new THREE.CylinderGeometry(.25,.4,8,5),m:M4(0,4,0),c:[1.2,1.45,1.6],t:'bark'},...cards(7,6,9)]);
+ GEOS_LO.crystalTree=merge([{g:new THREE.CylinderGeometry(.25,.4,8,5),m:M4(0,4,0),c:[.78,.88,.96]},...cards(7,6,9)]);
  GEOS_LO.longqi=merge([{g:new THREE.CylinderGeometry(3.6,5.4,58,6),m:M4(0,29,0),c:bk,t:'bark'},...cards(40,30,58)]);
  GEOS_LO.fern=merge([{g:new THREE.PlaneGeometry(3,13),m:M4(0,6.5,0),c:[1.05,1.1,.95],t:'frond'},{g:new THREE.PlaneGeometry(3,13),m:M4(0,6.5,0,0,1.5708,0),c:[1.05,1.1,.95],t:'frond'}]);}
 delete GEOS.grass;   // grass is now drawn blade by blade around the viewer
@@ -1298,7 +1301,10 @@ delete GEOS.grass;   // grass is now drawn blade by blade around the viewer
    longqi:()=>houses.map(h=>({...h,g:h.g.clone()}))};
  for(const k in TREE_SPECS){const o=TREE_SPECS[k];const hi=growTree(o),mid=growTree(lighter(o));const ex=extra[k];
    GEOS_HI[k]={solid:ex?merge(ex(hi.top)).solid:null,bark:hi.bark,sprig:hi.sprig};
-   GEOS[k]={solid:ex?merge(ex(mid.top)).solid:null,tex:null,bark:mid.bark,sprig:mid.sprig};}}
+   GEOS[k]={solid:ex?merge(ex(mid.top)).solid:null,tex:null,bark:mid.bark,sprig:mid.sprig};}
+ /* crystal trees: the bark is glassy, not wood — draw it untextured in a pale blue-white */
+ const glass=g=>{g=g.clone();const c=g.attributes.color;if(c)for(let i=0;i<c.count;i++)c.setXYZ(i,.78,.88,.96);return g;};
+ for(const G of [GEOS_HI,GEOS]){const t=G.crystalTree;G.crystalTree={...t,solid:glass(t.bark),bark:null};}}
 /* scanned stones (CC0, shipped with ez-tree) replace the procedural boulders once they arrive */
 {const gl=new GLTFLoader();const dr=new DRACOLoader();dr.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/libs/draco/gltf/');gl.setDRACOLoader(dr);gl.load('https://cdn.jsdelivr.net/npm/@dgreenheck/ez-tree@1.1.0/src/app/public/rock1.glb',gl=>{let mesh=null;gl.scene.traverse(o=>{if(o.isMesh&&!mesh)mesh=o;});if(!mesh)return;
   const geo=mesh.geometry.clone();geo.scale(1.25,.8,1.15);geo.translate(0,.42,0);const n=geo.attributes.position.count;geo.setAttribute('color',new THREE.Float32BufferAttribute(new Float32Array(n*3).fill(.9),3));
@@ -1639,8 +1645,9 @@ function speciesFor(c,night){const w=[];const add=(k,x)=>w.push([k,x]);
     if(c.h>350)add('wyvern',1.2);if(c.h>150||near(12,-88,.04))add('yalong',.7);if(c.h<60)add('giantJelly',.9);}
   else if(c.region===2){if(near(-4,56,.0012)||near(-14,63,.0016))add('yinjia',6);else if(c.dry<.35)add('yinjia',.6);   // 银甲龙 in and around their cities
     if(c.dry>.35)add(night?'moths':'dust',2);if(c.h<40)add('jiangguai',2);add('jelly',.8);add('guanglong',.5);add('gunlei',night?1.5:.5);}
+  else if(c.region===3){}                                     // 南之大陆: an empty ice continent
   else{if(near(4,-112,.012))add('baihai',5);add('jelly',1);add('baoxiao',2);}   // 白骸龙 on their island
-  if(!night)add('jelly',.5);
+  if(!night&&c.region!==3)add('jelly',.5);
   return w.filter(x=>x[1]>0);}
 function ctxAt(lat,lon){const n=fromLL(lat,lon,1);const h=T.terrain(n.x,n.y,n.z,2);const dl=3/(R*Math.cos(lat));const q=fromLL(lat,lon+dl,1);const hx=T.terrain(q.x,q.y,q.z,2);
   return {n,h,moist:T.moisture(n.x,n.y,n.z),dry:T.dryness(n.x,n.y,n.z),region:T.regionIdx(n.x,n.y,n.z),slope:Math.abs(hx-h)/3};}

@@ -22,6 +22,9 @@ What the world got wrong against the encyclopedia entries (rongqiu-source `encyc
 | `jadeport` 翡翠港 | on a 2.6 km mountain | a harbour town on the north continent's coast | moved to the coast |
 | `rift` 大裂谷 | open trench | fog fills it nearly to the rim; rim to rim cannot be seen | a fog sheet ~200 m under the local rim |
 | `mistsea` 迷雾之海 | clear sea | fog seas round 骷髅岛 and on the westward route | fog banks you can walk into |
+| `south` 南之大陆 | forest and grass, creatures | an ice continent | snow down to the sea; nothing spawns there |
+| `jingshu` 结晶树 | dark wooden bark on a grassy floor | glittering crystal bark, green leaves; bare rock and gravel floor | pale untextured glassy bark; grey gravel floor, no grass |
+| `jadeport` 翡翠港 | houses half in the sea among islets | a harbour town on the shore | a low shore terrace carries the town |
 
 ### Open
 
@@ -69,6 +72,5 @@ What the world got wrong against the encyclopedia entries (rongqiu-source `encyc
 | `jungle` 扭曲树 | crown discs 10 m+ at ~30 m, dark second layer at ~10 m, desert-edge trees 100 m+ | 3 (Vegetation L1) |
 | `siwangjianci` 死亡尖刺 | 50 m tall, 1 m wide, purple trunk, red sticky spikes, planted as a wall | 3 |
 | `emeraldcity`, `whiteisle`, `longqimu`, `jadeport` | full city layouts (walls, districts, castle 500 × 500 × 100 m) | 4 / 6 |
-| `south` | the book's south is 南之大陆, an ice continent — terrain and climate | 3 |
 | `guanglong` 光龙 | ~100 m sky-eel in the book; 42 m in the world (needs its own entry first) | 5 |
 | `rongqiu` | year = 1060 day-night cycles; the moon's 290-year return; current 8-day moon cycle is not the book's | 3 |
