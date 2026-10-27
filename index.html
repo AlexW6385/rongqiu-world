@@ -332,7 +332,7 @@ const F_CANYON=[V(12,6),V(50,7)];          // 峡谷之海：贯穿北之大陆�
 const F_RIFT=[V(10,-63),V(19,-56)];         // 大裂谷：深两千米、迷雾弥漫
 const PIT_R=560/6371000,PIT_D=420,PIT_RINGS=24,PIT_LA=22,PIT_LO=-10,PIT_E=[-Math.sin(PIT_LO*D2R),0,-Math.cos(PIT_LO*D2R)],PIT_N=[-Math.sin(PIT_LA*D2R)*Math.cos(PIT_LO*D2R),Math.cos(PIT_LA*D2R),Math.sin(PIT_LA*D2R)*Math.sin(PIT_LO*D2R)];
 /* open ground with no trees: [centre, radius rad] — 立蝎之城 stands on an open grass plain (encyclopedia scorpion); a ring of open ground round the home tree (hometree) */
-const CLEARINGS=[[V(-12,-78),1100/6371000],[V(32,8.3),70/6371000]];
+const CLEARINGS=[[V(-12,-78),1100/6371000],[V(32,8.3),70/6371000],[V(-4,56),500/6371000],[V(-14,63),790/6371000]];  // + inside the walls of 银之城 and 创造之城
 /* tall-fern jungle, no trees: the egg-boulder field of 翡翠龙之城 (encyclopedia emeraldcity) */
 const FERNZONES=[[V(12,-88),1400/6371000]];
 const SPIRE_C=V(15,-1),SPIRE_R=1600/6371000*6;
@@ -1214,7 +1214,7 @@ function buildGeos(){
     {g:new THREE.CircleGeometry(1.6,10),m:new THREE.Matrix4().compose(new THREE.Vector3(0,30,8.3),new THREE.Quaternion().setFromEuler(new THREE.Euler(-.54,0,0,'YXZ')),new THREE.Vector3(1,1,1)),c:[.05,.04,.03]}]);
   // 翡翠龙之城：巨蛋石
   /* 巨蛋石 (encyclopedia emeraldcity): smooth mossy ovoid boulders lying down, 10–20 m high and tens of m long */
-  GEOS.eggRock=merge([{g:new THREE.SphereGeometry(1,28,18),m:new THREE.Matrix4().makeScale(24,7.5,14).premultiply(M4(0,4.5,0)),c:[.43,.44,.38]}]);
+  GEOS.eggRock=merge([{g:new THREE.SphereGeometry(1,28,18),m:new THREE.Matrix4().makeScale(24,7.5,14).premultiply(M4(0,4.5,0)),c:[.19,.23,.16]}]);
   // 空中群岛：倒挂着扭曲树林的鸣石岛
   {const parts=[{g:new THREE.ConeGeometry(120,160,9),m:M4(0,-80,0,3.1416,0,0),c:[.38,.34,.3]},{g:new THREE.CylinderGeometry(120,120,14,9),m:M4(0,7,0),c:[.2,.36,.14]}];
    for(let k=0;k<7;k++){const a=k*.9,r=40+k*9;parts.push({g:twistedTrunk(30,1.2,1.5,k),m:M4(Math.cos(a)*r,14,Math.sin(a)*r),c:[.28,.22,.16]});parts.push(...blob(7,Math.cos(a)*r,44,Math.sin(a)*r,leaf));
