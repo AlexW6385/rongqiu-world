@@ -17,6 +17,11 @@ What the world got wrong against the encyclopedia entries (rongqiu-source `encyc
 | `rift` 大裂谷 | floor below sea level — a sea channel | floor of dark mud and rock | floor kept above sea level |
 | `jadeport` 翡翠港 | town inside forest | harbour town | forest cleared |
 | `emerald`, `baihai`, `yinjia`, `lixie` | absent | the peoples of the dino and revival eras | built and spawned round their cities and island |
+| `yilong_pt`, `aztec`, `inca`, `naodaichong` | absent | pterosaurs of four sizes; the 阿兹特克虫 castes; 印加 black wasps; 脑袋虫 with its infantry and three 20 m mounds | built and placed in their habitats; the mounds are a new map place |
+| `jjzs` 结晶之山 | a forested 2.6 km land mountain with cone crystals | a ring of crystal rising from the deep through the polar sea ice | a ~700 m ring of glowing crystal prisms in the sea ice |
+| `jadeport` 翡翠港 | on a 2.6 km mountain | a harbour town on the north continent's coast | moved to the coast |
+| `rift` 大裂谷 | open trench | fog fills it nearly to the rim; rim to rim cannot be seen | a fog sheet ~200 m under the local rim |
+| `mistsea` 迷雾之海 | clear sea | fog seas round 骷髅岛 and on the westward route | fog banks you can walk into |
 
 ### Open
 
@@ -25,7 +30,7 @@ What the world got wrong against the encyclopedia entries (rongqiu-source `encyc
 | `under` | river (5 m), waterfall lake, glow-worm cave, lava rift, 印加 nests, steam vents; the drain from the pit floor as a walkable way in; creatures of the cavern | 5 (Landscapes L3, Water L3) |
 | `peak` | the crater lake's water (mountain lakes need Water L3) | 5 |
 | `cloudsea` | standing and walking on the sheets; the 50 km fog pillar near 银之城 | 5 |
-| `rift` | the fog filling it to the rim; the 100 m bone bridge | 3 (Weather L2) / 5 |
+| `rift` | the 100 m bone bridge; dark mud lakes on the floor | 5 |
 
 ## Pass 1 — tier-1 entries (2026-10-26)
 
