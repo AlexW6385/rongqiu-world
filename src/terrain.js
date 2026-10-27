@@ -176,6 +176,10 @@ const LANDMARKS=[
   [-14,63,'silverPyramid',[[0,0,1,0,0]]],
   [71,34,'crystalPeak',[[0,0,1,0,0]]]   // jjzs: a ring wall of crystal rising out of the polar sea ice
 ];
+/* 云岛 (encyclopedia yundao): the synthesizers' white honeycomb base islands, a few tens of metres across with one windowless white
+   building, floating over the east continent's central desert */
+for(let i=0;i<14;i++){const a=LMR(i+4100)*6.283,r=(20+90*Math.sqrt(LMR(i+4200)))/111.195;   // each its own landmark, so each is drawn when you are near it
+  LANDMARKS.push([-17+Math.sin(a)*r,75+Math.cos(a)*r/Math.cos(17*D2R),'baseIsle',[[0,0,.7+.6*LMR(i+4300),260+520*LMR(i+4400),LMR(i+4500)*6.283]]]);}
 /* 印加巨坑 (encyclopedia inca_pit): cave mouths 1–2 m across in the risers of the upper terraces, and the boulders that plug the
    hole in the white-sand floor */
 {const caves=[];for(let K=PIT_RINGS-5;K<PIT_RINGS;K++)for(let q=0;q<22;q++){const a=(q+.5*(K%2))/22*2*Math.PI-Math.PI+(LMR(K*31+q)-.5)*.12;
