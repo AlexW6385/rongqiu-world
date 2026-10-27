@@ -225,7 +225,7 @@ The implementing agent updates this section at the end of every work session: mo
 - Phase 4 — First city, 2026-10-27 (v4.0): 翡翠龙之城 in its imperial phase built to Cities L1–L2 from a plan in `src/city.js` — wall and gate, white avenue, statue plaza, palace, hall of worship and school hall, upper district of tall white houses on white-sand lanes, ~14,000 square stone houses on a street grid, lower-district shanties round the egg boulders with 亚龙 roosts, trodden-earth streets, collision, its people in the streets; checked at the gate, the plaza and a common-district street. `index.html` split into ES modules: `src/city.js`, `src/terrain.js`, `src/creatures.js`, `src/music.js`, `src/ambience.js`; the rest moves out as it is reworked.
 
 **Phase 5 — Depth, round one**
-- In progress (2026-10-27): Creatures L2 (groups, habitat leash, day/night, gliding); Water L3: the peak's crater lake, 巨龙之河 and the glow forest's stream; map jumps fixed to use their viewpoints (the place id was being dropped); hold-to-lock flight.
+- In progress (2026-10-27): Creatures L2 (groups, habitat leash, day/night, gliding); Water L3: the peak's crater lake, 巨龙之河 and the glow forest's stream; map jumps fixed to use their viewpoints (the place id was being dropped); hold-to-lock flight; Vegetation L2 begun (fallen trunks, broken snags and saplings in the forests).
 - Creatures L2, Vegetation L2, Water L3, Landscapes L3 for all Phase 2 entries.
 - Remaining encyclopedia entries for the next tier of plants and creatures; add them at L1.
 
