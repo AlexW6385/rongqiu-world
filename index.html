@@ -607,7 +607,10 @@ fn gn(p:vec3f)->f32{let i=floor(p);let f=fract(p);let u=f*f*(3.0-2.0*f);
   return mix(mix(mix(dot(hashv(i),f),dot(hashv(i+vec3f(1,0,0)),f-vec3f(1,0,0)),u.x),mix(dot(hashv(i+vec3f(0,1,0)),f-vec3f(0,1,0)),dot(hashv(i+vec3f(1,1,0)),f-vec3f(1,1,0)),u.x),u.y),
              mix(mix(dot(hashv(i+vec3f(0,0,1)),f-vec3f(0,0,1)),dot(hashv(i+vec3f(1,0,1)),f-vec3f(1,0,1)),u.x),mix(dot(hashv(i+vec3f(0,1,1)),f-vec3f(0,1,1)),dot(hashv(i+vec3f(1,1,1)),f-vec3f(1,1,1)),u.x),u.y),u.z);}
 fn gfbm(pi:vec3f)->f32{var p=pi;var a=0.5;var s=0.0;for(var i=0;i<3;i++){s+=a*gn(p);p=p*2.02+vec3f(5.1,1.7,9.3);a*=0.5;}return s;}
-fn cloudCov(n:vec3f)->f32{var c=gfbm(n*21.7+vec3f(uTime*0.003,0.0,uTime*0.002))*0.5+0.5;c+=0.2*gn(n*63.0+vec3f(uTime*0.005));return ss(1.0-uCover,1.4-uCover,c);}
+/* cloud cover per biome (Weather L2): clear over the endless desert and the salt flats, heavier over the twisted jungle, the east and the 骷髅岛 seas */
+fn coverBias(n:vec3f)->f32{let a=dot(n,vec3f(0.9029,0.4226,0.0790));let b=dot(n,vec3f(0.8233,0.5446,-0.1600));let c=dot(n,vec3f(0.3345,-0.2079,-0.9192));let d=dot(n,vec3f(0.3083,0.0698,0.9487));let e=dot(n,vec3f(0.9069,0.2079,0.3664));
+  return -0.38*ss(0.985,0.997,a)-0.25*ss(0.996,0.9992,d)+0.16*ss(0.996,0.9993,b)+0.18*ss(0.985,0.996,c)+0.2*ss(0.997,0.9995,e);}
+fn cloudCov(n:vec3f)->f32{var c=gfbm(n*21.7+vec3f(uTime*0.003,0.0,uTime*0.002))*0.5+0.5;c+=0.2*gn(n*63.0+vec3f(uTime*0.005));let cv=clamp(uCover+coverBias(n),0.0,1.0);return ss(1.0-cv,1.4-cv,c);}
 fn skyAmbient(sunEl:f32)->vec3f{return (vec3f(0.18,0.3,0.55)*ss(-0.1,0.35,sunEl)+vec3f(0.5,0.3,0.15)*ss(0.1,-0.05,sunEl)*ss(-0.25,0.0,sunEl))*uSunI*0.145;}
 fn mist(col:vec3f,dist:f32,skyAmb:vec3f,sunC:vec3f)->vec3f{let dense=clamp((uMist-10.0)/40.0,0.0,1.0);   /* uMist above 10 = standing in a fog bank */
   let m=select(uMist,0.6,dense>0.0);var f=(1.0-exp(-dist*0.00045*m))*0.85;f=mix(f,(1.0-exp(-dist*(0.002+0.03*dense)))*0.985,dense);
@@ -1012,7 +1015,9 @@ function gnJS(x,y,z){const ix=Math.floor(x),iy=Math.floor(y),iz=Math.floor(z),fx
   return L(L(L(g(0,0,0),g(1,0,0),sx),L(g(0,1,0),g(1,1,0),sx),sy),L(L(g(0,0,1),g(1,0,1),sx),L(g(0,1,1),g(1,1,1),sx),sy),sz);}
 function gfbmJS(x,y,z){let a=.5,s=0;for(let i=0;i<3;i++){s+=a*gnJS(x,y,z);x=x*2.02+5.1;y=y*2.02+1.7;z=z*2.02+9.3;a*=.5;}return s;}
 function cloudCovJS(nx,ny,nz){const t=uni.uTime.value,cv=uni.uCover.value;let c=gfbmJS(nx*21.7+t*.003,ny*21.7,nz*21.7+t*.002)*.5+.5;c+=.2*gnJS(nx*63+t*.005,ny*63+t*.005,nz*63+t*.005);
-  const k=Math.min(1,Math.max(0,(c-(1-cv))/.4));return k*k*(3-2*k);}
+  const S=(a,b,x)=>{const t=Math.min(1,Math.max(0,(x-a)/(b-a)));return t*t*(3-2*t);},dt=(x,y,z)=>nx*x+ny*y+nz*z;   // coverBias, as in the shader
+  const cb=-.38*S(.985,.997,dt(.9029,.4226,.079))-.25*S(.996,.9992,dt(.3083,.0698,.9487))+.16*S(.996,.9993,dt(.8233,.5446,-.16))+.18*S(.985,.996,dt(.3345,-.2079,-.9192))+.2*S(.997,.9995,dt(.9069,.2079,.3664));
+  const cvb=Math.min(1,Math.max(0,cv+cb));const k=Math.min(1,Math.max(0,(c-(1-cvb))/.4));return k*k*(3-2*k);}
 const grassCell=wgslFn(/* wgsl */`fn grassCell(i:f32,W:f32,s:f32,cam:vec2f)->vec4f{
   let cx=i-W*floor(i/W);let cz=floor(i/W);
   let gx=floor(cam.x/s)+cx-floor(W*0.5);let gz=floor(cam.y/s)+cz-floor(W*0.5);
