@@ -1390,27 +1390,32 @@ function speciesFor(c,night){const w=[];const add=(k,x)=>w.push([k,x]);
   if(c.region===0){if(near(15,-1,.0016))add('aztecS',4),add('aztecL',1.2);           // the spire forest's swarm
     if(near(22,-10,.0012))add('incaWasp',5);                                          // black wasps round the pit
     if(near(33.6,10.4,.0007))add('naodai',3),add('naoInf',3);                         // the 脑袋虫 mounds
+    add('anying',c.dry>.35||c.moist>.4?.5:.2);   // 暗影怪 out of the 印加 home trees by night, through the jungle and across the desert
+    if(c.dry>.35&&near(33,11,.075))add('pensha',.7);   // 喷沙虫 in lines on the open sand by the twisted jungle
     if(c.dry>.35){add('scorpion',3);add('dragonfly',night?0:3);add('worm',.35);add('deepbus',.4);}
     else{add('landshark',c.moist>.45?2:.5);add('beetle',c.moist>.5?2:.8);add('roach',1.2);add('lizard',1.5);add('dragonfly',night?0:1.5);add('silverbeetle',1.6);add('redspider',night?2:.4);}}
-  else if(c.region===1&&near(12,-88,.00028)){add('emerald',8);add('yalong',.5);add('maoyu',.4);}   // inside the walls of 翡翠龙之城: its people, their 亚龙, 毛玉 pests (encyclopedia emeraldcity)
+  else if(c.region===1&&near(12,-88,.00028)){add('emerald',8);add('yalong',.5);add('maoyu',.4);add('dianzhuru',1.2);}   // inside the walls of 翡翠龙之城: its people, their 亚龙, 毛玉 pests (encyclopedia emeraldcity)
   else if(c.region===1){if(c.dry>.35)add('maoyu',3);else{add('ceratops',c.slope<.25?3:0);add('gulong',c.moist>.45?2.5:1);add('maoyu',2.5);add('tyrant',.35);add('dachuolong',c.slope<.3?2:.3);add('jianjia',1);
       add('centipede',c.moist>.45?1:.3);add('icespider',c.moist>.5?.9:.2);add('jingzhui',near(10,-100,.03)?1.2:0);   // one tortoise per region, only round the crystal woodland (encyclopedia jingzhui)
       if(near(22,-94,.05))add('zaonao',2);}
     if(near(12,-88,.0009))add('emerald',5);else if(near(12,-88,.05))add('emerald',.8);   // 翡翠龙 round their city, fewer through the southern jungles
-    if(near(-12,-78,.0009))add('lixie',6);else if(near(-12,-78,.03))add('lixie',.8);       // 立蝎 on the pyramid plain
+    if(near(-12,-78,.0009))add('lixie',6);else if(near(-12,-78,.03))add('lixie',.8);
+    if(near(-12,-78,.025))add('feilixie',.5);   // 飞立蝎 over the 立蝎 lands       // 立蝎 on the pyramid plain
     add('pteroS',c.dry>.2||c.slope>.3?1.4:.6);add('pteroRed',c.dry>.25?.8:.2);if(c.slope>.4)add('pteroBomb',.3);if(near(4,-72,.08))add('pteroGiant',.8);   // pterosaurs
     if(near(22,-94,.05))add('wyvern',1);else if(c.h>350)add('wyvern',.1);   // 飞龙 are nearly extinct: one or two round the volcanoes (encyclopedia feilong)
     if(c.h>150||near(12,-88,.04))add('yalong',.7);if(c.h<60)add('giantJelly',.9);}
   else if(c.region===2){if(near(-4,56,.0012)||near(-14,63,.0016))add('yinjia',6);else if(c.dry<.35)add('yinjia',.6);   // 银甲龙 in and around their cities
     if(near(-5.9,65.7,.0006))add('baihai',6);else if(near(-6.2,66.2,.012))add('baihai',.8);   // 白骸龙 at their Academy and round the great peak (encyclopedia cloudpeak)
+    add('slime',1.1);   // 大气史莱姆 drifting in flocks under the cloud seas
     if(c.dry>.35)add(night?'moths':'dust',2);if(c.h<40)add('jiangguai',2);add('jelly',.8);add('guanglong',.5);add('gunlei',night?1.5:.5);}
   else if(c.region===3){}                                     // 南之大陆: an empty ice continent
-  else{if(near(4,-112,.012))add('baihai',5);add('jelly',1);add('baoxiao',2);}   // 白骸龙 on their island
+  else{if(near(30,-104,.03)){add('zhenjun',2);add('zhenjunS',3);}   // 真菌怪 on the fungus islands (encyclopedia zhenjunguai, fungus)
+    if(near(4,-112,.012))add('baihai',5);add('jelly',1);add('baoxiao',2);}   // 白骸龙 on their island
   if(!night&&c.region!==3)add('jelly',.5);
   return w.filter(x=>x[1]>0);}
 function ctxAt(lat,lon){const n=fromLL(lat,lon,1);const h=T.terrain(n.x,n.y,n.z,2);const dl=3/(R*Math.cos(lat));const q=fromLL(lat,lon+dl,1);const hx=T.terrain(q.x,q.y,q.z,2);
   return {n,h,moist:T.moisture(n.x,n.y,n.z),dry:T.dryness(n.x,n.y,n.z),region:T.regionIdx(n.x,n.y,n.z),slope:Math.abs(hx-h)/3};}
-const SIZE={pteroS:[20,120],pteroRed:[60,260],pteroBomb:[120,400],pteroGiant:[150,500],aztecS:[3,15],aztecL:[25,110],incaWasp:[3,14],naodai:[8,40],naoInf:[10,60],emerald:[12,70],baihai:[12,70],yinjia:[12,70],lixie:[12,70],deepbus:[90,260],silverbeetle:[6,30],redspider:[10,50],dachuolong:[25,120],jianjia:[30,140],jingzhui:[90,320],centipede:[10,50],icespider:[18,90],zaonao:[25,110],yalong:[120,380],guanglong:[250,600],gunlei:[150,500],baoxiao:[25,120],maoyu:[3,14],dragonfly:[12,70],gulong:[14,70],jelly:[15,90],moths:[6,35],lizard:[15,80],landshark:[15,80],scorpion:[18,90],roach:[20,100],beetle:[20,110],ceratops:[30,150],jiangguai:[40,180],tyrant:[60,220],wyvern:[80,300],giantJelly:[150,420],worm:[60,200],dust:[60,220]};
+const SIZE={anying:[15,80],pensha:[90,320],zhenjun:[25,120],zhenjunS:[10,60],slime:[60,320],dianzhuru:[5,25],feilixie:[60,300],pteroS:[20,120],pteroRed:[60,260],pteroBomb:[120,400],pteroGiant:[150,500],aztecS:[3,15],aztecL:[25,110],incaWasp:[3,14],naodai:[8,40],naoInf:[10,60],emerald:[12,70],baihai:[12,70],yinjia:[12,70],lixie:[12,70],deepbus:[90,260],silverbeetle:[6,30],redspider:[10,50],dachuolong:[25,120],jianjia:[30,140],jingzhui:[90,320],centipede:[10,50],icespider:[18,90],zaonao:[25,110],yalong:[120,380],guanglong:[250,600],gunlei:[150,500],baoxiao:[25,120],maoyu:[3,14],dragonfly:[12,70],gulong:[14,70],jelly:[15,90],moths:[6,35],lizard:[15,80],landshark:[15,80],scorpion:[18,90],roach:[20,100],beetle:[20,110],ceratops:[30,150],jiangguai:[40,180],tyrant:[60,220],wyvern:[80,300],giantJelly:[150,420],worm:[60,200],dust:[60,220]};
 let spawnT=0;
 function spawnNear(){if(CREATURES.length>=MAXC)return;
   const night=uni.uUp.value.dot(uni.uSun.value)<-.05;

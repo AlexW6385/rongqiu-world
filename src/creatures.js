@@ -164,10 +164,39 @@ def('yalong',{glide:1,n:'亚龙',fly:[80,240],speed:13,sc:.6,group:[1,2],build()
   return {body:body([E(3,.8,.85,0,0,0,c),taper([[2.5,.2,0],[4.2,.9,0],[5.2,1,0]],.55,.38,c),E(.95,.5,.45,5.8,.95,0,c),K(.2,1,6.8,.95,0,m,0,0,-1.57),taper([[-2.7,0,0],[-6,-.4,0],[-9.5,-.3,0]],.6,.06,c)]),
     wings:[1,-1].map(s=>({geo:wingGeo(9.5,5.5,m),x:.7,y:.45,z:.6*s,side:s}))};}});
 def('guanglong',{glide:1,n:'光龙',fly:[280,520],speed:16,group:[1,1],glow:1,build(){const pts=[];for(let i=0;i<=20;i++){const t=i/20;pts.push([-t*42,Math.sin(t*9)*2.5,Math.cos(t*7)*2]);}
-  const g=taper(pts,2.2,.15,[1,1,1],60,10).g;paint(g,[1.4,2.4,2.8]);return {body:g};}});
+  const g=taper(pts.map(([x,y,z])=>[x*101/42,y*2,z*2]),5,.3,[1,1,1],80,12).g;paint(g,[1.4,2.4,2.8]);return {body:g};}});   // 101 m long, ~10 m thick (encyclopedia guanglong)
 def('gunlei',{n:'滚雷',swarm:'orb',fly:[180,420],speed:1.5,group:[1,1]});
 def('baoxiao',{n:'爆哮虫',walk:1,speed:.4,group:[1,2],build(){const c=[.55,.45,.38];
   return {body:body([E(2,1.4,1.6,0,1.5,0,c),E(1,.9,1,1.8,1.4,0,tone(c,1.1)),E(.45,.35,.5,2.6,1.3,0,[.35,.12,.12]),E(.1,.1,.1,2.4,2,.45,[.05,.05,.05]),E(.1,.1,.1,2.4,2,-.45,[.05,.05,.05])]),
     legs:[1,0,-1].flatMap(x=>[1,-1].map(s=>({geo:legGeo(.7,.2,tone(c,.8)),x,y:.6,z:1.2*s,splay:.4*s})))};}});
+// ---- tier 2 (encyclopedia anying, pensha, zhenjunguai, daqi, dianzhuru, feilixie) ----
+/* 暗影怪: a ~2.3 m reptile-shaped 印加 caste in black chitin, long legs, blade claws, a big head, a tail that rears up to sting; out at night */
+def('anying',{nocturnal:1,n:'暗影怪',walk:1,speed:2.2,group:[1,3],build(){const c=[.05,.05,.06],h=[.12,.11,.12];
+  const parts=[E(.75,.28,.3,0,.85,0,c),E(.36,.24,.26,.85,.95,0,c),taper([[-.6,.85,0],[-1.3,1.1,0],[-1.6,1.7,0],[-1.2,2.1,0]],.18,.03,c,12,6),K(.06,.35,-1.05,2.2,0,h,0,0,-2.2)];
+  for(const s of [1,-1])parts.push(K(.05,.6,1.0,.55,.32*s,h,0,0,-1.9));
+  return {body:body(parts),legs:[[.45,.8,.3],[.45,.8,-.3],[-.45,.8,.3],[-.45,.8,-.3]].map(([x,y,z])=>({geo:legGeo(.8,.07,c),x,y,z,splay:.5*Math.sign(z)}))};}});
+/* 喷沙虫: a 20 m beetle the colour of desert sand, hard wing-cases, a huge abdomen that balloons to blast sand, two antennae */
+def('pensha',{n:'喷沙虫',walk:1,speed:.9,group:[3,6],build(){const c=[.72,.62,.42],d=tone(c,.8);
+  const parts=[E(5,2.6,3.6,0,4,0,c),E(6.5,4.6,5.2,-8.5,4.8,0,tone(c,1.05)),E(2.2,1.6,2.2,6.2,3.8,0,d),E(5.2,1,3.8,.3,6.2,0,tone(c,.9))];
+  for(const s of [1,-1])parts.push(taper([[7.6,4.6,.8*s],[10,7,2.4*s],[12,8,3.2*s]],.12,.05,d,8,5));
+  return {body:body(parts),legs:[3,0,-3].flatMap(x=>[1,-1].map(s=>({geo:legGeo(4.4,.35,d),x,y:3.6,z:3*s,splay:.8*s})))};}});
+/* 真菌怪: an animal rebuilt by the plague fungus — purple mycelium for skin, swollen sacs on the back, no mouth, two pairs of yellow eyes */
+function zhenjun(k){const c=[.36,.16,.42],sac=[.5,.26,.55],eye=[1.5,1.3,.2];const parts=[E(3*k,1.3*k,1.4*k,0,2.4*k,0,c),E(1*k,.8*k,.8*k,3.2*k,2.6*k,0,c)];
+  for(let i=0;i<9;i++){const a=i*2.4;parts.push(E(.55*k,.45*k,.55*k,(-2+i*.5)*k,(3.4+Math.sin(a)*.3)*k,Math.cos(a)*.8*k,sac));}
+  for(const s of [1,-1])for(const y of [2.85,2.55])parts.push(E(.12*k,.1*k,.1*k,4.05*k,y*k,.35*s*k,eye));
+  return {body:body(parts),legs:[[1.8,2,1],[1.8,2,-1],[-1.8,2,1],[-1.8,2,-1]].map(([x,y,z])=>({geo:legGeo(1.9*k,.42*k,c),x:x*k,y:y*k,z:z*k,splay:.3*Math.sign(z)}))};}
+def('zhenjun',{n:'真菌怪',walk:1,speed:.9,group:[1,3],build(){return zhenjun(1);}});
+def('zhenjunS',{n:'真菌怪（小）',walk:1,speed:1.3,group:[3,7],build(){return zhenjun(.28);}});
+/* 大气史莱姆: a transparent, ray-shaped cloud creature with a 5 m span, one eye-like organ in front; drifts in flocks in the east's skies */
+def('slime',{n:'大气史莱姆',fly:[60,320],speed:2,group:[3,8],swim:1,build(){const c=[2.3,2.45,2.6];const g=new THREE.SphereGeometry(1,18,8);g.scale(2.6,.32,1.6);
+  const parts=[{g,m:null,c},E(.18,.12,.12,1.9,.05,0,[.5,.6,.75]),taper([[-1.6,0,0],[-3.4,.1,0]],.18,.02,c,6,5)];return {body:body(parts)};}});
+/* 电侏儒: a 30 cm flat-faced biter, black like 亚龙 scales, wandering among the 翡翠龙 */
+def('dianzhuru',{n:'电侏儒',walk:1,speed:1.1,sc:.3,group:[4,12],build(){const c=[.06,.07,.07];
+  const parts=[E(.5,.3,.3,0,.55,0,c),E(.3,.27,.3,.55,.65,0,c),E(.05,.05,.05,.84,.67,.1,[1.4,1.3,.5]),E(.05,.05,.05,.84,.67,-.1,[1.4,1.3,.5]),K(.07,.35,-.6,.55,0,c,0,0,1.8)];
+  return {body:body(parts),legs:[[.3,.5,.22],[.3,.5,-.22],[-.3,.5,.22],[-.3,.5,-.22]].map(([x,y,z])=>({geo:legGeo(.45,.07,c),x,y,z,splay:.4*Math.sign(z)}))};}});
+/* 飞立蝎: a smaller black 立蝎 whose long thin limbs carry a pterosaur-like membrane; a hooked tail sting; flies in swarms */
+def('feilixie',{n:'飞立蝎',fly:[60,170],speed:6,group:[8,18],build(){const c=[.07,.06,.06];
+  const parts=[E(.6,.18,.2,0,0,0,c),E(.22,.16,.18,.6,.05,0,c),taper([[-.5,0,0],[-1.1,.15,0],[-1.3,.45,0]],.08,.02,c,8,5),K(.03,.2,-1.25,.6,0,[.3,.1,.08],0,0,-2.4)];
+  return {body:body(parts),wings:[1,-1].map(s=>({geo:wingGeo(1.8,.9,[.12,.1,.1]),x:.1,y:.02,z:.12*s,side:s}))};}});
 return { SPEC, geoCache };
 }
