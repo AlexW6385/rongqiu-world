@@ -2012,7 +2012,7 @@ function frameView(v){const tla=v.t[0]*D2R,tlo=v.t[1]*D2R;const tp=fromLL(tla,tl
     view.pitch=Math.max(-.6,Math.min(.75,Math.atan2(g0+v.aim-(gc+view.eye+view.fly),v.d)));return true;}
   return false;}
 function goPlace(p){view.fly=0;view.vz=0;arriveCurtain(p.n||'此地');const v=PLACE_VIEW[p.id];
-  view.hover=false;if(!(v&&frameView(v))){const [a,b]=landNear(p.la*D2R,p.lo*D2R);view.lat=a;view.lon=b;view.pitch=.04;view.heading=Math.random()*6.28;frameLandmark(a,b);}
+  view.hover=false;const ok=!!(v&&frameView(v));window.__jump=ok?'view':'fallback';if(!ok){const [a,b]=landNear(p.la*D2R,p.lo*D2R);view.lat=a;view.lon=b;view.pitch=.04;view.heading=Math.random()*6.28;frameLandmark(a,b);}
   camLeafSpan=1e6;setMode('ground');closeMap();updatePlaque();}
 
 /* ===== where am I ===== */

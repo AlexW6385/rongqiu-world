@@ -5,7 +5,7 @@ const errs=[];pg.on('pageerror',e=>errs.push('PAGEERR '+e.message));pg.on('conso
 await pg.addInitScript(()=>{window.__noloop=true;});await pg.goto('http://localhost:'+(process.env.PORT||8788)+'/'+(process.env.F||'test.html'),{waitUntil:'load'});await pg.waitForFunction(()=>window.__demo,null,{timeout:60000});
 await pg.evaluate(q=>{__demo.setQuality(q);},process.env.Q||'mid');
 if(process.env.VIEW)await pg.evaluate(v=>{__demo.setView(JSON.parse(v));},process.env.VIEW);
-if(process.env.PLACE)await pg.evaluate(id=>{__demo.goPlace(id);},process.env.PLACE);
+if(process.env.PLACE)console.log('jump',process.env.PLACE,await pg.evaluate(id=>{__demo.goPlace(id);return window.__jump;},process.env.PLACE));
 if(process.env.HOUR)await pg.evaluate(h=>{const e=document.querySelector('#sun');e.value=h;e.dispatchEvent(new Event('input'));},process.env.HOUR);
 for(let i=0;i<(+process.env.N||40);i++){await pg.evaluate(()=>__demo.render());await pg.waitForTimeout(60);}
 await pg.screenshot({path:(process.env.DIR||'shots')+'/'+(process.env.OUT||'v6_ground')+'.png',timeout:600000});
