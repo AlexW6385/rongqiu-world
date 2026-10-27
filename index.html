@@ -243,6 +243,7 @@ body.touch #hint{bottom:calc(160px + env(safe-area-inset-bottom,0px))}
 </script>
 <script type="module">
 import * as THREE from 'three/webgpu';
+import {CITY_SRC,buildCityGeos} from './src/city.js';
 import {wgsl,wgslFn,uniform,varying,attribute,positionWorld,positionLocal,positionGeometry,floor,atan,cross,normalLocal,normalWorldGeometry,normalView,modelWorldMatrix,instanceIndex,instanceColor,frontFacing,
   texture,textureLoad,uv,screenUV,screenCoordinate,Fn,If,Discard,select,vec2,vec3,vec4,float,int,ivec2,normalize,abs,max,min,clamp,mix,smoothstep,step,fract,sin,cos,dot,exp,length,
   instancedBufferAttribute,pass,mrt,output,velocity,packNormalToRGB,unpackRGBToNormal,sample,convertToTexture,renderOutput} from 'three/tsl';
@@ -334,7 +335,7 @@ const PIT_R=560/6371000,PIT_D=420,PIT_RINGS=24,PIT_LA=22,PIT_LO=-10,PIT_E=[-Math
 /* open ground with no trees: [centre, radius rad] — 立蝎之城 stands on an open grass plain (encyclopedia scorpion); a ring of open ground round the home tree (hometree) */
 const CLEARINGS=[[V(33.6,10.4),120/6371000],[V(-12,-78),1100/6371000],[V(32,8.3),140/6371000],[V(-4,56),500/6371000],[V(-14,63),790/6371000],[V(7.5,16.75),520/6371000],[V(-5.9,65.7),330/6371000]];  // + the Academy summit  // + the 翡翠港 town  // + inside the walls of 银之城 and 创造之城
 /* tall-fern jungle, no trees: the egg-boulder field of 翡翠龙之城 (encyclopedia emeraldcity) */
-const FERNZONES=[[V(12,-88),1400/6371000]];
+const FERNZONES=[[V(12,-88),3200/6371000]];   // the tall-fern jungle round 翡翠龙之城 (inside the walls is cleared: src/city.js)
 const F_PEAK=V(33.2,11.2),F_JADE=V(7.5,16.75),F_CPEAK=V(-6.2,66.2),F_ACAD=V(-5.9,65.7),F_SKULL=V(8,-33);
 /* snowline (m): falls with latitude; the whole southern continent is ice (encyclopedia south: 南之大陆, a white ice continent) */
 const SOUTH_C=V(-52,-18),CRYS_C=V(10,-100);   // CRYS_C: 结晶林地, bare floor
@@ -388,6 +389,7 @@ function features(nx,ny,nz,h,detail,coast,mMask){
   d=angTo(nx,ny,nz,F_JADE);if(d<.42*km){const t=sm(.42*km,.27*km,d);h=h*(1-t)+(4+1.2*fbm(nx*400000,ny*400000,nz*400000,2))*t;}
   // 地眼之湖：沙漠中心的绿洲巨湖
   d=angTo(nx,ny,nz,F_LAKE);if(d<.012){const t=sm(.012,.007,d);h=h*(1-t)+(-8)*t;}
+  h=cityFlatten(nx,ny,nz,h);   // city sites (src/city.js)
   return h;
 }
 function dryness(nx,ny,nz){return Math.max(sm(.16,.09,angTo(nx,ny,nz,F_DESERT)),sm(.07,.03,angTo(nx,ny,nz,F_SALT)),sm(.12,.06,angTo(nx,ny,nz,V(-17,75))));}
@@ -397,7 +399,7 @@ function faceUV(d){const ax=Math.abs(d[0]),ay=Math.abs(d[1]),az=Math.abs(d[2]);l
   else{if(d[2]>0){f=4;u=d[0]/az;v=d[1]/az;}else{f=5;u=-d[0]/az;v=d[1]/az;}}
   return [f,Math.atan(u)/(Math.PI/4),Math.atan(v)/(Math.PI/4)];}
 /* fixed landmarks: [lat, lon, kind, [[east m, north m, scale, lift m, yaw], ...]] */
-/* landmark tables: [lat, lon, kind, items]; item = [x m, y m, scale, lift m, heading rad] in the landmark's local frame, where +x points WEST and +y points north-ish (the tangent frame the worker uses); heading 0 = along +x.
+/* landmark tables: [lat, lon, kind, items]; item = [x m, y m, scale, lift m, heading rad] in the landmark's local frame, where +x points WEST and +y points SOUTH (the tangent frame the worker uses); heading h points along west·cos h + south·sin h.
    Sizes and layouts follow the encyclopedia entries named in the comments (rongqiu-source/encyclopedia/<id>.md). */
 const LMR=k=>{let x=Math.sin(k*127.1+311.7)*43758.5453;return x-Math.floor(x);};
 const ring=(n,r,f)=>Array.from({length:n},(_,i)=>f(i*6.2832/n,r,i));
@@ -422,7 +424,7 @@ const LANDMARKS=[
   [-4,56,'roundHall',[[60,40,1,0,0]]],
   // 骷髅岛's 1001 click-eggs: 1 × 2 m rocks set at regular spacing over the island, guiding animals through the fog (mistsea)
   [8,-33,'clickRock',(()=>{const o=[];for(let j=-12;j<=12;j++)for(let i=-26;i<=26;i++){const x=i*370,y=j*370;if((x/9800)**2+(y/4400)**2>1)continue;
-    const la=8+y/111195,lo=-33-x/(111195*Math.cos(8*D2R));const p=V(la,lo);if(terrain(p[0],p[1],p[2],50)<2)continue;o.push([x,y,.8+.4*LMR(i*31+j),0,LMR(i+j*57)*6.283]);}return o.slice(0,1001);})()],
+    const la=8-y/111195,lo=-33-x/(111195*Math.cos(8*D2R));const p=V(la,lo);if(terrain(p[0],p[1],p[2],50)<2)continue;o.push([x,y,.8+.4*LMR(i*31+j),0,LMR(i+j*57)*6.283]);}return o.slice(0,1001);})()],
   [-5.9,65.7,'roundHall',[[0,0,1.3,0,0]]],                                                    // 学院 (cloudpeak): the great hall on the summit
   [-5.9,65.7,'squareHall',ring(7,62,(a,r,i)=>[Math.cos(a)*r,Math.sin(a)*r,.55+(i%2)*.15,0,a+1.5708])],   // classrooms and the library round it
   // capital: the 银甲龙 capital — the same building language at larger scale, with military halls and a silver pyramid over the dock cavern
@@ -440,6 +442,7 @@ const LANDMARKS=[
    LANDMARKS.push([la,lo,'pyramid',items]);CLEARINGS.push([p,(60+n*55)/6371000]);}}
 function regionIdx(nx,ny,nz){let b=0,k=-1;REG.forEach((r,i)=>{const m=sm(r[3]*1.22,r[3]*.72,angTo(nx,ny,nz,r));if(m>b){b=m;k=i;}});return b>.5?k:-1;}
 function moisture(nx,ny,nz){return fbm(nx*7+11,ny*7,nz*7+5,3)*.5+.5;}
+${CITY_SRC}
 `;
 const T=new Function(TERRAIN_SRC+';return {terrain,moisture,dryness,fbm,pn,angTo,V,regionIdx,LANDMARKS,sm,segDist,F_RIFT};')();
 
@@ -549,6 +552,7 @@ onmessage=e=>{
       const sl=Math.hypot(hAt(Math.min(i+1,SEG),j)-hAt(Math.max(i-1,0),j),hAt(i,Math.min(j+1,SEG))-hAt(i,Math.max(j-1,0)))/(2*detail);if(sl>1.1)continue;
       if(h>snowLineAt(d[0],d[1],d[2]))continue;
       if(angTo(d[0],d[1],d[2],F_CPEAK)<.00085&&rnd()>.03)continue;   // 云中山峰: bare rock
+      if(cityInside(d[0],d[1],d[2])>.5)continue;   // city streets (src/city.js)
       const moist=moisture(d[0],d[1],d[2]),dry=dryness(d[0],d[1],d[2]);
       const r=R+h;const x=d[0]*r,y=d[1]*r,z=d[2]*r;const yaw=rnd()*6.283;
       if(level===16){ // dense ground cover only
@@ -572,8 +576,8 @@ onmessage=e=>{
         if(ae>.1335&&ae<.16){if(rnd()<.3)add('grass',x,y,z,d[0],d[1],d[2],.4+rnd()*.3,yaw);continue;}}
       if(h<3){if(rnd()<.1)add('grass',x,y,z,d[0],d[1],d[2],.6+rnd()*.6,yaw);continue;}
       const inSpires=zone.spires<SPIRE_R*2+.0005&&angTo(d[0],d[1],d[2],SPIRE_C)<SPIRE_R*1.9;   // and the open rock plain and desert round it (encyclopedia spires: outside is desert or dry rock)
-      if(FERNZONES.some(([c,r])=>angTo(d[0],d[1],d[2],c)<r)){if(rnd()<.35)add('fern',x,y,z,d[0],d[1],d[2],.9+rnd()*.9,yaw);else if(rnd()<.4)add('grass',x,y,z,d[0],d[1],d[2],.9+rnd()*.9,yaw);continue;}
       if(CLEARINGS.some(([c,r])=>angTo(d[0],d[1],d[2],c)<r)){if(moist>.2&&rnd()<.5)add('grass',x,y,z,d[0],d[1],d[2],.9+rnd()*.9,yaw);continue;}
+      if(FERNZONES.some(([c,r])=>angTo(d[0],d[1],d[2],c)<r)){if(rnd()<.35)add('fern',x,y,z,d[0],d[1],d[2],.9+rnd()*.9,yaw);else if(rnd()<.4)add('grass',x,y,z,d[0],d[1],d[2],.9+rnd()*.9,yaw);continue;}
       const forest=inSpires?.003:(zone.jungle<.05||zone.glow<.03)?.8:moist>.5?.6:moist>.35?.25:.05;
       if(rnd()<forest&&trees<1600&&sl<.8){trees++;
         if(region===0||zone.jungle<.06){
@@ -747,6 +751,7 @@ const terrainF=wgslFn(/* wgsl */`fn terrainF(P4:vec4f,N4:vec4f,D4:vec4f,DT:vec4f
     col=mix(col,rock*(0.8+0.4*v2)*(0.9+0.2*v3),rk);
     col=mix(col,vec3f(0.25,0.245,0.235)*(0.8+0.4*v3),ss(0.03,0.022,acos(clamp(dot(n,vec3f(-0.1710,0.1736,0.9698)),-1.0,1.0))));   // 结晶林地: bare rock and gravel floor (encyclopedia jingshu)
     col=mix(col,rock*(0.75+0.5*v2)*(0.85+0.3*v3),ss(0.0009,0.0005,length(n-vec3f(0.4012,-0.1080,-0.9096))));   // 云中山峰: mostly hard steep rock (encyclopedia cloudpeak)
+    col=mix(col,vec3f(0.4,0.35,0.28)*(0.85+0.3*v3),ss(0.000233,0.000212,length(n-vec3f(0.034136859,0.207911691,0.97755174))));   // 翡翠龙之城: trodden-earth streets inside the walls
     if(df2>0.001){ // close-up surface detail: triplanar grass / rock / sand maps at two scales
       col*=mix(vec3f(1.0),det*1.5+0.25,df2*0.9);
       N=dbump(N,dpx,dpy,dhx*0.06*df2,dhy*0.06*df2);
@@ -1041,7 +1046,7 @@ onmessage=e=>{const {A,E,Nn,U,N,S,id}=e.data;const out=new Float32Array(N*N*4);
     const h=terrain(nx,ny,nz,0.5);const r=${R}+Math.max(h,0);
     const y=(nx*r-A[0])*U[0]+(ny*r-A[1])*U[1]+(nz*r-A[2])*U[2];
     const moist=moisture(nx,ny,nz),dry=dryness(nx,ny,nz),la=Math.abs(ny),snow=snowLineAt(nx,ny,nz);
-    const k=(j*N+i)*4;out[k]=y;out[k+1]=sm(2,6,h)*sm(.18,.42,moist)*(1-sm(.25,.6,dry))*sm(snow-150,snow-650,h)*sm(.022,.03,angTo(nx,ny,nz,CRYS_C))*sm(.0005,.0009,angTo(nx,ny,nz,F_CPEAK));out[k+2]=moist;out[k+3]=h;}
+    const k=(j*N+i)*4;out[k]=y;out[k+1]=sm(2,6,h)*sm(.18,.42,moist)*(1-sm(.25,.6,dry))*sm(snow-150,snow-650,h)*sm(.022,.03,angTo(nx,ny,nz,CRYS_C))*sm(.0005,.0009,angTo(nx,ny,nz,F_CPEAK))*(1-cityInside(nx,ny,nz));out[k+2]=moist;out[k+3]=h;}
   for(let j=1;j<N-1;j++)for(let i=1;i<N-1;i++){const k=(j*N+i)*4;const sl=Math.hypot(out[k+4]-out[k-4],out[k+N*4]-out[k-N*4])/(2*S/(N-1));out[k+1]*=sm(1.0,.5,sl);}   // no grass on steep ground
   postMessage({out,id},[out.buffer]);};`],{type:'text/javascript'})));
 const grassTex=new THREE.DataTexture(new Float32Array(GR.N*GR.N*4),GR.N,GR.N,THREE.RGBAFormat,THREE.FloatType);grassTex.needsUpdate=true;
@@ -1494,7 +1499,9 @@ function resolveCollisions(){const h=ground(view.lat,view.lon);const p=fromLL(vi
       const k=(rr-dd)/dd;px+=hx*k;py+=hy*k;pz+=hz*k;hit=true;}}
   if(hit){const ll=toLL(px,py,pz);view.lat=ll.lat;view.lon=ll.lon;}}
 /* landmark framing for travel: where each landmark item stands, and how far back to stand to see it whole */
+/* city kinds (src/city.js) are merged in below */
 const LM_VIEW={hometree:{r:26,h:320,v:260},deadGiant:{r:26,h:300,v:340},pyramid:{r:36,h:50,v:380},eggRock:{r:24,h:18,v:140},floatIsle:{r:0,h:0,v:950},floatRock:{r:0,h:0,v:400},clickRock:{r:1.2,h:1.2,v:16},house:{r:9,h:14,v:110},tower:{r:9,h:95,v:240},mound:{r:7,h:22,v:70},coneHouse:{r:3.6,h:7,v:60},barMetal:{r:1,h:6,v:60},squareHall:{r:12,h:11,v:120},roundHall:{r:15,h:20,v:110},silverPyramid:{r:22,h:34,v:160},crystalPeak:{r:380,h:240,v:950}};
+{const cg=buildCityGeos({THREE,merge,M4});Object.assign(GEOS,cg.GEOS);Object.assign(COLL,cg.COLL);Object.assign(LM_VIEW,cg.LM_VIEW);for(const k of cg.STATIC)STATIC.add(k);}
 function landmarkItems(){const out=[];for(const [la,lo,kind,items] of T.LANDMARKS){const p=T.V(la,lo);const ex=-p[2],ez=p[0];const el=Math.hypot(ex,ez)||1;const E=[ex/el,0,ez/el];const N=[p[1]*E[2]-p[2]*E[1],p[2]*E[0]-p[0]*E[2],p[0]*E[1]-p[1]*E[0]];
   for(const [ox,oz,sc,lift] of items){let x=p[0]+(E[0]*ox+N[0]*oz)/R,y=p[1]+(E[1]*ox+N[1]*oz)/R,z=p[2]+(E[2]*ox+N[2]*oz)/R;const l=Math.hypot(x,y,z);out.push({kind,x:x/l,y:y/l,z:z/l,sc,lift});}}return out;}
 const LM_ITEMS=landmarkItems();
@@ -1712,6 +1719,7 @@ function speciesFor(c,night){const w=[];const add=(k,x)=>w.push([k,x]);
     if(near(33.6,10.4,.0007))add('naodai',3),add('naoInf',3);                         // the 脑袋虫 mounds
     if(c.dry>.35){add('scorpion',3);add('dragonfly',night?0:3);add('worm',.35);add('deepbus',.4);}
     else{add('landshark',c.moist>.45?2:.5);add('beetle',c.moist>.5?2:.8);add('roach',1.2);add('lizard',1.5);add('dragonfly',night?0:1.5);add('silverbeetle',1.6);add('redspider',night?2:.4);}}
+  else if(c.region===1&&near(12,-88,.00028)){add('emerald',8);add('yalong',.5);add('maoyu',.4);}   // inside the walls of 翡翠龙之城: its people, their 亚龙, 毛玉 pests (encyclopedia emeraldcity)
   else if(c.region===1){if(c.dry>.35)add('maoyu',3);else{add('ceratops',c.slope<.25?3:0);add('gulong',c.moist>.45?2.5:1);add('maoyu',2.5);add('tyrant',.35);add('dachuolong',c.slope<.3?2:.3);add('jianjia',1);
       add('centipede',c.moist>.45?1:.3);add('icespider',c.moist>.5?.9:.2);add('jingzhui',near(10,-100,.03)?1.2:0);   // one tortoise per region, only round the crystal woodland (encyclopedia jingzhui)
       if(near(22,-94,.05))add('zaonao',2);}
@@ -2311,7 +2319,7 @@ addEventListener('keydown',e=>{if(e.target&&e.target.tagName==='INPUT'&&e.target
    to the camera (deg). The camera is set down facing the target so the place is in view on arrival. */
 const PLACE_VIEW={
   hometree:{t:[32,8.3],d:125,aim:190,b:180},frozentree:{t:[40,6.65],d:700,aim:160,b:200,water:1},
-  scorpion:{t:[-12,-78],d:650,aim:25,fly:12,b:180},emeraldcity:{t:[12,-88.00276],d:75,aim:8,b:0},greenpool:{t:[12,-88.00276],d:75,aim:8,b:0},   // the first egg boulder (landmark item +x is local west)
+  scorpion:{t:[-12,-78],d:650,aim:25,fly:12,b:180},emeraldcity:{t:[11.98632,-88],d:120,aim:9,b:180},greenpool:{t:[12,-88.00276],d:75,aim:8,b:0},   // the first egg boulder (landmark item +x is local west)
   naodaimound:{t:[33.6,10.4],d:75,aim:12,b:200},fogpillar:{t:[-7.5,59],d:90000,aim:12000,fly:900,b:300},isles:{t:[34,10],d:1100,aim:260,fly:35,b:180},jadeport:{t:[7.5,16.75],d:260,aim:6,b:180,water:1},
   silvercity:{t:[-4,56],d:580,aim:12,fly:45,b:180},capital:{t:[-14,63],d:900,aim:30,fly:90,b:180},
   jjzs:{t:[71,34],d:1300,aim:180,fly:20,b:180,water:1},inca_pit:{t:[22,-10],d:585,aim:0,fly:40,b:0},
@@ -2588,7 +2596,7 @@ function tick(now,force){
 }
 function fail(msg){const d=document.createElement('div');d.id='err';d.textContent=msg;document.body.appendChild(d);$('#load').classList.add('off');}
 window.__music=MUSIC;window.__demo={goPlace:id=>goPlace(PLACES.find(p=>p.id===id)),crdbg:()=>CREATURES.map(c=>{const q=c.obj.position.clone().project(camera);const wp=new THREE.Vector3();c.obj.children[0].getWorldPosition(wp);return c.key+' ndc '+q.x.toFixed(2)+','+q.y.toFixed(2)+','+q.z.toFixed(4)+' child0 '+wp.toArray().map(v=>v.toFixed(1)).join(',');}).join(' | ')+' heading '+view.heading.toFixed(2),showcase:list=>{for(const c of CREATURES)fauna.remove(c.obj);CREATURES.length=0;spawnT=1e9;const {east,north}=frameAt(view.lat,view.lon);
-  list.forEach(([k,dist,side],i)=>{const sp=SPEC[k];const o=makeCreature(k,{});fauna.add(o);const a=view.heading+side;CREATURES.push({sp,key:k,obj:o,lat:view.lat+Math.cos(a)*dist/R,lon:view.lon+Math.sin(a)*dist/R/Math.cos(view.lat),heading:view.heading+Math.PI/2,alt:sp.fly?sp.fly[0]+2:0,ph:i,t:0,pause:0});});},levels:()=>{const c={};const walk=n=>{const k=n.level+':'+n.state+(n.flora?'F':'')+(n.mesh&&n.mesh.visible?'v':'');c[k]=(c[k]||0)+1;if(n.kids)n.kids.forEach(walk);};roots.forEach(walk);return JSON.stringify(c);},flora:()=>{let g=0,i=0;flora.children.forEach(o=>{if(o.visible){g++;o.children.forEach(m=>{i+=m.count;});}});return [g,i];},creatures:()=>CREATURES.map(c=>c.key).join(','),dbg:n=>{terrainMat.uniforms.uDbg.value=n;},goPlace:id=>goPlace(PLACES.find(p=>p.id===id)),hide:o=>{if(o.cloud!==undefined)cloud.visible=!o.cloud;if(o.terrain!==undefined)planet.visible=!o.terrain;},openMap,closeMap,goView,setSun,setQuality:q=>{qmode=q;applyQuality();},render:()=>tick(performance.now(),true),ready:()=>busy===0&&queue.length===0,view,setView:o=>{Object.assign(view,o);if(o.mode)setMode(o.mode);},tiles:()=>visibleTiles};
+  list.forEach(([k,dist,side],i)=>{const sp=SPEC[k];const o=makeCreature(k,{});fauna.add(o);const a=view.heading+side;CREATURES.push({sp,key:k,obj:o,lat:view.lat+Math.cos(a)*dist/R,lon:view.lon+Math.sin(a)*dist/R/Math.cos(view.lat),heading:view.heading+Math.PI/2,alt:sp.fly?sp.fly[0]+2:0,ph:i,t:0,pause:0});});},levels:()=>{const c={};const walk=n=>{const k=n.level+':'+n.state+(n.flora?'F':'')+(n.mesh&&n.mesh.visible?'v':'');c[k]=(c[k]||0)+1;if(n.kids)n.kids.forEach(walk);};roots.forEach(walk);return JSON.stringify(c);},flora:()=>{let g=0,i=0;flora.children.forEach(o=>{if(o.visible){g++;o.children.forEach(m=>{i+=m.count;});}});return [g,i];},creatures:()=>CREATURES.map(c=>c.key).join(','),kinds:()=>{const c={};flora.children.forEach(g=>g.children.forEach(m=>{const k=m.userData.k;if(k)c[k]=(c[k]||0)+(g.visible&&m.visible?m.count:0);}));return JSON.stringify(c);},dbg:n=>{terrainMat.uniforms.uDbg.value=n;},goPlace:id=>goPlace(PLACES.find(p=>p.id===id)),hide:o=>{if(o.cloud!==undefined)cloud.visible=!o.cloud;if(o.terrain!==undefined)planet.visible=!o.terrain;},openMap,closeMap,goView,setSun,setQuality:q=>{qmode=q;applyQuality();},render:()=>tick(performance.now(),true),ready:()=>busy===0&&queue.length===0,view,setView:o=>{Object.assign(view,o);if(o.mode)setMode(o.mode);},tiles:()=>visibleTiles};
 applyQuality();{const [a,b]=landNear(view.lat,view.lon);view.lat=a;view.lon=b;}setMode('ground');updateSun(0);updatePlaque();
 let curtain={t:0,max:9};function arriveCurtain(name){const l=$('#load');l.textContent=name?'前往 '+name:'正在生成绒球';l.classList.remove('off');curtain={t:0,max:name?5:9};}
 if(!window.__noloop)requestAnimationFrame(tick);else $('#load').classList.add('off');

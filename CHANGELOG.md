@@ -2,6 +2,15 @@
 
 What you can see in the world that is new, newest first. Each release follows the encyclopedia written from the novel (`DESIGN.md` §4).
 
+## v3.1 — 翡翠龙之城 (2026-10-27)
+
+The first city, as the book describes it at the height of the 翡翠龙 empire.
+
+- A ten-metre wall of squared stone some three kilometres across, with one five-metre gate to the south; the fern jungle stops a short way outside it.
+- A pure white stone avenue runs from the gate to the plaza and the statue of 苏苏米; behind it the palace, a great square hall with a pyramid roof and a 暴君巨蜥 skull over each door, with the hall of worship and its fire basin, and the school hall.
+- The upper district's white-sand lanes are lined with tall white houses with statues on their roofs; the common district is a grid of square stone houses with flat roofs on streets of trodden earth; round each egg boulder the lower district's piled-stone shanties crowd together, and timber 亚龙 roosts stand on the boulders.
+- The streets belong to the 翡翠龙; the wild animals stay outside the walls.
+
 ## v3.0 — Nature as the book places it (2026-10-27)
 
 The end of the nature phase: plants, landscapes and creatures are now spread the way the encyclopedia entries describe them.

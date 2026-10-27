@@ -35,6 +35,7 @@ What the world got wrong against the encyclopedia entries (rongqiu-source `encyc
 | `jinzita` 金字塔 | only at 立蝎之城 | also scattered singly and in rows through the southern jungle toward the 翡翠龙 city, each in a grass clearing | 16 sites of 1–3 pyramids (11–50 m) in clearings between the two cities |
 | `xueqiu` 血球树 | a blob of 6 m trees | a dense belt of ~2 m blood-ball trees along the inner edge of the east's desert, then a moss plain | a belt ~60 km wide of 2–3 m trees round the desert, then a ~190 km ring of low moss cover |
 | `baozhajq` 爆炸尖球 | scattered over the island | a line of them 1–2 m apart where the moss belt ends | a narrow dense band round the island's interior |
+| `emeraldcity` 翡翠龙之城 | egg boulders in fern jungle only | the imperial capital: 10 m squared-stone wall, 5 m gate, white-paved avenue, white-sand upper district with tall white houses, palace with pyramid roof and skull, hall of worship with its fire basin, statue plaza, common district of square stone houses, lower-district shanties round the boulders, timber 亚龙 roosts; trees cleared | all of these, ~3 km across, from a city plan in `src/city.js` (Cities L1–L2: site, silhouette, walls, main buildings, streets, collision) |
 | creature groups | small fixed groups | 角龙 herds of ~30, 骸龙 bands of 15–30, 白骸龙 groups up to ~15, 迷雾蠕虫 in threes; one 晶锥陆龟 per region; 飞龙 nearly extinct, by the volcanoes | group sizes and rarities set from the entries (rongqiu-source `encyclopedia/density.md`) |
 | `jadeport` 翡翠港 | houses half in the sea among islets | a harbour town on the shore | a low shore terrace carries the town |
 
@@ -79,5 +80,6 @@ What the world got wrong against the encyclopedia entries (rongqiu-source `encyc
 | Entry | Issue | Phase |
 |---|---|---|
 | `hometree` | waterfall from ~190 m, fluff-cloud band at ~100 m, clearing round the trunk, underground forest of home trees | 3 / 5 |
-| `emeraldcity`, `whiteisle`, `longqimu`, `jadeport` | full city layouts (walls, districts, castle 500 × 500 × 100 m) | 4 / 6 |
+| `whiteisle`, `longqimu`, `jadeport` | full city layouts (walls, districts, castle 500 × 500 × 100 m) | 6 |
+| `emeraldcity` | street life (crowds, traders, fire-basins lit at night), interiors, the underground gallery | 6–8 |
 | `guanglong` 光龙 | ~100 m sky-eel in the book; 42 m in the world (needs its own entry first) | 5 |
