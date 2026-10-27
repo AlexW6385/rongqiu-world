@@ -2,6 +2,31 @@
 
 What the world got wrong against the encyclopedia entries (rongqiu-source `encyclopedia/<id>.md`), and what was done about it. Newest pass first. "Open" items are scheduled in the phase named.
 
+## Pass 2 — Phase 3, first round (2026-10-26)
+
+### Fixed
+
+| Entry | Was | Book says | Now |
+|---|---|---|---|
+| `cloudsea` 三层云海 | no low cloud over the east | three walkable sheets 100–200 m above the ground and ~200 m apart, tens of m thick, holed, glowing underside | three sheets at ~960 / 1180 / 1400 m over the 银甲龙 lands, billows and holes, bright underside |
+| `jungle`, `niuqushu` 扭曲丛林 | uniform 17–35 m trees | ~30 m trees; paired giants over 100 m on the desert-facing edge; a dark second layer of crossing trunks ~10 m up | 30–40 m trees; 100–140 m giants in the edge band; bark-covered crossing trunks |
+| `siwangjianci` 死亡尖刺 | small spiky shrubs in the open desert | 50 m purple columns with red sticky spikes, a planted wall inside the underworld | removed from the surface; built as the wall inside the underworld |
+| `under` 地下世界 | absent | cavern 10+ km wide under the desert, ceiling ~300 m glowing like a sun and dimming at night, 20 m fern-tree forest, 50 m home-tree pillars every ~200 m, ceiling ~50 m at the borders with a line of 死亡尖刺 | built as a cavern from the 印加 pit toward the volcano (west of the canyon — the canyon is what it later became), with all of these; entered from the map |
+| `peak` 山峰 | broad 1.5 km dome far north-east of the jungle | a mountain over 1000 m in the middle of the jungle with a crater lake 500 m wide, 200 m deep | a 1.3 km cone at the jungle centre with a 500 m crater (water pending Water L3) |
+| `frozentree` | dead giants in a forest | on the glacier the canyon froze into | on the canyon's frozen stretch (north of ~37°) |
+| `rift` 大裂谷 | floor below sea level — a sea channel | floor of dark mud and rock | floor kept above sea level |
+| `jadeport` 翡翠港 | town inside forest | harbour town | forest cleared |
+| `emerald`, `baihai`, `yinjia`, `lixie` | absent | the peoples of the dino and revival eras | built and spawned round their cities and island |
+
+### Open
+
+| Entry | Issue | Phase |
+|---|---|---|
+| `under` | river (5 m), waterfall lake, glow-worm cave, lava rift, 印加 nests, steam vents; the drain from the pit floor as a walkable way in; creatures of the cavern | 5 (Landscapes L3, Water L3) |
+| `peak` | the crater lake's water (mountain lakes need Water L3) | 5 |
+| `cloudsea` | standing and walking on the sheets; the 50 km fog pillar near 银之城 | 5 |
+| `rift` | the fog filling it to the rim; the 100 m bone bridge | 3 (Weather L2) / 5 |
+
 ## Pass 1 — tier-1 entries (2026-10-26)
 
 ### Fixed

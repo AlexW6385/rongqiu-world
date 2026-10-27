@@ -190,6 +190,8 @@ Append-only. One line per decision: date, decision, reason.
 
 - 2026-10-26 — Map jumps use per-place viewpoints (`PLACE_VIEW`): a target, a distance, a look-at height and a preferred side; the camera lands where terrain does not hide the target and holds any vantage height until the player moves. Reason: author asked that every jump lands beside the place with it in view.
 - 2026-10-26 — Climb and descent speed scale linearly with the speed setting (they scaled with its square root). Reason: author asked that flying speed rise with the speed setting.
+- 2026-10-26 — The underworld is placed under the desert from the 印加 pit toward the volcano, west of the canyon, and drawn as its own camera-following cavern with its own light (the surface world is hidden inside it). Reason: the book's underworld collapses into the canyon; showing each in its own era needs them side by side, and a heightfield planet cannot hold a cave.
+- 2026-10-26 — Low cloud sheets and caves are meshes in camera-following patches whose shapes come from noise in planet coordinates (rebuilt every 1.5–3 km of travel). Reason: they must be solid to stand under or on and occlude correctly; the volumetric sky is drawn behind the terrain.
 
 ## 11. Roadmap and status
 
