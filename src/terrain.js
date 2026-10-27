@@ -176,6 +176,13 @@ const LANDMARKS=[
   [-14,63,'silverPyramid',[[0,0,1,0,0]]],
   [71,34,'crystalPeak',[[0,0,1,0,0]]]   // jjzs: a ring wall of crystal rising out of the polar sea ice
 ];
+/* 印加巨坑 (encyclopedia inca_pit): cave mouths 1–2 m across in the risers of the upper terraces, and the boulders that plug the
+   hole in the white-sand floor */
+{const caves=[];for(let K=PIT_RINGS-5;K<PIT_RINGS;K++)for(let q=0;q<22;q++){const a=(q+.5*(K%2))/22*2*Math.PI-Math.PI+(LMR(K*31+q)-.5)*.12;
+   let t=a/(2*Math.PI);t-=Math.floor(t);const u=.05+.95*(K+.38-t)/PIT_RINGS;if(u<.3||u>.97)continue;const r=u*560-.5;
+   caves.push([-r*Math.cos(a),-r*Math.sin(a),.75+.6*LMR(K*7+q),1.1,a]);}
+ LANDMARKS.push([PIT_LA,PIT_LO,'caveMouth',caves]);
+ LANDMARKS.push([PIT_LA,PIT_LO,'rock',[[0,0,2.6,0,0],[4,2,1.8,0,1],[-3,3,2,0,2],[2,-4,1.6,0,3],[-4,-2,1.4,0,4]]]);}
 /* 立蝎 pyramids spread through the southern dinosaur jungle (encyclopedia jinzita): some alone, some in short rows, more of them
    toward the 翡翠龙 city as the 立蝎 build northward; each in a ~50 m grass clearing */
 {for(let k=0;k<16;k++){const t=.12+.8*LMR(k+3100),la=-12+24*t+(LMR(k+3200)-.5)*3,lo=-78-10*t+(LMR(k+3300)-.5)*4;const p=V(la,lo);
@@ -193,6 +200,8 @@ ${CITY_SRC}
 var RIV;
 const RIVERS=[
   {id:'julong',pts:[[21.45,-93.25],[19,-90],[15,-86],[11,-82],[8,-78],[5,-75],[2,-75.5],[-2,-77],[-8,-79.5],[-13,-81.5],[-17,-82],[-20.5,-82.5]],w0:180,w1:420,depth:6,muddy:1,sea:1},
+  // the home tree stands on a river (encyclopedia hometree): its waterfall's pool runs off east through the jungle
+  {id:'hometree',pts:[[31.9997,8.3],[32.0167,8.3354],[32.0217,8.38],[32.0355,8.4228],[32.0382,8.4669],[32.0371,8.5124],[32.0337,8.5587],[32.0368,8.599],[32.0399,8.6438]],w0:7,w1:14,depth:1.6,muddy:0},
   {id:'glow',pts:[[29.16,7.93],[29.09,7.97],[29.03,7.99],[28.97,8.03],[28.92,8.07],[28.86,8.12]],w0:2.4,w1:3.2,depth:1.1,muddy:0}];
 function prepRivers(){const out=[];
   for(const r of RIVERS){const P=r.pts.map(([la,lo])=>V(la,lo));const seg=[];let L=0;

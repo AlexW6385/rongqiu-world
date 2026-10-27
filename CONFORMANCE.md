@@ -39,6 +39,8 @@ What the world got wrong against the encyclopedia entries (rongqiu-source `encyc
 | `peak` 山中湖 | dry dip at the summit | a crater lake 500 m across and 200 m deep | a crater bowl ~170 m deep with a lake ~500 m across (first lake above sea level) |
 | `atmount` 巨龙之河 | no rivers anywhere | a ~200 m muddy river from the cave at the mountain's foot across the inner dinosaur continent | a river from the mountain to the south coast, 180–420 m wide, brown water, its own valley and gorges |
 | `glow` 小溪 | none | a 2 m stream dividing the glow woodland from the dark plain | a 2–3 m stream along that line |
+| `inca_pit` | bare terraces | cave mouths 1–2 m across on the upper terraces; a boulder-plugged hole in the white-sand floor | ~100 cave mouths in the risers of the top five rings; boulders on the floor |
+| `hometree` | dry ground round the trunk | the tree stands on a river; the waterfall's water runs off | a 7–14 m river from the tree's pool east through the jungle |
 | creature groups | small fixed groups | 角龙 herds of ~30, 骸龙 bands of 15–30, 白骸龙 groups up to ~15, 迷雾蠕虫 in threes; one 晶锥陆龟 per region; 飞龙 nearly extinct, by the volcanoes | group sizes and rarities set from the entries (rongqiu-source `encyclopedia/density.md`) |
 | `jadeport` 翡翠港 | houses half in the sea among islets | a harbour town on the shore | a low shore terrace carries the town |
 
