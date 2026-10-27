@@ -198,6 +198,7 @@ Append-only. One line per decision: date, decision, reason.
 - 2026-10-27 — The east's fog pillar is a single static mesh 50 km across and ~34 km tall with a winding spiral, placed between 银之城, 云中山峰 and 创造之城, with a fog bank inside; the cloud sea now follows a smoothed ground (150 / 370 / 590 m up) instead of fixed altitudes. Reason: encyclopedia east — the pillar is the plateau's landmark; the sheets are described as 100–200 m above the ground.
 - 2026-10-27 — Where a city site falls in an unbuildable spot (翡翠港 among islets), the terrain is shaped locally (a low shore terrace) rather than moving the site far from the book's location. Reason: keeps the map position and makes the town stand on land.
 - 2026-10-27 — The sky is set in a moon visit, since the world already shows the floating 鸣石 islands that only stay up while the moon is near: the moon is sky-blue, larger than the sun, a sea world with pale islands, and keeps its fast 8-day round so its phase can be seen in one evening; the 1060-cycle year is not shown (no seasons yet). Reason: encyclopedia rongqiu — one consistent sky that fits the places shown.
+- 2026-10-27 — Generation rules start from a habitat/density table extracted from the entries (rongqiu-source `encyclopedia/density.md`); first applied to the spire forest (rows on a shared lattice in cube-face coordinates, every 7th point drawn far away and the rest only near, so the 3 m gaps exist where you walk) and to creature group sizes and rarities. Reason: §8 Creatures/Vegetation L1 ask for encyclopedia densities; a lattice keeps the book's neat rows without overlapping pillars across tile levels.
 
 ## 11. Roadmap and status
 
@@ -217,7 +218,8 @@ The implementing agent updates this section at the end of every work session: mo
 
 **Phase 3 — Rich nature** (in progress; v2.1 released 2026-10-27)
 - Done, checked with `dev/shot.cjs` and pushed: cloud sea (three sheets following the ground, lit through), fog pillar, twisted-jungle edge giants and second layer, death-spike wall (in the underworld), underworld L1, peak and crater, glacier, rift fog, fog seas, crystal ring, crystal woodland, southern ice continent, 云中山峰 and the Academy peak, the moon of a moon visit, home-tree fluff band and waterfall, the Phase 2 peoples and creatures placed by their cities, Water L2 (shallows, sky reflection, surf), Weather L2 cloud cover by region, Sound L1.
-- Remaining: turn encyclopedia habitat/density statements into generation rules across the continents (Creatures L1, Vegetation L1, Landscapes L1–L2) — a density table per entry, checked against the encyclopedia; Weather L2 sunrise/sunset moods where the book describes them; baking/caching per §6 where it helps; verify budgets.
+- Generation rules from `encyclopedia/density.md`: spire forest and creature groups done; remaining: turn the other habitat/density statements into generation rules across the continents (Creatures L1, Vegetation L1, Landscapes L1–L2) — a density table per entry, checked against the encyclopedia; Weather L2 sunrise/sunset moods where the book describes them; baking/caching per §6 where it helps.
+- Budget check 2026-10-27: initial load is 29 requests, 6.05 MB uncompressed (three.js 3.6 MB of it, gzip-served by jsDelivr), well under the 15 MB limit; no on-demand regional data yet.
 
 **Phase 4 — First city**
 - City layer design (plan format, building generator, collision). Build the one city with the richest encyclopedia entry to Cities L1–L2.

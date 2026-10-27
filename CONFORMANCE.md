@@ -28,6 +28,8 @@ What the world got wrong against the encyclopedia entries (rongqiu-source `encyc
 | `cloudsea` 三层云海 | sheets at fixed altitudes (the plateau poked through them); dark undersides | 100–200 m above the ground, ~200 m apart; the ceiling shines like a clear day | sheets follow the smoothed ground at 150 / 370 / 590 m; lit through, bright from below |
 | `rongqiu` 月 | a pale grey moon smaller than the sun | in a visit the moon shines sky-blue and looks bigger than the sun; a sea world with islands | sky-blue, larger than the sun, pale islands (the sky is set in a moon visit) |
 | `cloudpeak` 云中山峰 · 学院 | one broad 100 km dome, academy merged into it | two peaks: a steep rock mountain through all three cloud sheets, and a lower one whose top just clears the third, crowned by the Academy's alloy buildings | a ~6 km rock spire on the dome; a flat-topped Academy peak ~60 km away with a domed great hall and seven halls round it; both on the map |
+| `spires` 尖柱林 | ~45 m spacing in a ~19 km disc | pillars packed in rows with ~3 m gaps, a forest some tens of km round, ringed by a wall of the tallest | rows at 6.5 m pitch (3–4 m pillars, ~3 m gaps) in an ~8 km disc, a wall of 115–130 m pillars round it; distant view keeps every 7th |
+| creature groups | small fixed groups | 角龙 herds of ~30, 骸龙 bands of 15–30, 白骸龙 groups up to ~15, 迷雾蠕虫 in threes; one 晶锥陆龟 per region; 飞龙 nearly extinct, by the volcanoes | group sizes and rarities set from the entries (rongqiu-source `encyclopedia/density.md`) |
 | `jadeport` 翡翠港 | houses half in the sea among islets | a harbour town on the shore | a low shore terrace carries the town |
 
 ### Open
