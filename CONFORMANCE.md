@@ -29,6 +29,9 @@ What the world got wrong against the encyclopedia entries (rongqiu-source `encyc
 | `rongqiu` 月 | a pale grey moon smaller than the sun | in a visit the moon shines sky-blue and looks bigger than the sun; a sea world with islands | sky-blue, larger than the sun, pale islands (the sky is set in a moon visit) |
 | `cloudpeak` 云中山峰 · 学院 | one broad 100 km dome, academy merged into it | two peaks: a steep rock mountain through all three cloud sheets, and a lower one whose top just clears the third, crowned by the Academy's alloy buildings | a ~6 km rock spire on the dome; a flat-topped Academy peak ~60 km away with a domed great hall and seven halls round it; both on the map |
 | `spires` 尖柱林 | ~45 m spacing in a ~19 km disc | pillars packed in rows with ~3 m gaps, a forest some tens of km round, ringed by a wall of the tallest | rows at 6.5 m pitch (3–4 m pillars, ~3 m gaps) in an ~8 km disc, a wall of 115–130 m pillars round it; distant view keeps every 7th |
+| `isles`, `mingshidao` 空中群岛 | six large islands | an archipelago over 5–10 km²: hundreds of chunks from 1 to 200 m, a dozen big forested ones | 12 forested islands and 220 bare song-stone chunks (1–46 m), 200–320 m up |
+| `mistsea` 骷髅岛 | a ~150 km, 200 m-high island | flat, ~20 × 9 km; 1001 click-eggs in 1 × 2 m rocks at regular spacing, heard through the fog | a flat ~25 km island; ~990 click-egg rocks on a 370 m grid; their double clicks in the soundscape |
+| `hometree` sound | silent | the waterfall pours down the trunk | waterfall hiss near the tree |
 | creature groups | small fixed groups | 角龙 herds of ~30, 骸龙 bands of 15–30, 白骸龙 groups up to ~15, 迷雾蠕虫 in threes; one 晶锥陆龟 per region; 飞龙 nearly extinct, by the volcanoes | group sizes and rarities set from the entries (rongqiu-source `encyclopedia/density.md`) |
 | `jadeport` 翡翠港 | houses half in the sea among islets | a harbour town on the shore | a low shore terrace carries the town |
 

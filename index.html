@@ -286,7 +286,7 @@ const D2R=Math.PI/180;
 const REG=[[30,2,27],[6,-76,28],[-12,70,24],[-52,-18,18]].map(([la,lo,r])=>[Math.cos(la*D2R)*Math.cos(lo*D2R),Math.sin(la*D2R),-Math.cos(la*D2R)*Math.sin(lo*D2R),r*D2R]);
 const PEAKS=[[22,-94,1.0,1400],[-6.2,66.2,.9,1600]].map(([la,lo,r,hh])=>[Math.cos(la*D2R)*Math.cos(lo*D2R),Math.sin(la*D2R),-Math.cos(la*D2R)*Math.sin(lo*D2R),r*D2R,hh]);
 /* islands of the book: 骷髅岛/回音之岛、双子岛、真菌之岛（五岛）、白骸龙之岛、只有骨架的岛屿、迷雾之海群岛 */
-const ISL=[[8,-33,.9],[1,-46.6,.45],[1.3,-45.3,.45],[30,-104,.3],[30.6,-103.3,.25],[29.4,-103.4,.25],[30.4,-104.8,.22],[29.5,-104.6,.2],[4,-112,.7],[12,-44,.3],[12,-22,.25],[11.2,-21.1,.2],[13,-23,.18]].map(([la,lo,r])=>[Math.cos(la*D2R)*Math.cos(lo*D2R),Math.sin(la*D2R),-Math.cos(la*D2R)*Math.sin(lo*D2R),r*D2R]);
+const ISL=[[8,-33,.12],[1,-46.6,.45],[1.3,-45.3,.45],[30,-104,.3],[30.6,-103.3,.25],[29.4,-103.4,.25],[30.4,-104.8,.22],[29.5,-104.6,.2],[4,-112,.7],[12,-44,.3],[12,-22,.25],[11.2,-21.1,.2],[13,-23,.18]].map(([la,lo,r])=>[Math.cos(la*D2R)*Math.cos(lo*D2R),Math.sin(la*D2R),-Math.cos(la*D2R)*Math.sin(lo*D2R),r*D2R]);
 function regionMask(nx,ny,nz){
   const rough=1+.42*fbm(nx*3.3+4,ny*3.3-2,nz*3.3+7,4)+.12*fbm(nx*14,ny*14,nz*14,3)+.05*fbm(nx*60+3,ny*60,nz*60,3)+.02*fbm(nx*300,ny*300+1,nz*300,2);
   let m=0;
@@ -335,7 +335,7 @@ const PIT_R=560/6371000,PIT_D=420,PIT_RINGS=24,PIT_LA=22,PIT_LO=-10,PIT_E=[-Math
 const CLEARINGS=[[V(33.6,10.4),120/6371000],[V(-12,-78),1100/6371000],[V(32,8.3),140/6371000],[V(-4,56),500/6371000],[V(-14,63),790/6371000],[V(7.5,16.75),520/6371000],[V(-5.9,65.7),330/6371000]];  // + the Academy summit  // + the 翡翠港 town  // + inside the walls of 银之城 and 创造之城
 /* tall-fern jungle, no trees: the egg-boulder field of 翡翠龙之城 (encyclopedia emeraldcity) */
 const FERNZONES=[[V(12,-88),1400/6371000]];
-const F_PEAK=V(33.2,11.2),F_JADE=V(7.5,16.75),F_CPEAK=V(-6.2,66.2),F_ACAD=V(-5.9,65.7);
+const F_PEAK=V(33.2,11.2),F_JADE=V(7.5,16.75),F_CPEAK=V(-6.2,66.2),F_ACAD=V(-5.9,65.7),F_SKULL=V(8,-33);
 /* snowline (m): falls with latitude; the whole southern continent is ice (encyclopedia south: 南之大陆, a white ice continent) */
 const SOUTH_C=V(-52,-18),CRYS_C=V(10,-100);   // CRYS_C: 结晶林地, bare floor
 function snowLineAt(nx,ny,nz){const la=Math.abs(ny);return 4300-3600*la*la-(4360-3600*la*la)*sm(.314,.244,angTo(nx,ny,nz,SOUTH_C));}
@@ -382,6 +382,8 @@ function features(nx,ny,nz,h,detail,coast,mMask){
   if(d<6*km){const u=d/(4.6*km);h+=2300*Math.pow(Math.max(0,1-u),1.35)*(1+.12*ridge(nx*6000,ny*6000,nz*6000,4));}
   d=angTo(nx,ny,nz,F_ACAD);
   if(d<4.5*km){const u=Math.max(d/(3.2*km),.07);h+=820*Math.pow(Math.max(0,1-u),1.7)*(1+.08*ridge(nx*9000,ny*9000,nz*9000,3)*sm(.1,.3,u));}
+  // 骷髅岛 · 回音之岛 (encyclopedia mistsea): a flat island some 20 × 9 km in the western fog sea
+  d=angTo(nx,ny,nz,F_SKULL);if(d<20*km&&h>0){const t=sm(20*km,13*km,d);h=h*(1-t)+(6+10*sm(9*km,2*km,d)+3*fbm(nx*90000,ny*90000,nz*90000,2))*t;}
   // 翡翠港 (encyclopedia jadeport): the harbour town sits on a low shore terrace among the coastal islets
   d=angTo(nx,ny,nz,F_JADE);if(d<.42*km){const t=sm(.42*km,.27*km,d);h=h*(1-t)+(4+1.2*fbm(nx*400000,ny*400000,nz*400000,2))*t;}
   // 地眼之湖：沙漠中心的绿洲巨湖
@@ -408,13 +410,19 @@ const LANDMARKS=[
      ...Array.from({length:90},(_,i)=>{const x=(LMR(i)-.5)*1700,y=(LMR(i+50)-.5)*700;return Math.abs(y)<70?null:[x,y,.06+LMR(i+90)**2*.34,0,LMR(i+130)*1.57];}).filter(Boolean)]],
   [33.6,10.4,'mound',[[0,0,1,0,0],[-38,22,.9,0,1],[30,34,1.1,0,2]]],   // naodaichong: three earth-and-rock mounds 20 m+ high, 10 m+ wide, ~0.5 m holes, in a clearing [inferred location]
   [12,-88,'eggRock',Array.from({length:14},(_,i)=>[Math.cos(i*2.4)*(300+i*60),Math.sin(i*2.4)*(300+i*60),.7+(i%4)*.25,0,i])],  // emeraldcity: egg boulders
-  [34,10,'floatIsle',[[0,0,1,260,0],[700,300,.8,300,1],[-600,500,1.2,220,2],[300,-800,.9,290,.5],[-900,-400,.7,240,1.5],[1100,-200,1,210,2.5]]],   // isles: 200–300 m up
+  // isles / mingshidao: an archipelago 200–300 m up over 5–10 km² — a dozen big forested islands up to ~200 m and hundreds of
+  // bare song-stone chunks from a metre to tens of metres
+  [34,10,'floatIsle',Array.from({length:12},(_,i)=>{const a=LMR(i+500)*6.283,r=200+1200*Math.sqrt(LMR(i+530));return [Math.cos(a)*r,Math.sin(a)*r,.35+.5*LMR(i+560),210+90*LMR(i+590),LMR(i+620)*6.283];})],
+  [34,10,'floatRock',Array.from({length:220},(_,i)=>{const a=LMR(i+700)*6.283,r=1500*Math.sqrt(LMR(i+1000));return [Math.cos(a)*r,Math.sin(a)*r,1+45*Math.pow(LMR(i+1300),3.2),200+120*LMR(i+1600),LMR(i+1900)*6.283];})],
   [7.5,16.75,'house',Array.from({length:24},(_,i)=>[(i%6-2.5)*60+((i/6|0)%2)*20,(i/6|0)*55-80,.8+(i%3)*.3,0,0])],  // jadeport
   // silvercity: walled town ~1 km across of low silver cone-roofed houses, square barracks in the centre, a 30 m round research hall
   [-4,56,'coneHouse',spiralLots(380,70,430,(x,y,i)=>[x,y,.75+LMR(i+3)*.5,0,LMR(i+5)*6.28])],
   [-4,56,'barMetal',ring(150,470,(a,r,i)=>(i>=74&&i<=76)?null:[Math.cos(a)*r,Math.sin(a)*r,1,0,a+1.5708]).filter(Boolean)],
   [-4,56,'squareHall',[[0,0,1,0,0],[-36,0,.7,0,1.5708]]],
   [-4,56,'roundHall',[[60,40,1,0,0]]],
+  // 骷髅岛's 1001 click-eggs: 1 × 2 m rocks set at regular spacing over the island, guiding animals through the fog (mistsea)
+  [8,-33,'clickRock',(()=>{const o=[];for(let j=-12;j<=12;j++)for(let i=-26;i<=26;i++){const x=i*370,y=j*370;if((x/9800)**2+(y/4400)**2>1)continue;
+    const la=8+y/111195,lo=-33-x/(111195*Math.cos(8*D2R));const p=V(la,lo);if(terrain(p[0],p[1],p[2],50)<2)continue;o.push([x,y,.8+.4*LMR(i*31+j),0,LMR(i+j*57)*6.283]);}return o.slice(0,1001);})()],
   [-5.9,65.7,'roundHall',[[0,0,1.3,0,0]]],                                                    // 学院 (cloudpeak): the great hall on the summit
   [-5.9,65.7,'squareHall',ring(7,62,(a,r,i)=>[Math.cos(a)*r,Math.sin(a)*r,.55+(i%2)*.15,0,a+1.5708])],   // classrooms and the library round it
   // capital: the 银甲龙 capital — the same building language at larger scale, with military halls and a silver pyramid over the dock cavern
@@ -1109,7 +1117,7 @@ function updateGrass(){const W=quality.grass||0;
    gSun.value.set(st[0],st[1],st[2],cloudCovJS(n.x,n.y,n.z));gSunEl.value=U.dot(L);}
   const A=grassAnchor.A;gA.value.set(A[0]-cam.x,A[1]-cam.y,A[2]-cam.z);gE.value.fromArray(grassAnchor.E);gNn.value.fromArray(grassAnchor.Nn);gU.value.fromArray(grassAnchor.U);gCam.value.set(cx,cz);}
 
-const STATIC=new Set(['mound','tangle','hometree','deadGiant','pyramid','eggRock','floatIsle','house','tower','crystalPeak','coneHouse','barMetal','squareHall','roundHall','silverPyramid','spire','rock','mushroom']);
+const STATIC=new Set(['mound','tangle','hometree','deadGiant','pyramid','eggRock','floatIsle','floatRock','clickRock','house','tower','crystalPeak','coneHouse','barMetal','squareHall','roundHall','silverPyramid','spire','rock','mushroom']);
 
 /* geometry helpers */
 const paint=(g,c)=>{const n=g.attributes.position.count,a=new Float32Array(n*3);for(let i=0;i<n;i++){a[i*3]=c[0];a[i*3+1]=c[1];a[i*3+2]=c[2];}g.setAttribute('color',new THREE.BufferAttribute(a,3));return g;};
@@ -1296,7 +1304,13 @@ function buildGeos(){
   {const parts=[{g:new THREE.ConeGeometry(120,160,9),m:M4(0,-80,0,3.1416,0,0),c:[.38,.34,.3]},{g:new THREE.CylinderGeometry(120,120,14,9),m:M4(0,7,0),c:[.2,.36,.14]}];
    for(let k=0;k<7;k++){const a=k*.9,r=40+k*9;parts.push({g:twistedTrunk(30,1.2,1.5,k),m:M4(Math.cos(a)*r,14,Math.sin(a)*r),c:[.28,.22,.16]});parts.push(...blob(7,Math.cos(a)*r,44,Math.sin(a)*r,leaf));
      parts.push({g:twistedTrunk(26,1,-1.5,k+3),m:M4(Math.cos(a+.4)*r*.8,-20,Math.sin(a+.4)*r*.8,3.1416,0,0),c:[.28,.22,.16]});parts.push(...blob(6,Math.cos(a+.4)*r*.8,-46,Math.sin(a+.4)*r*.8,leaf2));}
-   GEOS.floatIsle=merge(parts);}
+   GEOS.floatIsle=merge(parts);
+   // 骷髅岛 click-egg: a pale egg-shaped noise-maker sitting in a rock about 2 m wide and 1 m high
+   GEOS.clickRock=merge([{g:new THREE.IcosahedronGeometry(1,1),m:new THREE.Matrix4().makeScale(1.05,.5,.85).premultiply(M4(0,.35,0)),c:[.33,.32,.3]},
+     {g:new THREE.SphereGeometry(.42,12,9),m:new THREE.Matrix4().makeScale(1,1.3,1).premultiply(M4(0,.85,0)),c:[.78,.74,.62]}]);
+   // a bare song-stone chunk (1 m at scale 1): rough rock, a little moss on top
+   const rk=new THREE.IcosahedronGeometry(.6,1);const pp=rk.attributes.position;for(let i=0;i<pp.count;i++){const x=pp.getX(i),y=pp.getY(i),z=pp.getZ(i);const k=1+.28*Math.sin(x*9.1+y*5.3)*Math.cos(z*7.7+x*3.1);pp.setXYZ(i,x*k*1.2,y*k*(y<0?1.3:.7),z*k);}rk.computeVertexNormals();
+   GEOS.floatRock=merge([{g:rk,m:M4(0,0,0),c:[.36,.33,.29]},{g:new THREE.CircleGeometry(.5,7),m:M4(0,.41,0,-Math.PI/2),c:[.2,.32,.13]}]);}
   // 翡翠港的房屋、银甲龙的金属塔
   GEOS.house=merge([{g:new THREE.BoxGeometry(14,8,12),m:M4(0,4,0),c:[.6,.52,.4]},{g:new THREE.ConeGeometry(10,6,4),m:M4(0,11,0,0,.785,0),c:[.35,.22,.16]}]);
   /* silvercity / capital buildings: silver cone-roofed houses 4–8 m, metal-bar town walls, square barracks, round hall, silver pyramid */
@@ -1454,7 +1468,7 @@ function splitNear(g,set,rHi,rMid){const P=set.pos,n=set.n,nd=g.userData.node,gx
   if(imp)fillImpostor(set,far,nf);else set.imp.visible=false;}
 
 /* ===== solid things you cannot walk through: trunk / footprint radius in metres at scale 1 ===== */
-const COLL={mound:7,tangle:1.2,succColumn:1.7,succBall:6,succCoral:1.6,twistTree:2,platformTree:3.6,bigTree:.9,longqi:5.4,ancientTree:6.5,crystalTree:.5,spire:2.1,mushroom:1.3,deathSpike:1.1,bloodTree:.45,spikeBall:1,rock:1.25,
+const COLL={mound:7,clickRock:1.1,tangle:1.2,succColumn:1.7,succBall:6,succCoral:1.6,twistTree:2,platformTree:3.6,bigTree:.9,longqi:5.4,ancientTree:6.5,crystalTree:.5,spire:2.1,mushroom:1.3,deathSpike:1.1,bloodTree:.45,spikeBall:1,rock:1.25,
   hometree:26,deadGiant:26,pyramid:36,eggRock:17,house:9,tower:9,crystalPeak:0,coneHouse:3.6,barMetal:1,squareHall:12,roundHall:15,silverPyramid:22};
 function makeColliders(data){const out=[];for(const k in data){const r0=COLL[k];if(!r0)continue;const a=data[k];
   for(let i=0;i<a.length;i+=8){const sc=a[i+6];if(k==='rock'&&sc<.6)continue;out.push(a[i],a[i+1],a[i+2],r0*sc);}}return out.length?new Float32Array(out):null;}
@@ -1469,12 +1483,12 @@ function resolveCollisions(){const h=ground(view.lat,view.lon);const p=fromLL(vi
       const k=(rr-dd)/dd;px+=hx*k;py+=hy*k;pz+=hz*k;hit=true;}}
   if(hit){const ll=toLL(px,py,pz);view.lat=ll.lat;view.lon=ll.lon;}}
 /* landmark framing for travel: where each landmark item stands, and how far back to stand to see it whole */
-const LM_VIEW={hometree:{r:26,h:320,v:260},deadGiant:{r:26,h:300,v:340},pyramid:{r:36,h:50,v:380},eggRock:{r:24,h:18,v:140},floatIsle:{r:0,h:0,v:950},house:{r:9,h:14,v:110},tower:{r:9,h:95,v:240},mound:{r:7,h:22,v:70},coneHouse:{r:3.6,h:7,v:60},barMetal:{r:1,h:6,v:60},squareHall:{r:12,h:11,v:120},roundHall:{r:15,h:20,v:110},silverPyramid:{r:22,h:34,v:160},crystalPeak:{r:380,h:240,v:950}};
+const LM_VIEW={hometree:{r:26,h:320,v:260},deadGiant:{r:26,h:300,v:340},pyramid:{r:36,h:50,v:380},eggRock:{r:24,h:18,v:140},floatIsle:{r:0,h:0,v:950},floatRock:{r:0,h:0,v:400},clickRock:{r:1.2,h:1.2,v:16},house:{r:9,h:14,v:110},tower:{r:9,h:95,v:240},mound:{r:7,h:22,v:70},coneHouse:{r:3.6,h:7,v:60},barMetal:{r:1,h:6,v:60},squareHall:{r:12,h:11,v:120},roundHall:{r:15,h:20,v:110},silverPyramid:{r:22,h:34,v:160},crystalPeak:{r:380,h:240,v:950}};
 function landmarkItems(){const out=[];for(const [la,lo,kind,items] of T.LANDMARKS){const p=T.V(la,lo);const ex=-p[2],ez=p[0];const el=Math.hypot(ex,ez)||1;const E=[ex/el,0,ez/el];const N=[p[1]*E[2]-p[2]*E[1],p[2]*E[0]-p[0]*E[2],p[0]*E[1]-p[1]*E[0]];
   for(const [ox,oz,sc,lift] of items){let x=p[0]+(E[0]*ox+N[0]*oz)/R,y=p[1]+(E[1]*ox+N[1]*oz)/R,z=p[2]+(E[2]*ox+N[2]*oz)/R;const l=Math.hypot(x,y,z);out.push({kind,x:x/l,y:y/l,z:z/l,sc,lift});}}return out;}
 const LM_ITEMS=landmarkItems();
 function frameLandmark(lat,lon){const q=fromLL(lat,lon,1);let best=null,bd=1e9;
-  for(const it of LM_ITEMS){const d=Math.acos(Math.min(1,q.x*it.x+q.y*it.y+q.z*it.z))*R;if(d<bd){bd=d;best=it;}}
+  for(const it of LM_ITEMS){if(it.kind==='floatRock')continue;const d=Math.acos(Math.min(1,q.x*it.x+q.y*it.y+q.z*it.z))*R;if(d<bd){bd=d;best=it;}}
   if(!best||bd>3000)return false;const info=LM_VIEW[best.kind];const ll=toLL(best.x,best.y,best.z);const {east,north}=frameAt(ll.lat,ll.lon);const vd=info.v*(best.kind==='floatIsle'?1:best.sc);
   for(let k=0;k<16;k++){const a=k*Math.PI/8+(best.kind==='pyramid'?Math.PI:0);const dir=new THREE.Vector3().copy(north).multiplyScalar(Math.cos(a)).addScaledVector(east,Math.sin(a));
     const c=new THREE.Vector3(best.x,best.y,best.z).multiplyScalar(Math.cos(vd/R)).addScaledVector(dir,Math.sin(vd/R)).normalize();const cl=toLL(c.x,c.y,c.z);
@@ -2299,7 +2313,7 @@ function frameView(v){const tla=v.t[0]*D2R,tlo=v.t[1]*D2R;const tp=fromLL(tla,tl
     const dir=new THREE.Vector3().copy(north).multiplyScalar(Math.cos(a)).addScaledVector(east,Math.sin(a));
     const c=tv.clone().multiplyScalar(Math.cos(v.d/R)).addScaledVector(dir,Math.sin(v.d/R)).normalize();const cl=toLL(c.x,c.y,c.z);
     const gc=ground(cl.lat,cl.lon);if(!v.water&&gc<2)continue;
-    if(LM_ITEMS.some(o=>o.kind!=='floatIsle'&&o.kind!=='barMetal'&&Math.acos(Math.min(1,c.x*o.x+c.y*o.y+c.z*o.z))*R<LM_VIEW[o.kind].r*o.sc+6))continue;
+    if(LM_ITEMS.some(o=>o.kind!=='floatIsle'&&o.kind!=='floatRock'&&o.kind!=='barMetal'&&Math.acos(Math.min(1,c.x*o.x+c.y*o.y+c.z*o.z))*R<LM_VIEW[o.kind].r*o.sc+6))continue;
     {const eyeH=gc+view.eye+(v.fly||0),tgtH=g0+Math.max(v.aim,2);let blocked=false;   // terrain must not hide the target
      for(let i=1;i<20&&!blocked;i++){const f=i/20;const q=tv.clone().multiplyScalar(Math.cos(v.d*(1-f)/R)).addScaledVector(dir,Math.sin(v.d*(1-f)/R)).normalize();const ql=toLL(q.x,q.y,q.z);
        if(ground(ql.lat,ql.lon)>eyeH+(tgtH-eyeH)*f+8)blocked=true;}
@@ -2427,10 +2441,11 @@ const AMB=(()=>{let ctx=null,out,on=false,vol=.7,L={},timer=null;
     const comp=ctx.createDynamicsCompressor();comp.threshold.value=-20;comp.connect(ctx.destination);out=ctx.createGain();out.gain.value=0;out.connect(comp);
     const wn=noise(5,false),bn=noise(7,true);
     L.wind=layer(bn,[['bandpass',420,.6]]);L.leaves=layer(wn,[['highpass',2400],['bandpass',5200,.6]]);
-    L.surf=layer(bn,[['lowpass',520]]);L.sand=layer(wn,[['bandpass',6800,1.2]]);L.cave=layer(bn,[['lowpass',140]]);
+    L.surf=layer(bn,[['lowpass',520]]);L.sand=layer(wn,[['bandpass',6800,1.2]]);L.cave=layer(bn,[['lowpass',140]]);L.fall=layer(wn,[['lowpass',1600],['highpass',180]]);
     L.night=ctx.createGain();L.night.gain.value=0;L.night.connect(out);return true;}
   /* the environment, read four times a second */
-  let env={wind:.3,leaves:0,surf:0,sand:0,cave:0,night:0},t0=0,chirp=0,drip=0;
+  let env={wind:.3,leaves:0,surf:0,sand:0,cave:0,night:0,fall:0,click:0},t0=0,chirp=0,drip=0,click=0;
+  const C_HOME=T.V(32,8.3),C_SKULL=T.V(8,-33);
   function sense(){const cave=!!view.cave;let water=0,n=0;
     if(!cave){const {east,north}=frameAt(view.lat,view.lon);const up=fromLL(view.lat,view.lon,1);
       for(let k=0;k<8;k++){const a=k*Math.PI/4;for(const dd of [150,500]){const v=new THREE.Vector3(up.x,up.y,up.z).addScaledVector(north,Math.cos(a)*dd/R).addScaledVector(east,Math.sin(a)*dd/R).normalize();
@@ -2438,12 +2453,21 @@ const AMB=(()=>{let ctx=null,out,on=false,vol=.7,L={},timer=null;
     const d=cave?null:describe(view.lat,view.lon),alt=view.fly||0,night=uni.uUp.value.dot(uni.uSun.value)<-.05;
     const forest=!cave&&d.terr==='林地',desert=!cave&&d.terr==='荒漠',high=!cave&&(d.terr==='高山'||d.terr==='冰原');
     env={wind:cave?0:Math.min(1,.18+(high?.45:0)+(desert?.2:0)+alt/600),leaves:forest?(night?.25:.45):0,surf:cave?0:Math.min(1,(n?water/n:0)*1.6),
-      sand:desert?.35:0,cave:cave?1:0,night:night&&(forest||d&&d.terr==='原野')?1:0};}
+      sand:desert?.35:0,cave:cave?1:0,night:night&&(forest||d&&d.terr==='原野')?1:0,fall:0,click:0};
+    if(!cave){const p=fromLL(view.lat,view.lon,1);
+      env.fall=T.sm(1800,60,T.angTo(p.x,p.y,p.z,C_HOME)*R);                      // the home tree's waterfall (encyclopedia hometree)
+      env.click=T.sm(30000,2000,T.angTo(p.x,p.y,p.z,C_SKULL)*R);}}              // 骷髅岛's click-eggs heard through the fog (encyclopedia mistsea)
   function tick(){if(!on)return;const t=ctx.currentTime;sense();
     const gust=.65+.35*Math.sin(t*.37)*Math.sin(t*.11+1),swell=.55+.45*Math.sin(t*.8)*Math.sin(t*.13);
     const set=(l,v)=>l.g.gain.setTargetAtTime(v,t,.8);
     set(L.wind,env.wind*.5*gust);L.wind.f.frequency.setTargetAtTime(300+260*gust,t,1);
-    set(L.leaves,env.leaves*.18*gust*gust);set(L.surf,env.surf*.55*swell);set(L.sand,env.sand*.08*gust);set(L.cave,env.cave*.35);
+    set(L.leaves,env.leaves*.18*gust*gust);set(L.surf,env.surf*.55*swell);set(L.sand,env.sand*.08*gust);set(L.cave,env.cave*.35);set(L.fall,env.fall*env.fall*.4);
+    // 骷髅岛: bursts of hard double clicks ("嘎达") from the eggs in their rocks, irregular, louder as you come near
+    if(env.click>.01&&t>click){click=t+.9+Math.random()*3.5;const n=2+Math.floor(Math.random()*4);
+      for(let i=0;i<n;i++){const t1=t+i*(.22+Math.random()*.1);for(const [dt,f] of [[0,1100],[.05,760]]){const o=ctx.createOscillator(),g=ctx.createGain(),bp=ctx.createBiquadFilter();
+        o.type='square';o.frequency.value=f*(.9+Math.random()*.2);bp.type='bandpass';bp.frequency.value=f*1.6;bp.Q.value=3;
+        g.gain.setValueAtTime(0,t1+dt);g.gain.linearRampToValueAtTime(.05*env.click,t1+dt+.003);g.gain.exponentialRampToValueAtTime(.0001,t1+dt+.035);
+        o.connect(bp);bp.connect(g);g.connect(out);o.start(t1+dt);o.stop(t1+dt+.05);}}}
     // night insects in grass and woods: soft high chirps in short trains
     if(env.night&&t>chirp){chirp=t+.6+Math.random()*1.8;const f=4200+Math.random()*1800;for(let i=0;i<3+Math.floor(Math.random()*4);i++){const o=ctx.createOscillator(),g=ctx.createGain();o.frequency.value=f;g.gain.setValueAtTime(0,t+i*.07);g.gain.linearRampToValueAtTime(.018,t+i*.07+.01);g.gain.exponentialRampToValueAtTime(.0001,t+i*.07+.05);o.connect(g);g.connect(out);o.start(t+i*.07);o.stop(t+i*.07+.06);}}
     // the cave: water dripping somewhere in the dark, with a long echo
