@@ -1676,7 +1676,8 @@ const UWR={sFall:UW.L*.3,lakeX:-4300,lakeR:120,w:5,lev:UW.F0-2};
 function uwRiverX(s){const t=s-UWR.sFall;return UWR.lakeX+2800*T.sm(0,6000,t)+700*Math.sin(t/2300);}
 function uwWater(k){const t=k.s-UWR.sFall;const dl=Math.hypot(t,k.x-UWR.lakeX);const dr=t<0?1e9:Math.abs(k.x-uwRiverX(k.s));return {dl,dr};}
 function uwFloor(x,y,z,q){let f=UW.F0+14*T.fbm(x*900,y*900+3,z*900,3)+4*T.fbm(x*9000,y*9000,z*9000,2)+22*T.sm(.85,1.12,q);
-  const k=uwSX(x,y,z),wd=uwWater(k);f=Math.max(f,UWR.lev+.6);                                                   // no stray pools
+  const k=uwSX(x,y,z),wd=uwWater(k);f=Math.max(f,UWR.lev+.6);
+  {const dr=Math.abs(k.s-UWRIFT.s+40*Math.sin(k.x/700));if(dr<UWRIFT.w){const u=dr/UWRIFT.w;return f-UWRIFT.d*(1-Math.pow(u,6))-2*T.fbm(x*40000,y*40000,z*40000,2);}}   // the lava rift                                                   // no stray pools
   const band=Math.min(wd.dr-UWR.w*.5,wd.dl-UWR.lakeR);if(band<60){const t=T.sm(60,0,band);f=f*(1-t)+(UWR.lev+.7)*t;}   // a flat bank
   if(wd.dr<UWR.w*.5){const u=2*wd.dr/UWR.w;f=Math.min(f,UWR.lev-1.4*(1-u*u)-.2);}
   if(wd.dl<UWR.lakeR){const u=wd.dl/UWR.lakeR;f=Math.min(f,UWR.lev-7*(1-u*u)-.2);}
@@ -1699,17 +1700,25 @@ function uwGeoSpike(){const parts=[{g:new THREE.CylinderGeometry(.5,.5,1,8,1,tru
   for(let k=0;k<26;k++){const a=k*2.4,y=.04+(k/26)*.92;parts.push({g:new THREE.ConeGeometry(.08,.9,4).translate(0,.45,0),m:new THREE.Matrix4().makeTranslation(Math.cos(a)*.5,y,Math.sin(a)*.5).multiply(new THREE.Matrix4().makeScale(1,1/60,1)).multiply(new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(0,-a,-1.45,'YXZ'))),c:[.75,.1,.08]});}   /* horizontal spikes, pre-squashed for the ~60 m column stretch */
   return merge(parts).solid;}
 UW.geoFern=uwGeoFernTree();UW.geoPillar=uwGeoPillar();UW.geoSpike=uwGeoSpike();
+/* the 印加 domain near the pit (encyclopedia under): huge oval rock nests up to 230 m long and 40 m thick lying on the ground */
+{const g=new THREE.SphereGeometry(1,20,12);g.scale(1,.2,.42);const n=g.attributes.position.count,c=new Float32Array(n*3);
+ for(let i=0;i<n;i++){const y=g.attributes.position.getY(i),v=.85+.3*Math.sin(i*12.9898)*.5;c.set([.36*v,.31*v,.25*v].map(x=>x*(y>.12?1.1:.85)),i*3);}g.setAttribute('color',new THREE.BufferAttribute(c,3));UW.geoNest=g;}
+UW.nests=Array.from({length:14},(_,i)=>{const h=x=>{const t=Math.sin((i+1)*x)*43758.5453;return t-Math.floor(t);};return {s:600+8400*h(12.9),x:(h(78.2)-.5)*7000,len:110+120*h(37.7),yaw:h(4.1)*6.28};});
+/* a rift with hardened lava at its bottom, glowing cracks, lava spiders on its walls, 10+ km on from the waterfall (Lin's border) */
+const UWRIFT={s:UW.L*.3+10500,w:34,d:26};
 function buildCave(n){
   const g=UW.group;for(const m of g.children){if(m.userData.own)m.geometry.dispose();}g.clear();UW.pillars=[];
   const ex=-n.z,ez=n.x,el=Math.hypot(ex,ez)||1;const E=[ex/el,0,ez/el];const N=[n.y*E[2]-n.z*E[1],n.z*E[0]-n.x*E[2],n.x*E[1]-n.y*E[0]];
-  const {NR,NS}=UW;const nv=(NR+1)*(NS+1);const P=new Float32Array(nv*2*3),C=new Float32Array(nv*2*3),Q=new Float32Array(nv);const idx=[];
+  const {NR,NS}=UW;const nv=(NR+1)*(NS+1);const P=new Float32Array(nv*2*3),C=new Float32Array(nv*2*3),Q=new Float32Array(nv),FH=new Float32Array(nv),RF=new Uint8Array(nv),WP=new Float32Array(nv*3);const idx=[];
   const put=(o,d,h,c)=>{const rr=R+h;P.set([d[0]*rr-n.x*R,d[1]*rr-n.y*R,d[2]*rr-n.z*R],o*3);C.set(c,o*3);};
   for(let i=0;i<=NR;i++){const r=UW.R*Math.pow(i/NR,1.6);
     for(let j=0;j<=NS;j++){const th=j/NS*6.2832;const ux=Math.cos(th)*r/R,uy=Math.sin(th)*r/R;
       let dx=n.x+E[0]*ux+N[0]*uy,dy=n.y+E[1]*ux+N[1]*uy,dz=n.z+E[2]*ux+N[2]*uy;const l=Math.hypot(dx,dy,dz);dx/=l;dy/=l;dz/=l;
-      const k=i*(NS+1)+j;const w=uwSX(dx,dy,dz);Q[k]=w.q;const f=uwFloor(dx,dy,dz,w.q),c=uwCeil(dx,dy,dz,w.q,f);
+      const k=i*(NS+1)+j;const w=uwSX(dx,dy,dz);Q[k]=w.q;const f=uwFloor(dx,dy,dz,w.q),c=uwCeil(dx,dy,dz,w.q,f);FH[k]=f;RF[k]=Math.abs(w.s-UWRIFT.s)<UWRIFT.w+60?1:0;
+      {const rr=R+UWR.lev;WP.set([dx*rr-n.x*R,dy*rr-n.y*R,dz*rr-n.z*R],k*3);}
       const v=T.fbm(dx*20000,dy*20000,dz*20000,2)*.5+.5,forest=T.sm(.66,.56,w.q);
       const fc=[.3+.1*v,.26+.08*v,.19+.05*v].map((x,ii)=>x*(1-forest)+[.2,.3,.13][ii]*forest*(.8+.4*v));
+      {const dr=Math.abs(w.s-UWRIFT.s+40*Math.sin(w.x/700));if(dr<UWRIFT.w*.85){const crack=T.sm(.08,.0,Math.abs(T.fbm(dx*90000,dy*90000,dz*90000,2)));const base=[.07,.06,.06];for(let ii=0;ii<3;ii++)fc[ii]=base[ii]*(1-crack)+[2.2,.7,.12][ii]*crack;}}
       const glow=.75+.5*Math.max(0,T.fbm(dx*60000,dy*60000+9,dz*60000,2));      // crystal dust and glowing fungus, warm white-green with orange
       put(k,[dx,dy,dz],f,fc);put(k+nv,[dx,dy,dz],c,[1.05*glow,1.0*glow,.7*glow+.08*(1-glow)]);}}
   for(let i=0;i<NR;i++)for(let j=0;j<NS;j++){const a=i*(NS+1)+j,b=a+1,c=a+NS+1,d=c+1;
@@ -1726,7 +1735,7 @@ function buildCave(n){
   const at=(ux,uy)=>{let dx=n.x+E[0]*ux/R+N[0]*uy/R,dy=n.y+E[1]*ux/R+N[1]*uy/R,dz=n.z+E[2]*ux/R+N[2]*uy/R;const l=Math.hypot(dx,dy,dz);return [dx/l,dy/l,dz/l];};
   const rnd=rng(1+Math.floor(n.x*1e5)+Math.floor(n.z*1e5)*7);const ferns=[],pillars=[],spikes=[];
   for(let i=0;i<26000;i++){const r=3600*Math.sqrt(rnd()),a=rnd()*6.2832;const d=at(Math.cos(a)*r,Math.sin(a)*r);const w=uwSX(d[0],d[1],d[2]);
-    if(w.q>.58||rnd()<w.q*1.2)continue;{const wd=uwWater(w);if(wd.dr<5||wd.dl<UWR.lakeR+4)continue;}ferns.push([d,uwFloor(d[0],d[1],d[2],w.q)-.3,.85+rnd()*.5,rnd()*6.28]);}
+    if(w.q>.58||rnd()<w.q*1.2)continue;{const wd=uwWater(w);if(wd.dr<5||wd.dl<UWR.lakeR+4||Math.abs(w.s-UWRIFT.s)<UWRIFT.w+60)continue;}ferns.push([d,uwFloor(d[0],d[1],d[2],w.q)-.3,.85+rnd()*.5,rnd()*6.28]);}
   // home trees on a jittered grid in cavern coordinates, ~260 m apart in the forest and ~1.6 km on the rock plains
   const c0=uwSX(n.x,n.y,n.z);
   for(const [cell,qmax,qmin] of [[260,.58,0],[1600,.9,.58]]){const si=Math.floor(c0.s/cell),xi=Math.floor(c0.x/cell),span=Math.ceil(6500/cell);
@@ -1735,7 +1744,7 @@ function buildCave(n){
       // position from cavern coordinates: along the centre circle by s, then across by x
       const A=UW.A,Tt=UW.T,G=UW.g;const ang=sCell/R,cs=Math.cos(ang),sn=Math.sin(ang);const pc=[A[0]*cs+Tt[0]*sn,A[1]*cs+Tt[1]*sn,A[2]*cs+Tt[2]*sn];
       const xa=xCell/R;let d=[pc[0]*Math.cos(xa)+G[0]*Math.sin(xa),pc[1]*Math.cos(xa)+G[1]*Math.sin(xa),pc[2]*Math.cos(xa)+G[2]*Math.sin(xa)];
-      const w=uwSX(d[0],d[1],d[2]);if(w.q>qmax||w.q<qmin)continue;{const wd=uwWater(w);if(wd.dr<35||wd.dl<UWR.lakeR+40)continue;}if(Math.acos(Math.min(1,d[0]*n.x+d[1]*n.y+d[2]*n.z))*R>UW.R*.95)continue;
+      const w=uwSX(d[0],d[1],d[2]);if(w.q>qmax||w.q<qmin)continue;{const wd=uwWater(w);if(wd.dr<35||wd.dl<UWR.lakeR+40||Math.abs(w.s-UWRIFT.s)<UWRIFT.w+90)continue;}if(Math.acos(Math.min(1,d[0]*n.x+d[1]*n.y+d[2]*n.z))*R>UW.R*.95)continue;
       const f=uwFloor(d[0],d[1],d[2],w.q),c=uwCeil(d[0],d[1],d[2],w.q,f);pillars.push([d,f-2,1,hs%6,c-f+14]);UW.pillars.push(d);}}
   // the 死亡尖刺 wall: a straight line on each side where the ceiling has come down to ~50 m, 1 m columns with gaps under a metre
   for(const side of [-1,1]){const xw=side*.95*UW.W;for(let k=-3600;k<=3600;k+=1.8){const sC=c0.s+k;
@@ -1744,10 +1753,18 @@ function buildCave(n){
       if(Math.acos(Math.min(1,d[0]*n.x+d[1]*n.y+d[2]*n.z))*R>UW.R*.95)continue;const w=uwSX(d[0],d[1],d[2]);if(w.q>1)continue;
       const f=uwFloor(d[0],d[1],d[2],w.q),c=uwCeil(d[0],d[1],d[2],w.q,f);spikes.push([d,f-.5,1,k*1.7,c-f+2]);}}
   inst(UW.geoFern,ferns,UW.matRock);inst(UW.geoPillar,pillars,UW.matRock);inst(UW.geoSpike,spikes,UW.matRock);
+  {const nl=[];for(const ne of UW.nests){const A=UW.A,Tt=UW.T,G=UW.g;const ang=ne.s/R;const pc=[A[0]*Math.cos(ang)+Tt[0]*Math.sin(ang),A[1]*Math.cos(ang)+Tt[1]*Math.sin(ang),A[2]*Math.cos(ang)+Tt[2]*Math.sin(ang)];
+     const xa=ne.x/R;const d=[pc[0]*Math.cos(xa)+G[0]*Math.sin(xa),pc[1]*Math.cos(xa)+G[1]*Math.sin(xa),pc[2]*Math.cos(xa)+G[2]*Math.sin(xa)];
+     if(Math.acos(Math.min(1,d[0]*n.x+d[1]*n.y+d[2]*n.z))*R>UW.R*.9)continue;const w=uwSX(d[0],d[1],d[2]);nl.push([d,uwFloor(d[0],d[1],d[2],w.q)-6,ne.len/2,ne.yaw]);}
+   inst(UW.geoNest,nl,UW.matRock);}
   // the water: one sheet at the river's level (the floor stands above it everywhere but the channel and the lake)
-  {const wg=new THREE.CircleGeometry(UW.R,96);wg.rotateX(-Math.PI/2);const nn=wg.attributes.position.count;wg.setAttribute('color',new THREE.BufferAttribute(new Float32Array(nn*3),3));
-   wg.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),new THREE.Vector3(n.x,n.y,n.z)));const wm=new THREE.Mesh(wg,riverMat);   // normals in planet space, as the water shading expectswm.frustumCulled=false;wm.userData.own=1;
-   wm.userData.anchor=[n.x*(R+UWR.lev),n.y*(R+UWR.lev),n.z*(R+UWR.lev)];g.add(wm);}
+  // (only over the cells where the floor dips below the water level — the channel and the lake, never the lava rift)
+  {const wi=[];for(let i=0;i<NR;i++)for(let j=0;j<NS;j++){const a=i*(NS+1)+j,b=a+1,c=a+NS+1,d=c+1;if(RF[a]||RF[b]||RF[c]||RF[d])continue;
+     if(Math.min(FH[a],FH[b],FH[c],FH[d])<UWR.lev)wi.push(a,c,b,b,c,d);}
+   if(wi.length){const wg=new THREE.BufferGeometry();wg.setAttribute('position',new THREE.BufferAttribute(WP,3));const NN=new Float32Array(nv*3);
+     for(let k=0;k<nv;k++){const x=WP[k*3]+n.x*R,y=WP[k*3+1]+n.y*R,z=WP[k*3+2]+n.z*R,l=Math.hypot(x,y,z);NN.set([x/l,y/l,z/l],k*3);}
+     wg.setAttribute('normal',new THREE.BufferAttribute(NN,3));wg.setAttribute('color',new THREE.BufferAttribute(new Float32Array(nv*3),3));wg.setIndex(wi);
+     const wm=new THREE.Mesh(wg,riverMat);wm.frustumCulled=false;wm.userData.own=1;wm.userData.anchor=[n.x*R,n.y*R,n.z*R];g.add(wm);}}
   // the waterfall: a column of white water pouring from the ceiling at the lake's far side
   {const A=UW.A,Tt=UW.T,G=UW.g;const ang=UWR.sFall/R;const pc=[A[0]*Math.cos(ang)+Tt[0]*Math.sin(ang),A[1]*Math.cos(ang)+Tt[1]*Math.sin(ang),A[2]*Math.cos(ang)+Tt[2]*Math.sin(ang)];
    const xa=(UWR.lakeX-70)/R;const d=[pc[0]*Math.cos(xa)+G[0]*Math.sin(xa),pc[1]*Math.cos(xa)+G[1]*Math.sin(xa),pc[2]*Math.cos(xa)+G[2]*Math.sin(xa)];
