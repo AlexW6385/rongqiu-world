@@ -432,6 +432,12 @@ const LANDMARKS=[
   [-14,63,'silverPyramid',[[0,0,1,0,0]]],
   [71,34,'crystalPeak',[[0,0,1,0,0]]]   // jjzs: a ring wall of crystal rising out of the polar sea ice
 ];
+/* 立蝎 pyramids spread through the southern dinosaur jungle (encyclopedia jinzita): some alone, some in short rows, more of them
+   toward the 翡翠龙 city as the 立蝎 build northward; each in a ~50 m grass clearing */
+{for(let k=0;k<16;k++){const t=.12+.8*LMR(k+3100),la=-12+24*t+(LMR(k+3200)-.5)*3,lo=-78-10*t+(LMR(k+3300)-.5)*4;const p=V(la,lo);
+   if(terrain(p[0],p[1],p[2],50)<20)continue;const n=1+Math.floor(LMR(k+3400)*3.2),yaw=LMR(k+3500)*6.283,items=[];
+   for(let i=0;i<n;i++){const sc=.22+.75*Math.pow(LMR(k*7+i+3600),1.6),off=(i-(n-1)/2)*95;items.push([Math.cos(yaw)*off,Math.sin(yaw)*off,sc,0,0]);}
+   LANDMARKS.push([la,lo,'pyramid',items]);CLEARINGS.push([p,(60+n*55)/6371000]);}}
 function regionIdx(nx,ny,nz){let b=0,k=-1;REG.forEach((r,i)=>{const m=sm(r[3]*1.22,r[3]*.72,angTo(nx,ny,nz,r));if(m>b){b=m;k=i;}});return b>.5?k:-1;}
 function moisture(nx,ny,nz){return fbm(nx*7+11,ny*7,nz*7+5,3)*.5+.5;}
 `;
@@ -546,8 +552,11 @@ onmessage=e=>{
       const moist=moisture(d[0],d[1],d[2]),dry=dryness(d[0],d[1],d[2]);
       const r=R+h;const x=d[0]*r,y=d[1]*r,z=d[2]*r;const yaw=rnd()*6.283;
       if(level===16){ // dense ground cover only
+        if(zone.boneisle<.008){const ab=angTo(d[0],d[1],d[2],V(12,-44)),rr=.0021*(1+.08*fbm(d[0]*900,d[1]*900,d[2]*900,2));   // 爆炸尖球 (encyclopedia baozhajq): one line of them,
+          if(Math.abs(ab-rr)<.0000035){if(rnd()<.9)add('spikeBall',x,y,z,d[0],d[1],d[2],.8+rnd()*.4,yaw);continue;}}            // 1–2 m apart, where the island's moss belt ends
         if(rnd()<.04*(1-.9*sm(.4,.7,dry))&&h>1){add('rock',x,y,z,d[0],d[1],d[2],.3+rnd()*1.2,yaw);continue;}
         if(dry>.4||h<2.5||zone.crystal<.026)continue;   // 结晶林地 floor is bare rock and gravel
+        {const ae=angTo(d[0],d[1],d[2],F_LAKE);if(ae>.1245&&ae<.16){add('grass',x,y,z,d[0],d[1],d[2],.35+rnd()*.3,yaw);continue;}}   // the blood-ball belt and the moss plain: low cover only
         if(moist>.25)add(rnd()<.92||CLEARINGS.some(([c,r])=>angTo(d[0],d[1],d[2],c)<r)?'grass':'fern',x,y,z,d[0],d[1],d[2],.5+rnd()*.7,yaw);continue;}
       if(level===12){
         if(zone.jungle<.05&&rnd()<.08){add('platformTree',x,y,z,d[0],d[1],d[2],1+rnd()*.5,yaw);continue;}
@@ -558,7 +567,9 @@ onmessage=e=>{
       if(zone.crystal<.026){if(rnd()<.32)add('crystalTree',x,y,z,d[0],d[1],d[2],1+rnd()*.6,yaw);continue;}   // 结晶林地: spaced trees on bare rock, no undergrowth
       if(zone.fungus<.012&&rnd()<.17){add('mushroom',x,y,z,d[0],d[1],d[2],.6+rnd()*1.6,yaw);continue;}
       if(dry>.4){if(rnd()<.02*(1-dry)+.004)add('fern',x,y,z,d[0],d[1],d[2],.7+rnd()*.8,yaw);continue;}
-      if(zone.xueqiu<.03&&rnd()<.08){add('bloodTree',x,y,z,d[0],d[1],d[2],.8+rnd()*.6,yaw);continue;}
+      {const ae=angTo(d[0],d[1],d[2],F_LAKE);   // 血球树 (encyclopedia xueqiu): a dense belt of ~2 m blood-ball trees along the inner edge of the east's desert,
+        if(Math.abs(ae-.129)<.0045){if(rnd()<.7)add('bloodTree',x,y,z,d[0],d[1],d[2],.3+rnd()*.18,yaw);continue;}   // then the bare moss plain
+        if(ae>.1335&&ae<.16){if(rnd()<.3)add('grass',x,y,z,d[0],d[1],d[2],.4+rnd()*.3,yaw);continue;}}
       if(h<3){if(rnd()<.1)add('grass',x,y,z,d[0],d[1],d[2],.6+rnd()*.6,yaw);continue;}
       const inSpires=zone.spires<SPIRE_R*2+.0005&&angTo(d[0],d[1],d[2],SPIRE_C)<SPIRE_R*1.9;   // and the open rock plain and desert round it (encyclopedia spires: outside is desert or dry rock)
       if(FERNZONES.some(([c,r])=>angTo(d[0],d[1],d[2],c)<r)){if(rnd()<.35)add('fern',x,y,z,d[0],d[1],d[2],.9+rnd()*.9,yaw);else if(rnd()<.4)add('grass',x,y,z,d[0],d[1],d[2],.9+rnd()*.9,yaw);continue;}
@@ -576,7 +587,7 @@ onmessage=e=>{
         else if(region===2&&zone.heaven>=.05){const q=rnd();  // east continent (encyclopedia east): no trees at all, a jungle of 10–50 m succulents
           if(q<.4)add('succColumn',x,y,z,d[0],d[1],d[2],.4+rnd()*1.6,yaw);else if(q<.75)add('succBall',x,y,z,d[0],d[1],d[2],.8+rnd()*1.4,yaw);else add('succCoral',x,y,z,d[0],d[1],d[2],.6+rnd()*1.2,yaw);}
         else add(zone.heaven<.05?'bigTree':'twistTree',x,y,z,d[0],d[1],d[2],.6+rnd()*.7,yaw);
-      }else if(zone.boneisle<.008&&rnd()<.05)add('spikeBall',x,y,z,d[0],d[1],d[2],.8+rnd()*.5,yaw);  // 爆炸尖球: the island west of 骷髅岛 (encyclopedia baozhajq)
+      }
       else if(moist>.25&&rnd()<.5)add('grass',x,y,z,d[0],d[1],d[2],.9+rnd()*.9,yaw);
       if(moist>.6&&rnd()<.3)add('fern',x,y,z,d[0],d[1],d[2],.5+rnd()*.5,yaw);
     }

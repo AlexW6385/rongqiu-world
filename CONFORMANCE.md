@@ -32,6 +32,9 @@ What the world got wrong against the encyclopedia entries (rongqiu-source `encyc
 | `isles`, `mingshidao` 空中群岛 | six large islands | an archipelago over 5–10 km²: hundreds of chunks from 1 to 200 m, a dozen big forested ones | 12 forested islands and 220 bare song-stone chunks (1–46 m), 200–320 m up |
 | `mistsea` 骷髅岛 | a ~150 km, 200 m-high island | flat, ~20 × 9 km; 1001 click-eggs in 1 × 2 m rocks at regular spacing, heard through the fog | a flat ~25 km island; ~990 click-egg rocks on a 370 m grid; their double clicks in the soundscape |
 | `hometree` sound | silent | the waterfall pours down the trunk | waterfall hiss near the tree |
+| `jinzita` 金字塔 | only at 立蝎之城 | also scattered singly and in rows through the southern jungle toward the 翡翠龙 city, each in a grass clearing | 16 sites of 1–3 pyramids (11–50 m) in clearings between the two cities |
+| `xueqiu` 血球树 | a blob of 6 m trees | a dense belt of ~2 m blood-ball trees along the inner edge of the east's desert, then a moss plain | a belt ~60 km wide of 2–3 m trees round the desert, then a ~190 km ring of low moss cover |
+| `baozhajq` 爆炸尖球 | scattered over the island | a line of them 1–2 m apart where the moss belt ends | a narrow dense band round the island's interior |
 | creature groups | small fixed groups | 角龙 herds of ~30, 骸龙 bands of 15–30, 白骸龙 groups up to ~15, 迷雾蠕虫 in threes; one 晶锥陆龟 per region; 飞龙 nearly extinct, by the volcanoes | group sizes and rarities set from the entries (rongqiu-source `encyclopedia/density.md`) |
 | `jadeport` 翡翠港 | houses half in the sea among islets | a harbour town on the shore | a low shore terrace carries the town |
 
