@@ -1758,7 +1758,7 @@ UW.matRock=caveMat(false);UW.matGlow=caveMat(true);
 function uwGeoFernTree(){const parts=[{g:new THREE.CylinderGeometry(.28,.42,20,6),m:M4(0,10,0),c:[.3,.26,.18]}];
   for(let k=0;k<9;k++){const a=k*.7;parts.push({g:new THREE.PlaneGeometry(1.6,7),m:new THREE.Matrix4().compose(new THREE.Vector3(Math.cos(a)*2.8,19.6,Math.sin(a)*2.8),new THREE.Quaternion().setFromEuler(new THREE.Euler(1.15,-a+1.5708,0,'YXZ')),new THREE.Vector3(1,1,1)),c:[.2,.42,.16]});}
   return merge(parts).solid;}
-function uwGeoPillar(){return merge([{g:new THREE.CylinderGeometry(23,25,1,28,1,true),m:M4(0,.5,0),c:[.36,.3,.22]}]).solid;}
+function uwGeoPillar(){return merge([{g:new THREE.CylinderGeometry(23,25,1,28,1,true),m:M4(0,.5,0),c:[.55,.46,.34]}]).solid;}
 function uwGeoSpike(){const parts=[{g:new THREE.CylinderGeometry(.5,.5,1,8,1,true),m:M4(0,.5,0),c:[.38,.12,.4]}];
   for(let k=0;k<26;k++){const a=k*2.4,y=.04+(k/26)*.92;parts.push({g:new THREE.ConeGeometry(.08,.9,4).translate(0,.45,0),m:new THREE.Matrix4().makeTranslation(Math.cos(a)*.5,y,Math.sin(a)*.5).multiply(new THREE.Matrix4().makeScale(1,1/60,1)).multiply(new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(0,-a,-1.45,'YXZ'))),c:[.75,.1,.08]});}   /* horizontal spikes, pre-squashed for the ~60 m column stretch */
   return merge(parts).solid;}
@@ -1773,7 +1773,7 @@ function buildCave(n){
       let dx=n.x+E[0]*ux+N[0]*uy,dy=n.y+E[1]*ux+N[1]*uy,dz=n.z+E[2]*ux+N[2]*uy;const l=Math.hypot(dx,dy,dz);dx/=l;dy/=l;dz/=l;
       const k=i*(NS+1)+j;const w=uwSX(dx,dy,dz);Q[k]=w.q;const f=uwFloor(dx,dy,dz,w.q),c=uwCeil(dx,dy,dz,w.q,f);
       const v=T.fbm(dx*20000,dy*20000,dz*20000,2)*.5+.5,forest=T.sm(.66,.56,w.q);
-      const fc=[.2+.08*v,.17+.06*v,.12+.04*v].map((x,ii)=>x*(1-forest)+[.13,.2,.09][ii]*forest*(.8+.4*v));
+      const fc=[.3+.1*v,.26+.08*v,.19+.05*v].map((x,ii)=>x*(1-forest)+[.2,.3,.13][ii]*forest*(.8+.4*v));
       const glow=.75+.5*Math.max(0,T.fbm(dx*60000,dy*60000+9,dz*60000,2));      // crystal dust and glowing fungus, warm white-green with orange
       put(k,[dx,dy,dz],f,fc);put(k+nv,[dx,dy,dz],c,[1.05*glow,1.0*glow,.7*glow+.08*(1-glow)]);}}
   for(let i=0;i<NR;i++)for(let j=0;j<NS;j++){const a=i*(NS+1)+j,b=a+1,c=a+NS+1,d=c+1;
@@ -2318,12 +2318,12 @@ function tick(now,force){
     const mv=new THREE.Vector3().copy(fwd).multiplyScalar(my/l).addScaledVector(rgt,mx/l);const oLat=view.lat,oLon=view.lon;moveLL(mv.normalize(),sp/R);
     {const q=fromLL(view.lat,view.lon,1);if(!(view.fly>.5)&&T.terrain(q.x,q.y,q.z,2)<-1.2){view.lat=oLat;view.lon=oLon;}}}   // the sea stops you at the shallows
   if(view.cave)caveCollide();else if(mapEl.hidden&&!(view.fly>40))resolveCollisions();
-  if(curtain){curtain.t+=dt;if((curtain.t>.6&&busy===0&&queue.length===0)||curtain.t>curtain.max){$('#load').classList.add('off');curtain=null;}}
+  if(curtain){curtain.t+=dt;if((curtain.t>.6&&((busy===0&&queue.length===0)||view.cave))||curtain.t>curtain.max){$('#load').classList.add('off');curtain=null;}}
   updateSun(dt);
   if(speedToastT>0){speedToastT-=dt;if(speedToastT<=0)$('#speedToast').classList.add('off');}
   plaqueT+=dt;if(plaqueT>.5||force){plaqueT=0;updatePlaque();if(MUSIC.on)musicMood();}
   if(!mapEl.hidden){mapT+=dt;if(mapT>1||force){mapT=0;updateMapLive();}if(!force){requestAnimationFrame(tick);return;}}   // the chart covers the view: skip 3D work
-  applyCamera();camera.updateMatrixWorld();frameNo++;updateTree();floraLOD();placeMeshes();updateGrass();updateCreatures(dt);
+  applyCamera();camera.updateMatrixWorld();frameNo++;if(!view.cave){updateTree();floraLOD();}placeMeshes();updateGrass();updateCreatures(dt);
   {const el=uni.uUp.value.dot(uni.uSun.value);uStars.value=1-smooth01((el+.1)/.25);
    {const dq=(el-.06)/.13;uni.uMist.value=.35+2.2*Math.exp(-dq*dq);}
    const want=THREE.MathUtils.lerp(3.2,1.0,smooth01((el+.15)/.3));renderer.toneMappingExposure+=(want-renderer.toneMappingExposure)*Math.min(1,dt*1.5);}
