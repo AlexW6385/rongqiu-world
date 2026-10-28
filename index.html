@@ -1210,14 +1210,15 @@ function buildGeos(){
      const lump=1+.05*T.fbm(x*2.2+3,y*2.2,z*2.2,3)+.012*T.fbm(x*14,y*14,z*14,2);x*=24*lump;y*=7.5*egg*lump;z*=14*egg*lump;P.setXYZ(i,x,y+4.5,z);
      const up=y/(7.5*egg*lump),n1=T.fbm(x*.15,y*.15+7,z*.15,3),streak=T.fbm(x*.05,y*.6,z*.05,2);
      const moss=T.sm(-.1,.5,up+.35*n1+.25*streak);const st=.42+.12*n1;
-     const c=[st*1.02,st,st*.93].map((v,k)=>v*(1-moss)+[.16,.27,.1][k]*(.8+.4*n1)*moss);
+     const c=[st*1.02,st,st*.93].map((v,k)=>v*(1-moss)+[.1,.17,.065][k]*(.8+.4*n1)*moss);
      const foot=T.sm(-.55,-.85,up);C.set(c.map((v,k)=>v*(1-.5*foot)+[.12,.13,.08][k]*.5*foot),i*3);}
    g.setAttribute('color',new THREE.BufferAttribute(C,3));g.computeVertexNormals();
    const parts=[{g,m:null,c:null,keep:1}];
    // climbing holds: a line of dark notches spiralling up one end to the top
    for(let k=0;k<26;k++){const t=k/25,a=-.6+t*2.4,xx=17-20*t*t,yy=1.5+t*11.2;const zz=Math.cos(a)*12.6*(1-.35*t*t);parts.push({g:new THREE.BoxGeometry(.7,.35,.5),m:M4(xx,yy,zz,0,a*.3,0),c:[.06,.06,.05]});}
    // ferns and plants crowding round the foot
-   for(let k=0;k<40;k++){const a=k/40*6.283,rx=25*Math.cos(a),rz=15*Math.sin(a);for(let f=0;f<3;f++)parts.push({g:new THREE.PlaneGeometry(.9,3.2),m:new THREE.Matrix4().compose(new THREE.Vector3(rx,1.5,rz),new THREE.Quaternion().setFromEuler(new THREE.Euler(.35*(f-1),a+f*1.05,0)),new THREE.Vector3(1,1,1)),c:[.15,.32,.11]});}
+   for(let k=0;k<46;k++){const a=k/46*6.283+.07*Math.sin(k*5),rx=24.5*Math.cos(a)*(1.04+.12*Math.sin(k*2.3)),rz=14.5*Math.sin(a)*(1.06+.1*Math.cos(k*1.7)),s=.8+.7*Math.abs(Math.sin(k*3.7));   // low plants crowding the foot
+     parts.push({g:new THREE.IcosahedronGeometry(1,1),m:new THREE.Matrix4().makeScale(1.3*s,.8*s,1.3*s).premultiply(M4(rx,.5*s,rz)),c:[.1+.04*Math.sin(k),.21+.05*Math.cos(k*1.3),.08]});}
    GEOS.eggRock=merge(parts,false);}
   // 空中群岛：倒挂着扭曲树林的鸣石岛
   {const parts=[{g:new THREE.ConeGeometry(120,160,9),m:M4(0,-80,0,3.1416,0,0),c:[.38,.34,.3]},{g:new THREE.CylinderGeometry(120,120,14,9),m:M4(0,7,0),c:[.2,.36,.14]}];
@@ -1375,7 +1376,7 @@ function buildFlora(data,span){
     const mats=new Float32Array(n*16),pos=new Float32Array(n*3),cols=new Float32Array(n*3),ups=new Float32Array(n*3),xs=new Float32Array(n*3),scs=new Float32Array(n);const _x=new THREE.Vector3();
     for(let i=0;i<n;i++){const o=i*8;_p.set(a[o],a[o+1],a[o+2]);_up.set(a[o+3],a[o+4],a[o+5]);_q.setFromUnitVectors(_Y,_up);_qy.setFromAxisAngle(_Y,a[o+7]);_q.multiply(_qy);const sc=a[o+6];_s.set(sc,sc,sc);_m.compose(_p,_q,_s);_m.toArray(mats,i*16);pos[i*3]=a[o];pos[i*3+1]=a[o+1];pos[i*3+2]=a[o+2];ups.set([_up.x,_up.y,_up.z],i*3);_x.set(1,0,0).applyQuaternion(_q);xs.set([_x.x,_x.y,_x.z],i*3);scs[i]=sc;}
     {let sd=n*31+7;const rn=()=>{sd=(sd*16807)%2147483647;return sd/2147483647;};for(let i=0;i<n;i++){const t=.82+rn()*.36,w=.95+rn()*.1;cols[i*3]=t*w;cols[i*3+1]=t;cols[i*3+2]=t*(2-w);}}
-    const set=hiG?{k,pos,mats,cols,n,pairs:[],done:false,ups,xs,sc:scs}:null;
+    const set=hiG?{k,pos,mats,cols,n,pairs:[],done:false,ups,xs,sc:scs,noImp:!!hiG.noImp,rHi:hiG.rHi}:null;
     for(const part of ['solid','tex','bark','sprig']){const hg=geos&&geos[part],lg=lo&&lo[part];if(!hg&&!lg)continue;const mat=(k==='rock'&&ROCK.mat&&part==='solid')?ROCK.mat:(geos&&geos.mat&&part==='solid')?geos.mat:PART_MAT[part][st?1:0];   // a kind may bring its own material (stone buildings)
       const mk=geo=>{const im=new THREE.InstancedMesh(geo,mat,n);im.userData.k=k;im.instanceMatrix.array.set(mats);im.instanceColor=new THREE.InstancedBufferAttribute(cols.slice(),3);
         im.instanceMatrix.needsUpdate=true;im.computeBoundingSphere();im.frustumCulled=true;g.add(im);
@@ -1383,14 +1384,14 @@ function buildFlora(data,span){
         return im;};
       const im=mk(hg||lg);im.userData.hi=hg||undefined;im.userData.lo=lg||undefined;any=true;
       if(set){const hh=GEOS_HI[k][part];if(hh){const ih=mk(hh);ih.count=0;ih.userData.near=true;set.pairs.push({lo:im,hi:ih});}else set.pairs.push({lo:im,hi:null});}}
-    if(set){set.imp=makeImpostor(set);g.add(set.imp);g.userData.hiSets.push(set);}}
+    if(set){if(!set.noImp){set.imp=makeImpostor(set);g.add(set.imp);}g.userData.hiSets.push(set);}}   // buildings: full model near, a plain block beyond (no impostor)
   return any?g:null;
 }
 /* trees close to the viewer get the full model: move their transforms from the middle-distance mesh into the near one */
 let splitAt={x:1e18,y:0,z:0},splitForce=false;
-function splitNear(g,set,rHi,rMid){const P=set.pos,n=set.n,nd=g.userData.node,gx=nd.cx-cam.x,gy=nd.cy-cam.y,gz=nd.cz-cam.z,h2=rHi*rHi,m2=rMid*rMid;
+function splitNear(g,set,rHi,rMid){if(set.rHi&&rHi>0)rHi=set.rHi;const P=set.pos,n=set.n,nd=g.userData.node,gx=nd.cx-cam.x,gy=nd.cy-cam.y,gz=nd.cz-cam.z,h2=rHi*rHi,m2=rMid*rMid;
   const near=set.near||(set.near=new Uint32Array(n)),mid=set.mid||(set.mid=new Uint32Array(n)),far=set.far||(set.far=new Uint32Array(n));let nh=0,nm=0,nf=0;
-  const imp=IMP.ready;
+  const imp=IMP.ready&&!set.noImp;
   for(let i=0;i<n;i++){const x=P[i*3]+gx,y=P[i*3+1]+gy,z=P[i*3+2]+gz;const d2=x*x+y*y+z*z;if(d2<h2)near[nh++]=i;else if(d2<m2||!imp)mid[nm++]=i;else far[nf++]=i;}
   set.done=true;set.nh=nh;
   const M=set.mats,C=set.cols;
@@ -1401,7 +1402,7 @@ function splitNear(g,set,rHi,rMid){const P=set.pos,n=set.n,nd=g.userData.node,gx
     else for(let a=0;a<nh;a++)put(near[a]);
     for(let a=0;a<nm;a++)put(mid[a]);
     lo.count=c;lo.instanceMatrix.needsUpdate=lo.instanceColor.needsUpdate=true;}
-  if(imp)fillImpostor(set,far,nf);else set.imp.visible=false;}
+  if(imp)fillImpostor(set,far,nf);else if(set.imp)set.imp.visible=false;}
 
 /* ===== solid things you cannot walk through: trunk / footprint radius in metres at scale 1 ===== */
 const COLL={mound:7,clickRock:1.1,snag:.7,tangle:1.2,succColumn:1.7,succBall:6,succCoral:1.6,twistTree:2,platformTree:3.6,bigTree:.9,longqi:5.4,ancientTree:6.5,crystalTree:.5,spire:2.1,mushroom:1.3,deathSpike:1.1,bloodTree:.45,spikeBall:1,rock:1.25,
@@ -1421,7 +1422,7 @@ function resolveCollisions(){const h=ground(view.lat,view.lon);const p=fromLL(vi
 /* landmark framing for travel: where each landmark item stands, and how far back to stand to see it whole */
 /* city kinds (src/city.js) are merged in below */
 const LM_VIEW={hometree:{r:26,h:320,v:260},deadGiant:{r:26,h:300,v:340},pyramid:{r:36,h:50,v:380},eggRock:{r:24,h:18,v:140},floatIsle:{r:0,h:0,v:950},floatRock:{r:0,h:0,v:400},caveMouth:{r:0,h:0,v:12},boneDeck:{r:0,h:0,v:900},baseIsle:{r:0,h:0,v:200},rock:{r:2,h:2,v:30},clickRock:{r:1.2,h:1.2,v:16},house:{r:9,h:14,v:110},tower:{r:9,h:95,v:240},mound:{r:7,h:22,v:70},coneHouse:{r:3.6,h:7,v:60},barMetal:{r:1,h:6,v:60},squareHall:{r:12,h:11,v:120},roundHall:{r:15,h:20,v:110},silverPyramid:{r:22,h:34,v:160},crystalPeak:{r:380,h:240,v:950}};
-{const cg=buildCityGeos({THREE,merge,M4,plantMaterial});Object.assign(GEOS,cg.GEOS);Object.assign(COLL,cg.COLL);Object.assign(LM_VIEW,cg.LM_VIEW);for(const k of cg.STATIC)STATIC.add(k);}
+{const cg=buildCityGeos({THREE,merge,M4,plantMaterial});Object.assign(GEOS,cg.GEOS);Object.assign(GEOS_HI,cg.HI||{});Object.assign(COLL,cg.COLL);Object.assign(LM_VIEW,cg.LM_VIEW);for(const k of cg.STATIC)STATIC.add(k);}
 function landmarkItems(){const out=[];for(const [la,lo,kind,items] of T.LANDMARKS){const p=T.V(la,lo);const ex=-p[2],ez=p[0];const el=Math.hypot(ex,ez)||1;const E=[ex/el,0,ez/el];const N=[p[1]*E[2]-p[2]*E[1],p[2]*E[0]-p[0]*E[2],p[0]*E[1]-p[1]*E[0]];
   for(const [ox,oz,sc,lift] of items){let x=p[0]+(E[0]*ox+N[0]*oz)/R,y=p[1]+(E[1]*ox+N[1]*oz)/R,z=p[2]+(E[2]*ox+N[2]*oz)/R;const l=Math.hypot(x,y,z);out.push({kind,x:x/l,y:y/l,z:z/l,sc,lift});}}return out;}
 const LM_ITEMS=landmarkItems();
@@ -1515,7 +1516,7 @@ const _fwd=new THREE.Vector3(),_rgt=new THREE.Vector3(),_mat=new THREE.Matrix4()
 /* the underworld's creatures: the 印加 castes of the fern forest and the rock flats (encyclopedia heifeng, baojia, anying, liedizhe, lianyu, hongzhu) */
 function caveSpecies(){return [['incaWasp',3],['baojia',2],['anying',1.4],['lavaSpider',.5],['liedizhe',.22],['lianyu',.07]];}
 let caveWas=false;
-function updateCreatures(dt){if(view.cave!==caveWas){caveWas=view.cave;for(const c of CREATURES)fauna.remove(c.obj);CREATURES.length=0;spawnT=0;}   // a fresh set when you go under or come up
+function updateCreatures(dt){if(!!view.cave!==caveWas){caveWas=!!view.cave;for(const c of CREATURES)fauna.remove(c.obj);CREATURES.length=0;spawnT=0;}   // a fresh set when you go under or come up
   spawnT-=dt;if(spawnT<=0){spawnT=CREATURES.length<MAXC*.6?.35:1.2;spawnNear();}
   for(let i=CREATURES.length-1;i>=0;i--){const c=CREATURES[i],sp=c.sp,o=c.obj;c.t+=dt;
     const dlat=(c.lat-view.lat)*R,dlon=(c.lon-view.lon)*R*Math.cos(view.lat);const d=Math.hypot(dlat,dlon);
@@ -2371,7 +2372,7 @@ function tick(now,force){
 }
 function fail(msg){const d=document.createElement('div');d.id='err';d.textContent=msg;document.body.appendChild(d);$('#load').classList.add('off');}
 window.__music=MUSIC;window.__demo={goPlace:id=>goPlace(PLACES.find(p=>p.id===id)),crdbg:()=>CREATURES.map(c=>{const q=c.obj.position.clone().project(camera);const wp=new THREE.Vector3();c.obj.children[0].getWorldPosition(wp);return c.key+' ndc '+q.x.toFixed(2)+','+q.y.toFixed(2)+','+q.z.toFixed(4)+' child0 '+wp.toArray().map(v=>v.toFixed(1)).join(',');}).join(' | ')+' heading '+view.heading.toFixed(2),showcase:list=>{for(const c of CREATURES)fauna.remove(c.obj);CREATURES.length=0;spawnT=1e9;const {east,north}=frameAt(view.lat,view.lon);
-  list.forEach(([k,dist,side],i)=>{const sp=SPEC[k];const o=makeCreature(k,{});fauna.add(o);const a=view.heading+side;CREATURES.push({sp,key:k,obj:o,lat:view.lat+Math.cos(a)*dist/R,lon:view.lon+Math.sin(a)*dist/R/Math.cos(view.lat),heading:view.heading+Math.PI/2,alt:sp.fly?sp.fly[0]+2:0,ph:i,t:0,pause:0});});},levels:()=>{const c={};const walk=n=>{const k=n.level+':'+n.state+(n.flora?'F':'')+(n.mesh&&n.mesh.visible?'v':'');c[k]=(c[k]||0)+1;if(n.kids)n.kids.forEach(walk);};roots.forEach(walk);return JSON.stringify(c);},flora:()=>{let g=0,i=0;flora.children.forEach(o=>{if(o.visible){g++;o.children.forEach(m=>{i+=m.count;});}});return [g,i];},creatures:()=>CREATURES.map(c=>c.key).join(','),state:()=>JSON.stringify({cave:view.cave,planet:planet.visible,flora:flora.visible,uw:UW.group.visible,uwn:UW.group.children.length,riv:RIVW.group.children.length,rivv:RIVW.group.visible,rivpos:RIVW.group.children.slice(0,3).map(m=>Math.round(m.position.length())),rivn:RIVW.group.children.slice(0,3).map(m=>m.geometry.attributes.position.count),uwpos:UW.group.children.map(m=>Math.round(m.position.length())),uwvis:UW.group.children.map(m=>m.visible),camh:Math.round(Math.hypot(cam.x,cam.y,cam.z)-R),grp:UW.group.parent===scene,lat:view.lat,lon:view.lon}),kinds:()=>{const c={};flora.children.forEach(g=>g.children.forEach(m=>{const k=m.userData.k;if(k)c[k]=(c[k]||0)+(g.visible&&m.visible?m.count:0);}));return JSON.stringify(c);},dbg:n=>{terrainMat.uniforms.uDbg.value=n;},goPlace:id=>goPlace(PLACES.find(p=>p.id===id)),hide:o=>{if(o.cloud!==undefined)cloud.visible=!o.cloud;if(o.terrain!==undefined)planet.visible=!o.terrain;},openMap,closeMap,goView,setSun,setQuality:q=>{qmode=q;applyQuality();},render:()=>tick(performance.now(),true),ready:()=>busy===0&&queue.length===0,view,setView:o=>{Object.assign(view,o);if(o.mode)setMode(o.mode);},tiles:()=>visibleTiles};
+  list.forEach(([k,dist,side],i)=>{const sp=SPEC[k];const o=makeCreature(k,{});fauna.add(o);const a=view.heading+side;CREATURES.push({sp,key:k,obj:o,lat:view.lat+Math.cos(a)*dist/R,lon:view.lon+Math.sin(a)*dist/R/Math.cos(view.lat),heading:view.heading+Math.PI/2,alt:sp.fly?sp.fly[0]+2:0,ph:i,t:0,pause:1e9});});},levels:()=>{const c={};const walk=n=>{const k=n.level+':'+n.state+(n.flora?'F':'')+(n.mesh&&n.mesh.visible?'v':'');c[k]=(c[k]||0)+1;if(n.kids)n.kids.forEach(walk);};roots.forEach(walk);return JSON.stringify(c);},flora:()=>{let g=0,i=0;flora.children.forEach(o=>{if(o.visible){g++;o.children.forEach(m=>{i+=m.count;});}});return [g,i];},creatures:()=>CREATURES.map(c=>c.key).join(','),state:()=>JSON.stringify({cave:view.cave,planet:planet.visible,flora:flora.visible,uw:UW.group.visible,uwn:UW.group.children.length,riv:RIVW.group.children.length,rivv:RIVW.group.visible,rivpos:RIVW.group.children.slice(0,3).map(m=>Math.round(m.position.length())),rivn:RIVW.group.children.slice(0,3).map(m=>m.geometry.attributes.position.count),uwpos:UW.group.children.map(m=>Math.round(m.position.length())),uwvis:UW.group.children.map(m=>m.visible),camh:Math.round(Math.hypot(cam.x,cam.y,cam.z)-R),grp:UW.group.parent===scene,lat:view.lat,lon:view.lon}),kinds:()=>{const c={};flora.children.forEach(g=>g.children.forEach(m=>{const k=m.userData.k;if(k)c[k]=(c[k]||0)+(g.visible&&m.visible?m.count:0);}));return JSON.stringify(c);},dbg:n=>{terrainMat.uniforms.uDbg.value=n;},goPlace:id=>goPlace(PLACES.find(p=>p.id===id)),hide:o=>{if(o.cloud!==undefined)cloud.visible=!o.cloud;if(o.terrain!==undefined)planet.visible=!o.terrain;},openMap,closeMap,goView,setSun,setQuality:q=>{qmode=q;applyQuality();},render:()=>tick(performance.now(),true),ready:()=>busy===0&&queue.length===0,view,setView:o=>{Object.assign(view,o);if(o.mode)setMode(o.mode);},tiles:()=>visibleTiles};
 applyQuality();{const [a,b]=landNear(view.lat,view.lon);view.lat=a;view.lon=b;}setMode('ground');updateSun(0);updatePlaque();
 let curtain={t:0,max:9};function arriveCurtain(name){const l=$('#load');l.textContent=name?'前往 '+name:'正在生成绒球';l.classList.remove('off');curtain={t:0,max:name?5:9};}
 if(!window.__noloop)requestAnimationFrame(tick);else $('#load').classList.add('off');

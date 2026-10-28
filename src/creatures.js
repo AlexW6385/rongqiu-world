@@ -11,37 +11,87 @@ function taper(pts,r0,r1,c,seg=14,rad=10){const curve=new THREE.CatmullRomCurve3
   g.computeVertexNormals();return {g,c};}
 /* darker back, lighter belly, faint mottling — reads as skin instead of plastic */
 function shadeGeo(g){const c=g.attributes.color,n=g.attributes.normal,p=g.attributes.position;for(let i=0;i<c.count;i++){const ny=n.getY(i);const f=(ny>0?1-.22*ny:1-.2*ny)*(1+.08*Math.sin(p.getX(i)*9+p.getZ(i)*7)*Math.sin(p.getY(i)*11+p.getX(i)*3));c.setXYZ(i,c.getX(i)*f,c.getY(i)*f,c.getZ(i)*f);}c.needsUpdate=true;return g;}
-const body=parts=>shadeGeo(merge(parts.map(p=>({...p,c:[p.c[0]*.55,p.c[1]*.55,p.c[2]*.55]})),false).solid);
+const body=parts=>shadeGeo(merge(parts.map(p=>p.keep?p:({...p,c:[p.c[0]*.55,p.c[1]*.55,p.c[2]*.55]})),false).solid);
+/* a smooth lofted body: one continuous skin along a spine in the x–y plane (the animal's side is +z). prof(t) gives the half-width w,
+   half-height h and a vertical offset dy of the cross-section at t∈[0,1] along the spine; col(t,a,y) gives the skin colour, where a is the
+   angle round the section (π/2 = the back, −π/2 = the belly). Gives real silhouettes — necks flowing into shoulders, a belly, a tail
+   tapering to a point — instead of overlapping ellipsoids. */
+function loft(spine,prof,col,rings=40,seg=16){const curve=new THREE.CatmullRomCurve3(spine.map(p=>new THREE.Vector3(...p)));const Z=new THREE.Vector3(0,0,1);
+  const P=[],C=[],I=[],U=[];for(let i=0;i<=rings;i++){const t=i/rings,c=curve.getPointAt(t),T=curve.getTangentAt(t);const N=new THREE.Vector3().crossVectors(Z,T).normalize();const {w,h,dy=0}=prof(t);
+    for(let j=0;j<=seg;j++){const a=j/seg*Math.PI*2-Math.PI/2;const ca=Math.cos(a),sa=Math.sin(a);const flat=sa<0?.85:1;   // a slightly flatter belly
+      P.push(c.x+N.x*(sa*h*flat+dy),c.y+N.y*(sa*h*flat+dy),c.z+ca*w);U.push(j/seg,t);C.push(...col(t,Math.atan2(sa,ca),c.y+N.y*sa*h));}}
+  for(let i=0;i<rings;i++)for(let j=0;j<seg;j++){const a=i*(seg+1)+j,b=a+seg+1;I.push(a,b,a+1,a+1,b,b+1);}
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(P,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(U,2));
+  g.setAttribute('color',new THREE.Float32BufferAttribute(C,3));g.setIndex(I);g.computeVertexNormals();return {g,m:null,c:null,keep:1};}
+/* skin colour helper: darker back, paler belly, optional stripes/spots and glitter, all pre-darkened like body() does */
+const skin=(back,belly,o={})=>(t,a,y)=>{const up=Math.sin(a);let f=up>0?1:0;const m=.5+.5*up;let c=belly.map((v,k)=>v+(back[k]-v)*Math.pow(m,.8));
+  if(o.stripes){const st=Math.sin(t*o.stripes*6.283+Math.cos(a)*.6);if(up>.2&&st>.55)c=c.map((v,k)=>v*.7);}
+  if(o.spots){const sp=Math.sin(t*o.spots*13.1+a*5.3)*Math.sin(t*o.spots*7.7-a*3.1);if(up>-.1&&sp>.6)c=c.map(v=>v*.62);}
+  if(o.glitter){const gl=Math.sin(t*391+a*137)*Math.sin(t*223-a*71);if(gl>.82)c=c.map(v=>v*1.6);}
+  return c.map(v=>v*.55);};
 /* a leg hangs from its hip (origin) straight down; thigh and shin taper; foot at the bottom */
 function legGeo(len,r,c,foot=1.4){return body([C(r,r*.8,len*.52,0,-len*.26,0,c),C(r*.8,r*.55,len*.5,0,-len*.73,0,c),E(r*foot,r*.5,r*foot*.9,r*.25,-len,0,c)]);}
 function wingGeo(span,chord,c){const g=new THREE.BufferGeometry();const v=[0,0,0, chord*.1,0,span*.15, -chord*.15,0,span, -chord*.7,0,span*.75, -chord*.95,0,span*.35, -chord*.55,0,0];
   const idx=[0,1,5,1,4,5,1,2,3,1,3,4];g.setAttribute('position',new THREE.Float32BufferAttribute(v,3));g.setIndex(idx);g.computeVertexNormals();return paint(g.toNonIndexed(),[c[0]*.55,c[1]*.55,c[2]*.55]);}
+
+/* radius along a body from keyframes [[t,r],...], eased between them */
+const keyR=(k,t)=>{for(let i=0;i<k.length-1;i++)if(t>=k[i][0]&&t<=k[i+1][0]){const u=(t-k[i][0])/(k[i+1][0]-k[i][0]);return k[i][1]+(k[i+1][1]-k[i][1])*(.5-.5*Math.cos(u*Math.PI));}return k[k.length-1][1];};
+/* a jointed leg hanging from its hip: a muscular thigh angled forward, a shin angled back, a long foot bone and toes (digitigrade), or a
+   straight pillar with a round foot (graviportal, o.pillar) */
+function limb(len,r,c,o={}){const t=o.toes??3,cl=o.claw||[.82,.78,.66];
+  if(o.pillar)return body([taper([[0,0,0],[.04*len,-.45*len,0],[0,-.9*len,0]],r,r*.72,c,10,12),E(r*.95,r*.35,r*.95,0,-len*.97,0,tone(c,.8))]);
+  const kx=.18*len,ky=-.42*len,ax=-.12*len,ay=-.82*len;
+  const parts=[taper([[0,0,0],[kx*.6,ky*.5,0],[kx,ky,0]],r,r*.62,c,10,12),taper([[kx,ky,0],[(kx+ax)/2,(ky+ay)/2,0],[ax,ay,0]],r*.6,r*.42,c,10,10),
+    taper([[ax,ay,0],[ax+.04*len,-.95*len,0],[ax+.07*len,-len+.03*len,0]],r*.4,r*.32,c,8,8)];
+  for(let f=0;f<t;f++){const z=(f-(t-1)/2)*r*.7;parts.push(taper([[ax+.07*len,-len+.03*len,0],[ax+.07*len+r*1.1,-len+.01*len,z],[ax+.07*len+r*1.9,-len,z*1.3]],r*.24,r*.1,c,6,6),
+    K(r*.09,r*.45,ax+.07*len+r*2.15,-len,z*1.3,cl,0,0,-1.57));}
+  return body(parts);}
 const SPEC={};const geoCache={};
 function def(key,o){SPEC[key]=o;}
 const tone=(c,k)=>[c[0]*k,c[1]*k,c[2]*k];
 // ---- 西之大陆 ----
-def('ceratops',{n:'角龙',walk:1,speed:1.2,group:[10,20],build(){const c=[.43,.45,.32],b=tone(c,1.25),d=[.08,.07,.06];
-  return {body:body([E(1.55,.85,.8,0,1.45,0,c),E(1.2,.6,.65,-.1,1.15,0,b),E(.55,.48,.45,1.25,1.5,0,c,-.3),E(.58,.44,.42,1.85,1.42,0,c,-.15),K(.2,.45,2.35,1.35,0,[.75,.7,.6],0,0,-1.57),
-    {g:new THREE.CylinderGeometry(1,1,.1,20),m:new THREE.Matrix4().compose(new THREE.Vector3(1.5,1.85,0),new THREE.Quaternion().setFromEuler(new THREE.Euler(0,0,1.25)),new THREE.Vector3(.95,1,1.05)),c:[.62,.4,.28]},
-    K(.1,1.15,2.25,1.95,0,[.9,.86,.75],0,0,-1.05),E(.07,.07,.07,2.02,1.6,.3,d),E(.07,.07,.07,2.02,1.6,-.3,d),taper([[-1.4,1.4,0],[-2.3,1.15,0],[-3.2,.85,0]],.42,.05,c)]),
-    legs:[[1,1.15,.5],[1,1.15,-.5],[-1,1.15,.52],[-1,1.15,-.52]].map(([x,y,z])=>({geo:legGeo(1.15,.2,c),x,y,z}))};}});
-def('gulong',{n:'骸龙',walk:1,sc:.62,speed:1.5,group:[8,16],build(){const c=[.5,.5,.48],w=[.86,.86,.82];const parts=[E(.85,.28,.32,0,.6,0,c),E(.32,.18,.2,1.05,.72,0,c),taper([[.6,.62,0],[.85,.7,0],[1,.72,0]],.18,.15,c),taper([[-.75,.58,0],[-1.6,.45,0],[-2.4,.3,0]],.22,.03,c)];
-  for(let k=0;k<6;k++)parts.push({g:new THREE.TorusGeometry(1,.035,5,16),m:new THREE.Matrix4().compose(new THREE.Vector3(.55-k*.24,.6,0),new THREE.Quaternion().setFromEuler(new THREE.Euler(0,1.5708,0)),new THREE.Vector3(.33-k*.012,.3-k*.01,1)),c:w});
-  parts.push(E(.035,.035,.035,1.28,.78,.11,[.9,.8,.2]),E(.035,.035,.035,1.28,.78,-.11,[.9,.8,.2]));
-  return {body:body(parts).translate(0,1,0),legs:[[.55,1.55,.28],[.55,1.55,-.28],[-.5,1.55,.28],[-.5,1.55,-.28]].map(([x,y,z])=>({geo:legGeo(1.55,.08,c),x,y,z,splay:.35}))};}});
+/* 角龙 (encyclopedia jiaolong): a fat herbivore over 3 m long, ~900 kg, a shield frill behind the head and one long pointed horn;
+   herds of ~30 under a leader. Colours are not in the book [inferred: olive-grey back, paler belly, a red-brown frill] */
+def('ceratops',{n:'角龙',walk:1,speed:1.2,group:[10,20],build(){const c=[.3,.33,.17],b=[.55,.52,.36],d=[.05,.05,.04];
+  const sp=[[-3.3,.8,0],[-2.2,1.15,0],[-1.1,1.5,0],[0,1.62,0],[1.0,1.55,0],[1.55,1.45,0],[2.05,1.38,0],[2.5,1.2,0],[2.75,1.0,0]];
+  const k=[[0,.04],[.18,.3],[.38,.72],[.5,.82],[.62,.72],[.72,.52],[.8,.5],[.9,.38],[1,.1]];
+  const parts=[loft(sp,t=>({w:keyR(k,t)*(t>.75?.82:1),h:keyR(k,t)*(t>.75?1.05:1.08)}),skin(c,b,{spots:3}),48,18)];
+  // the frill: a broad shield swept up behind the head, scalloped edge, red-brown with a pale rim
+  {const C0=[1.72,1.72,0],V=[-Math.sin(.65),Math.cos(.65),0],Rf=1.1,pos=[],col=[],idx=[];pos.push(...C0);col.push(.3,.17,.12);
+   for(let i=0;i<=24;i++){const a=-1.75+i/24*3.5,r=Rf*(1+.06*Math.cos(i*Math.PI));pos.push(C0[0]+V[0]*Math.cos(a)*r,C0[1]+V[1]*Math.cos(a)*r,Math.sin(a)*r);col.push(.42,.26,.18);if(i<24)idx.push(0,i+1,i+2);
+     if(i%2===0)parts.push(K(.08,.26,C0[0]+V[0]*Math.cos(a)*(r+.1),C0[1]+V[1]*Math.cos(a)*(r+.1),Math.sin(a)*(r+.1),[.85,.8,.66],Math.sin(a)*1.2,0,.65-Math.cos(a)*0));}
+   const fr=new THREE.BufferGeometry();fr.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));fr.setAttribute('uv',new THREE.Float32BufferAttribute(new Float32Array(pos.length/3*2),2));
+   fr.setAttribute('color',new THREE.Float32BufferAttribute(col,3));fr.setIndex(idx);fr.computeVertexNormals();parts.push({g:fr,m:null,c:null,keep:1});}
+  parts.push(K(.13,1.25,2.45,1.62,0,[.9,.86,.74],0,0,-.75),K(.08,.3,2.55,1.25,0,[.8,.76,.64],0,0,-1.2));   // the long horn, a nose boss
+  for(const z of [1,-1])parts.push(E(.07,.06,.06,2.2,1.5,.36*z,[.12,.08,.04]),E(.03,.03,.03,2.24,1.51,.4*z,d));
+  return {body:body(parts),legs:[[.9,1.2,.55],[.9,1.2,-.55],[-.95,1.25,.6],[-.95,1.25,-.6]].map(([x,y,z])=>({geo:limb(y,.24,c,{pillar:1}),x,y,z}))};}});
+/* 骸龙 (encyclopedia gulong): ~2 m long, lanky, with long limbs of equal length; grey; the ribs show through the skin */
+def('gulong',{n:'骸龙',walk:1,sc:.62,speed:1.5,group:[8,16],build(){const c=[.46,.46,.44],b=[.66,.65,.6];
+  const sp=[[-2.5,1.3,0],[-1.6,1.45,0],[-.7,1.6,0],[0,1.62,0],[.6,1.6,0],[1.05,1.72,0],[1.35,1.82,0],[1.62,1.8,0]];
+  const k=[[0,.03],[.25,.14],[.45,.3],[.6,.31],[.72,.2],[.82,.12],[.9,.17],[1,.06]];
+  const sk=(t,a,y)=>{const base=skin(c,b)(t,a,y);const rib=t>.45&&t<.66&&Math.sin(t*170)>.55&&Math.abs(Math.sin(a))<.75;return rib?base.map(v=>v*1.35):base;};   // the ribs
+  const parts=[loft(sp,t=>({w:keyR(k,t)*.85,h:keyR(k,t)*1.15}),sk,44,16)];
+  for(const z of [1,-1])parts.push(E(.035,.035,.035,1.5,1.88,.1*z,[.9,.8,.2]));
+  return {body:body(parts),legs:[[.55,1.55,.22],[.55,1.55,-.22],[-.55,1.55,.22],[-.55,1.55,-.22]].map(([x,y,z])=>({geo:limb(y,.09,c,{toes:4}),x,y,z,splay:.3}))};}});
 /* the dragon peoples (encyclopedia emerald, baihai, yinjia): 骸龙 offshoots, upright bipeds about 1.8–2 m tall with a long tail;
    翡翠龙 leaf-green and glittering, some with a horned-dinosaur skull worn as a helmet and a long pole; 白骸龙 pure white and thin;
-   银甲龙 metallic silver scales under silver armour, helmet hiding the face, shield and blade */
-function folk(c,o={}){const b=tone(c,1.15),d=[.05,.04,.04];
-  const parts=[E(.26,.42,.24,.05,1.38,0,c,-.35),E(.21,.3,.19,.12,1.2,0,b,-.3),taper([[.14,1.68,0],[.24,1.84,0],[.33,1.93,0]],.1,.075,c),
-    E(.2,.13,.14,.42,1.96,0,c),E(.15,.08,.1,.64,1.9,0,c),E(.03,.03,.03,.5,2.01,.1,[.9,.75,.2]),E(.03,.03,.03,.5,2.01,-.1,[.9,.75,.2]),
-    taper([[-.12,1.05,0],[-.7,.82,0],[-1.3,.48,0],[-1.75,.3,0]],.16,.02,c)];
-  for(const z of [1,-1])parts.push(taper([[.12,1.58,.2*z],[.28,1.32,.28*z],[.42,1.16,.22*z]],.055,.035,c));
-  if(o.skull)parts.push(E(.25,.15,.21,.42,2.08,0,[.86,.83,.74]),K(.04,.45,.62,2.3,0,[.9,.88,.8],0,0,-.9));
-  if(o.pole)parts.push(C(.025,.025,2.7,.46,1.35,.26,[.45,.35,.22],0,0,.15));
-  if(o.armour){const s=[.82,.84,.88];parts.push(E(.29,.38,.27,.06,1.42,0,s,-.35),E(.23,.17,.18,.4,2.0,0,s),C(.32,.32,.05,.3,1.25,-.36,s,Math.PI/2,0,0,18),C(.02,.02,.9,.5,1.2,.3,s,0,0,.6));}
-  return {body:body(parts),legs:[[0,1.02,.16],[0,1.02,-.16]].map(([x,y,z])=>({geo:legGeo(1.02,.075,c,1.6),x,y,z}))};}
-def('emerald',{n:'翡翠龙',walk:1,speed:1.3,group:[4,10],build(o){return folk([.17,.5,.22],{skull:o&&o.v===0,pole:o&&o.v<2});}});
+   银甲龙 in silver armour */
+function folk(c,o={}){const b=o.belly||[c[0]*1.25+.12,c[1]*1.15+.1,c[2]*1.1+.06],d=[.05,.04,.04],sk=skin(c,b,{glitter:o.glitter,spots:o.spots});
+  // one skin from tail tip through the hips, a deep chest, a slim neck and the head to the snout
+  const spine=[[-1.8,.32,0],[-1.2,.55,0],[-.55,.9,0],[0,1.08,0],[.1,1.42,0],[.18,1.62,0],[.26,1.8,0],[.36,1.94,0],[.52,1.98,0],[.7,1.93,0]];
+  const prof=t=>{const k=[[0,.015],[.12,.07],[.3,.15],[.42,.22],[.52,.25],[.6,.22],[.68,.16],[.74,.085],[.8,.08],[.86,.13],[.93,.11],[1,.05]];
+    const r=keyR(k,t);const head=t>.84;return {w:r*(head?.9:.92),h:r*(head?.78:1.12)};};
+  const parts=[loft(spine,prof,sk,48,18)];
+  for(const z of [1,-1])parts.push(E(.034,.034,.034,.56,2.03,.085*z,[.95,.78,.18]),E(.018,.026,.018,.585,2.034,.1*z,d),E(.012,.012,.012,.71,1.97,.03*z,d));
+  parts.push({g:new THREE.BoxGeometry(.3,.008,.12),m:M4(.58,1.905,0,0,0,-.18),c:d});
+  for(let k=0;k<9;k++){const t=k/8;parts.push(K(.022-.008*t,.07-.02*t,.28-t*1.3,1.9-t*.95+(t<.3?0:-.12*t),0,tone(c,.75),0,0,.25+t*.6));}
+  for(const z of [1,-1]){parts.push(taper([[.2,1.55,.17*z],[.3,1.36,.24*z],[.44,1.22,.2*z],[.53,1.14,.18*z]],.05,.03,c,10,8));
+    for(let f=0;f<3;f++)parts.push(K(.011,.07,.57,1.11,(.15+.03*(f-1))*z,[.85,.82,.7],0,0,2.2));}
+  if(o.skull)parts.push(E(.17,.11,.15,.52,2.08,0,[.86,.83,.74]),K(.03,.32,.68,2.22,0,[.9,.88,.8],0,0,-.9),E(.03,.03,.03,.62,2.1,.11,d),E(.03,.03,.03,.62,2.1,-.11,d));
+  if(o.pole)parts.push(C(.025,.025,2.7,.46,1.35,.26,[.45,.35,.22],0,0,.15),K(.04,.25,.67,2.68,.33,[.75,.72,.65],0,0,-.15));
+  if(o.armour){const s=[.82,.84,.88];parts.push(loft([[-.3,1.0,0],[0,1.1,0],[.12,1.45,0],[.2,1.66,0]],t=>({w:.27-.05*t,h:.3-.06*t}),()=>[.45,.46,.48],16,14),E(.16,.12,.14,.45,2.04,0,s),C(.3,.3,.04,.3,1.3,-.3,s,Math.PI/2,0,0,18),C(.02,.02,.9,.5,1.2,.3,s,0,0,.6));}
+  return {body:body(parts),legs:[[0,1.02,.16],[0,1.02,-.16]].map(([x,y,z])=>({geo:limb(1.02,.1,c,{toes:3}),x,y,z}))};}
+def('emerald',{n:'翡翠龙',walk:1,speed:1.3,group:[4,10],build(o){return folk([.08,.34,.1],{skull:o&&o.v===0,pole:o&&o.v<2,glitter:1,belly:[.36,.5,.24]});}});   // leaf-green and glittering (encyclopedia emerald)
 def('baihai',{n:'白骸龙',walk:1,speed:1.4,group:[4,12],build(){return folk([.9,.9,.87]);}});
 def('yinjia',{n:'银甲龙',walk:1,speed:1.3,group:[4,10],build(){return folk([.74,.76,.8],{armour:1});}});
 /* 立蝎 (encyclopedia lixie): a scorpion walking upright — ten limbs, four of them legs under a level rear body, the fore-body raised
@@ -83,10 +133,19 @@ def('naoInf',{n:'脑袋虫步兵',walk:1,speed:1.2,group:[3,6],build(){const c=[
   return {body:body([E(.38,.17,.2,-.1,.62,0,c,.6),E(.14,.12,.12,.25,.98,0,c),K(.03,.55,.45,.72,.14,d,0,0,-1.9),K(.03,.55,.45,.72,-.14,d,0,0,-1.9)]),legs:[[-.05,.55,.15],[-.05,.55,-.15],[-.35,.45,.16],[-.35,.45,-.16]].map(([x,y,z])=>({geo:legGeo(y,.04,d),x,y,z,splay:.6*Math.sign(z)}))};}});
 def('maoyu',{n:'毛玉',walk:1,hop:1,speed:.5,sc:.2,group:[8,20],build(o){const c=o&&o.white?[.95,.95,.93]:[.74,.6,.45];
   return {body:body([E(.22,.2,.21,0,.22,0,c),E(.13,.12,.12,.17,.3,0,c),K(.045,.12,.16,.45,.07,c,0,0,.25),K(.045,.12,.16,.45,-.07,c,0,0,.25),E(.025,.025,.025,.29,.33,.06,[.05,.04,.04]),E(.025,.025,.025,.29,.33,-.06,[.05,.04,.04]),E(.08,.08,.08,-.22,.3,0,tone(c,1.1))])};}});
-def('tyrant',{n:'暴君巨蜥',walk:1,speed:1.8,group:[1,1],build(){const c=[.44,.13,.1],b=[.6,.35,.28];
-  return {body:body([E(2.6,1.35,1.15,0,3.8,0,c,.12),E(1.8,.9,.9,.3,3.3,0,b,.12),taper([[2,4.2,0],[3,4.7,0],[3.6,4.8,0]],.9,.7,c),E(1.35,.75,.7,4.2,4.75,0,c,-.1),E(1.1,.3,.55,4.3,4.2,0,b,-.15),
-    E(.12,.12,.12,4.9,5.1,.48,[.95,.75,.2]),E(.12,.12,.12,4.9,5.1,-.48,[.95,.75,.2]),taper([[-2.3,3.8,0],[-4.5,3.3,0],[-7.2,2.6,0]],1.05,.08,c),C(.14,.1,.9,1.8,3.1,.7,c,0,0,.6),C(.14,.1,.9,1.8,3.1,-.7,c,0,0,.6)]),
-    legs:[[.3,3.4,.95],[.3,3.4,-.95]].map(([x,y,z])=>({geo:legGeo(3.4,.55,c,1.6),x,y,z}))};}});
+/* 暴君巨蜥 (encyclopedia baojun): ~4 m tall, ~12 m long, dark-red scale armour all over, thick hind legs, forelimbs ending in big
+   sharp claws, a huge mouth full of teeth */
+def('tyrant',{n:'暴君巨蜥',walk:1,speed:1.8,group:[1,1],build(){const c=[.4,.11,.09],b=[.58,.32,.24],d=[.04,.03,.03],tooth=[.92,.88,.76];
+  const sp=[[-7.4,2.5,0],[-5,3.2,0],[-2.6,3.85,0],[0,4.15,0],[1.6,4.2,0],[2.7,4.55,0],[3.5,4.95,0],[4.4,5.0,0],[5.3,4.75,0]];
+  const k=[[0,.08],[.2,.55],[.38,1.15],[.48,1.35],[.6,1.2],[.7,.8],[.78,.82],[.9,.72],[1,.42]];
+  const parts=[loft(sp,t=>({w:keyR(k,t)*(t>.74?.78:.9),h:keyR(k,t)*(t>.74?1.12:1.1)}),skin(c,b,{spots:2}),56,20)];
+  // the lower jaw hanging a little open, teeth along both jaws
+  parts.push(loft([[3.6,4.45,0],[4.4,4.32,0],[5.15,4.22,0]],t=>({w:.62-.32*t,h:.28-.14*t}),skin(tone(c,.9),b),16,14));
+  for(const z of [1,-1])for(let i=0;i<9;i++){const x=3.9+i*.15,w=.55-.04*i;parts.push(K(.045,.24,x,4.55,w*z*.92,tooth,Math.PI,0,0,5),K(.04,.2,x+.05,4.5,w*z*.8,tooth,0,0,0,5));}
+  for(const z of [1,-1])parts.push(E(.13,.11,.1,4.25,5.38,.5*z,[.95,.72,.18]),E(.06,.1,.05,4.3,5.39,.56*z,d),E(.24,.08,.14,4.15,5.55,.5*z,tone(c,.75)));   // eyes under heavy brows
+  for(let i=0;i<18;i++){const t=i/17,x=-6+t*9.6,y=3.15+Math.sin(t*2.6)*1.2+(t>.6?.2:0);parts.push(K(.16+.1*Math.sin(t*3),.35,x,y+.95*keyR(k,.1+t*.65)/1.2,0,tone(c,.7),0,0,-.3,5));}   // armour ridge
+  for(const z of [1,-1]){parts.push(taper([[2.1,3.9,.85*z],[2.6,3.35,1.05*z],[3.0,3.0,.9*z]],.22,.15,c,8,8));for(let f=0;f<3;f++)parts.push(K(.06,.4,3.18,2.88,(.82+.1*(f-1))*z,tooth,0,0,2.3,5));}
+  return {body:body(parts),legs:[[.2,3.7,.95],[.2,3.7,-.95]].map(([x,y,z])=>({geo:limb(y,.62,c,{toes:3}),x,y,z}))};}});
 def('wyvern',{glide:1,n:'飞龙',fly:[50,180],speed:10,sc:1.3,group:[1,1],build(){const c=[.36,.36,.34],m=[.44,.42,.4];
   return {body:body([E(1.7,.45,.5,0,0,0,c),taper([[1.4,.1,0],[2.3,.4,0],[2.8,.45,0]],.32,.22,c),E(.55,.28,.26,3.15,.42,0,c),K(.12,.6,3.75,.42,0,m,0,0,-1.57),taper([[-1.5,0,0],[-3.5,-.2,0],[-5.5,-.15,0]],.35,.04,c)]),
     legs:[[1,-.2,.35],[1,-.2,-.35],[-1,-.2,.35],[-1,-.2,-.35]].map(([x,y,z])=>({geo:legGeo(.9,.15,c,1.4),x,y,z,splay:.3})),
@@ -138,10 +197,13 @@ def('silverbeetle',{n:'银甲虫',walk:1,speed:.9,group:[4,8],build(){const c=[.
 def('redspider',{n:'红蛛',fly:[1,4],speed:3,group:[5,10],dart:1,build(){const c=[.78,.13,.07];const parts=[E(.12,.09,.11,0,0,0,c),E(.18,.13,.16,-.22,0,0,tone(c,.8))];
   for(let k=0;k<4;k++)for(const s of [1,-1])parts.push(taper([[0,0,0],[.1-k*.05,.12,.22*s],[.18-k*.12,-.1,.34*s]],.015,.008,tone(c,.6),6,4));
   return {body:body(parts),wings:[1,-1].map(s=>({geo:paint(new THREE.PlaneGeometry(.18,.35).rotateX(-1.5708).translate(0,0,s*.18),[.3,.12,.09]),x:-.05,y:.08,z:0,side:s,fast:1}))};}});
-def('dachuolong',{n:'大鸵龙',walk:1,speed:2.4,group:[2,5],build(){const c=[.58,.5,.36],b=tone(c,1.2);
-  return {body:body([E(1,.62,.55,0,1.9,0,c),E(.8,.45,.45,0,1.7,0,b),taper([[.8,2.1,0],[1.1,2.8,0],[1.25,3.4,0]],.25,.16,c),E(.34,.2,.18,1.45,3.5,0,c),K(.08,.25,1.8,3.45,0,[.8,.7,.5],0,0,-1.57),
-    taper([[-.9,1.95,0],[-1.8,1.9,0],[-2.7,1.7,0]],.3,.04,c),E(.04,.04,.04,1.6,3.58,.12,[.05,.05,.05]),E(.04,.04,.04,1.6,3.58,-.12,[.05,.05,.05])]),
-    legs:[[.1,1.75,.32],[.1,1.75,-.32]].map(([x,y,z])=>({geo:legGeo(1.75,.16,c,1.8),x,y,z}))};}});
+/* 大鸵龙 (encyclopedia dachuolong): a big ostrich-like running dinosaur ridden by the 白骸龙 cavalry; long neck, small head, beak */
+def('dachuolong',{n:'大鸵龙',walk:1,speed:2.4,group:[2,5],build(){const c=[.56,.48,.34],b=[.76,.7,.55];
+  const sp=[[-2.8,1.75,0],[-1.6,1.9,0],[-.5,2.0,0],[.4,2.05,0],[1.0,2.4,0],[1.3,3.0,0],[1.45,3.45,0],[1.7,3.52,0],[2.0,3.42,0]];
+  const k=[[0,.05],[.2,.3],[.35,.55],[.45,.58],[.55,.3],[.68,.17],[.8,.16],[.9,.19],[1,.05]];
+  const parts=[loft(sp,t=>({w:keyR(k,t)*.86,h:keyR(k,t)*1.1}),skin(c,b,{stripes:6}),48,16),K(.07,.3,2.05,3.38,0,[.75,.68,.5],0,0,-1.75)];
+  for(const z of [1,-1])parts.push(E(.045,.045,.045,1.78,3.6,.13*z,[.05,.05,.05]));
+  return {body:body(parts),legs:[[.1,1.8,.3],[.1,1.8,-.3]].map(([x,y,z])=>({geo:limb(y,.18,c,{toes:3}),x,y,z}))};}});
 def('jianjia',{n:'坚甲龙',walk:1,speed:.6,group:[1,3],build(){const c=[.45,.42,.33],k=[.62,.58,.46];const parts=[E(2.6,1.1,1.65,0,1.55,0,c),E(.6,.45,.5,2.7,1.2,0,c),taper([[-2.4,1.4,0],[-3.6,1.1,0],[-4.6,.9,0]],.45,.18,c),E(.55,.4,.55,-4.8,.9,0,k)];
   for(let i=0;i<16;i++){const a=i*2.4,r=.35+(i%4)*.2;parts.push(K(.18,.45,Math.cos(a)*2.1*r,1.55+Math.sqrt(Math.max(0,1-r*r))*1.05,Math.sin(a)*1.4*r,k,Math.sin(a)*.5,0,-Math.cos(a)*.5,6));}
   return {body:body(parts),legs:[[1.6,1.1,1.05],[1.6,1.1,-1.05],[-1.5,1.1,1.05],[-1.5,1.1,-1.05]].map(([x,y,z])=>({geo:legGeo(1.1,.32,c,1.5),x,y,z}))};}});
