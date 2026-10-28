@@ -176,6 +176,19 @@ const LANDMARKS=[
   [-14,63,'silverPyramid',[[0,0,1,0,0]]],
   [71,34,'crystalPeak',[[0,0,1,0,0]]]   // jjzs: a ring wall of crystal rising out of the polar sea ice
 ];
+/* 骸骨之桥 (encyclopedia rift): Lin's single ~100 m-wide bridge of spider silk, bone and chitin across the great rift, rim to rim;
+   built as deck pieces from rim to rim along the rift's perpendicular at its middle, sagging a little toward the centre */
+{const M=[F_RIFT[0][0]+F_RIFT[1][0],F_RIFT[0][1]+F_RIFT[1][1],F_RIFT[0][2]+F_RIFT[1][2]];const ml=Math.hypot(M[0],M[1],M[2]);for(let i=0;i<3;i++)M[i]/=ml;
+ const dr=[F_RIFT[1][0]-F_RIFT[0][0],F_RIFT[1][1]-F_RIFT[0][1],F_RIFT[1][2]-F_RIFT[0][2]];
+ let px=M[1]*dr[2]-M[2]*dr[1],py=M[2]*dr[0]-M[0]*dr[2],pz=M[0]*dr[1]-M[1]*dr[0];const pl=Math.hypot(px,py,pz);px/=pl;py/=pl;pz/=pl;   // across the rift
+ const at=x=>{const q=[M[0]+px*x/${6371000},M[1]+py*x/${6371000},M[2]+pz*x/${6371000}];const l=Math.hypot(q[0],q[1],q[2]);return [q[0]/l,q[1]/l,q[2]/l];};
+ const H=x=>terrain(...at(x),40);let a=0,b=0;for(let x=0;x<16000;x+=100){if(H(x)>900){b=x;break;}}for(let x=0;x>-16000;x-=100){if(H(x)>900){a=x;break;}}
+ if(a<0&&b>0){const ha=H(a-150),hb=H(b+150),items=[];const mla=Math.asin(M[1])/D2R,mlo=Math.atan2(-M[2],M[0])/D2R;
+   // the deck pieces, in the landmark frame of the bridge's middle (+x west, +y south): direction of 'across' in that frame
+   const E=[-M[2],0,M[0]],el=Math.hypot(E[0],E[2]);E[0]/=el;E[2]/=el;const Nn=[M[1]*E[2]-M[2]*E[1],M[2]*E[0]-M[0]*E[2],M[0]*E[1]-M[1]*E[0]];
+   const ux=px*E[0]+py*E[1]+pz*E[2],uy=px*Nn[0]+py*Nn[1]+pz*Nn[2],hd=Math.atan2(uy,ux);
+   for(let x=a-100;x<=b+100;x+=24){const t=(x-a)/(b-a),deck=ha+(hb-ha)*t-180*4*t*(1-t);const g=H(x);items.push([ux*x,uy*x,1,Math.max(0,deck-Math.max(g,0)),hd]);}
+   LANDMARKS.push([mla,mlo,'boneDeck',items]);}}
 /* 云岛 (encyclopedia yundao): the synthesizers' white honeycomb base islands, a few tens of metres across with one windowless white
    building, floating over the east continent's central desert */
 for(let i=0;i<14;i++){const a=LMR(i+4100)*6.283,r=(20+90*Math.sqrt(LMR(i+4200)))/111.195;   // each its own landmark, so each is drawn when you are near it

@@ -965,13 +965,13 @@ function updateGrass(){const W=quality.grass||0;
    gSun.value.set(st[0],st[1],st[2],cloudCovJS(n.x,n.y,n.z));gSunEl.value=U.dot(L);}
   const A=grassAnchor.A;gA.value.set(A[0]-cam.x,A[1]-cam.y,A[2]-cam.z);gE.value.fromArray(grassAnchor.E);gNn.value.fromArray(grassAnchor.Nn);gU.value.fromArray(grassAnchor.U);gCam.value.set(cx,cz);}
 
-const STATIC=new Set(['mound','tangle','hometree','deadGiant','pyramid','eggRock','floatIsle','floatRock','clickRock','caveMouth','baseIsle','log','snag','house','tower','crystalPeak','coneHouse','barMetal','squareHall','roundHall','silverPyramid','spire','rock','mushroom']);
+const STATIC=new Set(['mound','tangle','hometree','deadGiant','pyramid','eggRock','floatIsle','floatRock','clickRock','caveMouth','baseIsle','boneDeck','log','snag','house','tower','crystalPeak','coneHouse','barMetal','squareHall','roundHall','silverPyramid','spire','rock','mushroom']);
 
 /* geometry helpers */
 const paint=(g,c)=>{const n=g.attributes.position.count,a=new Float32Array(n*3);for(let i=0;i<n;i++){a[i*3]=c[0];a[i*3+1]=c[1];a[i*3+2]=c[2];}g.setAttribute('color',new THREE.BufferAttribute(a,3));return g;};
 const ATL={leaf:[0,.5],grass:[.5,.5],bark:[0,0],frond:[.5,0]};
 const uvRemap=(g,q)=>{const uv=g.attributes.uv;for(let i=0;i<uv.count;i++){uv.setXY(i,q[0]+uv.getX(i)*.5,q[1]+uv.getY(i)*.5);}return g;};
-const merge=(parts,ao=true)=>{const prep=p=>{let g=p.g.index?p.g.toNonIndexed():p.g.clone();if(p.m)g.applyMatrix4(p.m);if(p.t)uvRemap(g,ATL[p.t]);return paint(g,p.t==='bark'?[1.1,1.0,.9]:p.t==='grass'||p.t==='frond'?[1.05,1.1,.95]:p.c);};
+const merge=(parts,ao=true)=>{const prep=p=>{let g=p.g.index?p.g.toNonIndexed():p.g.clone();if(p.m)g.applyMatrix4(p.m);if(p.t)uvRemap(g,ATL[p.t]);return p.keep?g:paint(g,p.t==='bark'?[1.1,1.0,.9]:p.t==='grass'||p.t==='frond'?[1.05,1.1,.95]:p.c);};
   const sol=parts.filter(p=>!p.t),tex=parts.filter(p=>p.t);
   const out={solid:sol.length?mergeGeometries(sol.map(prep),false):null,tex:tex.length?mergeGeometries(tex.map(prep),false):null};parts.forEach(p=>p.g.dispose());
   if(ao){let ymax=.01;for(const g of [out.solid,out.tex])if(g){const P=g.attributes.position;for(let i=0;i<P.count;i++)ymax=Math.max(ymax,P.getY(i));}
@@ -1116,26 +1116,82 @@ function buildGeos(){
   GEOS.mushroom=merge([{g:new THREE.CylinderGeometry(.8,1.3,9,8),m:M4(0,4.5,0),c:[.6,.5,.42]},{g:new THREE.SphereGeometry(6,12,6,0,6.283,0,1.3),m:M4(0,8.5,0),c:[.55,.3,.5]},{g:new THREE.CylinderGeometry(5.2,5.9,.6,12),m:M4(0,8.4,0),c:[.3,.15,.25]}]);
   // 天国之林：远古丛林的巨树
   {const parts=[{g:new THREE.CylinderGeometry(3,6,70,10),m:M4(0,35,0),c:[.3,.24,.17]}];for(let k=0;k<6;k++){const a=k*1.05;parts.push({g:new THREE.CylinderGeometry(.6,1.4,22,6),m:M4(Math.cos(a)*9,52+k*2,Math.sin(a)*9,Math.sin(a)*1.1,0,-Math.cos(a)*1.1),c:[.3,.24,.17]});parts.push(...blob(9,Math.cos(a)*17,58+k*2,Math.sin(a)*17,k%2?leaf:leaf2));}parts.push(...blob(12,0,74,0,leaf));GEOS.ancientTree=merge(parts);}
-  // 家园树 (encyclopedia hometree): a branchless column ~50 m wide and ~310 m tall, moss-green above ~200 m, the crown a
-  // pit 40 m wide holding a small lake; glowing knot-holes where creatures nest
-  {const t=growTree({seed:21,levels:1,len:[310,1],rad:[25,.3],sections:[26,1],segments:[44,4],children:[0],angle:[0,0],start:[0,0],
-     gnarl:[.003,0],taper:.09,force:.1,twist:[0,0],bark:[1,.94,.86]});
-   const parts=[];for(let k=0;k<9;k++){const a=k*2.3,yy=40+k*28;const r=25*(1-.09*yy/310)*.99;parts.push({g:new THREE.SphereGeometry(3.2,8,6),m:M4(Math.cos(a)*r,yy,Math.sin(a)*r),c:[1.5,1.1,.4]});}
-   const rt=25*(1-.09);
-   parts.push({g:new THREE.CylinderGeometry(rt+.35,25*(1-.09*200/310)+.35,110,44,1,true),m:M4(0,255,0),c:[.2,.31,.14]},
-     {g:new THREE.RingGeometry(20,rt+.4,44),m:M4(0,310.2,0,-Math.PI/2),c:[.22,.33,.15]},
-     {g:new THREE.CircleGeometry(20,36),m:M4(0,262,0,-Math.PI/2),c:[.05,.06,.05]},
-     {g:new THREE.CircleGeometry(10,24),m:M4(0,262.4,0,-Math.PI/2),c:[.06,.14,.2]});
-   // around 100 m a "cloud" of 1 cm floating fluff-ball creatures wraps the trunk (drawn as soft clumps); a waterfall bursts
-   // from a hole at ~190 m and pours down the trunk into a foaming pool
-   const LMR=k=>{const x=Math.sin(k*127.1+311.7)*43758.5453;return x-Math.floor(x);};
-   for(let k=0;k<900;k++){const a=LMR(k*3.1)*6.283,rr=26+Math.pow(LMR(k*5.7),1.8)*14,yy=90+LMR(k*7.3)*24+Math.sin(a*3)*3,s=.25+LMR(k*9.1)*.45;
+  /* 家园树 (encyclopedia hometree): a straight branchless column over 50 m thick and ~310 m tall, dead ten years but sound, its
+     bark many times harder than a twisted tree's. Built as one sculpted trunk: buttress roots flaring into the ground and running
+     out as surface roots, deep vertical fluting, an irregular cross-section; grey-brown bark with lichen, nest holes between 100 and
+     200 m, moss and small ferns thickening above ~200 m in the damp mist; a waterfall bursting from a hole at ~190 m down a dark wet
+     streak into a foaming pool; at the top a fern-and-moss rim round a crown pit 40 m wide and ~50 m deep with a small lake. */
+  {const LMR=k=>{const x=Math.sin(k*127.1+311.7)*43758.5453;return x-Math.floor(x);};const nz=(x,y,z)=>T.fbm(x,y,z,3);const TAU=Math.PI*2,WF=0;   // the waterfall faces local +x (angle 0)
+   const H=310,K=200,A=168;
+   const hAt=k=>H*Math.pow(k/K,1.18);                                                          // rings closer together near the ground
+   const radius=(h,th)=>{let r=25*(1-.085*h/H);
+     const bt=Math.max(0,Math.cos(7*th+.45));r+=(17*Math.exp(-h/10)+5*Math.exp(-h/32))*bt*bt;   // seven buttress roots (the waterfall side falls between two)
+     r+=5*Math.exp(-h/6);                                                                         // the root flare
+     r*=1+.045*Math.sin(2*th+1.3)+.03*Math.sin(3*th+.4);                                          // not quite round
+     const fl=Math.sin(23*th+h*.004+1.7*Math.sin(h*.013))*.5+Math.sin(41*th-h*.006)*.3;          // vertical fluting, wandering a little
+     r*=1+.022*fl+.03*nz(Math.cos(th)*3,h*.02,Math.sin(th)*3);
+     return r;};
+   const P=[],NN=[],U=[],C=[],I=[];const col=(h,th,r,fl)=>{
+     const n1=nz(Math.cos(th)*9,h*.08,Math.sin(th)*9),n2=nz(Math.cos(th)*40+5,h*.4,Math.sin(th)*40);
+     let c=[.5,.45,.39].map(v=>v*(.78+.3*n1+.1*n2));                                              // grey-brown bark
+     const lich=T.sm(.25,.55,nz(Math.cos(th)*14+9,h*.11,Math.sin(th)*14));c=c.map((v,i)=>v*(1-.5*lich)+[.55,.58,.48][i]*.5*lich);   // pale lichen
+     const groove=T.sm(.2,-.6,fl);c=c.map(v=>v*(1-.38*groove));                                   // dark in the flutes
+     const moss=Math.min(1,T.sm(175,225,h+25*n1)+.55*T.sm(.35,.7,nz(Math.cos(th)*6,h*.05+3,Math.sin(th)*6))*T.sm(110,200,h));
+     c=c.map((v,i)=>v*(1-moss)+[.2,.33,.12][i]*(.75+.4*n2)*moss);
+     const wet=Math.max(0,1-Math.abs(Math.atan2(Math.sin(th-WF),Math.cos(th-WF)))/.2)*T.sm(192,186,h);   // the waterfall's wet streak
+     c=c.map((v,i)=>v*(1-.7*wet)+[.1,.16,.1][i]*.7*wet);
+     const foot=T.sm(4,0,h);c=c.map((v,i)=>v*(1-.6*foot)+[.2,.18,.12][i]*.6*foot);                 // earth and moss at the foot
+     return c;};
+   for(let k=0;k<=K;k++){const h=hAt(k);for(let a=0;a<=A;a++){const th=a/A*TAU;const r=radius(h,th);
+       const fl=Math.sin(23*th+h*.004+1.7*Math.sin(h*.013))*.5+Math.sin(41*th-h*.006)*.3;
+       P.push(Math.cos(th)*r,h-(h<1?2.5:0),Math.sin(th)*r);U.push(a/A*64,h/3.2);C.push(...col(h,th,r,fl));}}
+   // over the top: a rounded rim, then the crown pit's wall down to its floor ~48 m below
+   const prof=[[.98,1.5],[.93,2.6],[.86,2.4],[.82,0],[.8,-12],[.8,-30],[.79,-44],[.6,-48],[.3,-48.3],[0,-48.4]];
+   const top=25*(1-.085);for(const [f,dh] of prof){for(let a=0;a<=A;a++){const th=a/A*TAU;const r=radius(H,th)*f;const h=H+dh;
+       P.push(Math.cos(th)*r,h,Math.sin(th)*r);U.push(a/A*64,(H-dh)/3.2);
+       const n=nz(Math.cos(th)*7,h*.1+11,Math.sin(th)*7);C.push(...(dh>-46?[.17+.06*n,.3+.08*n,.11]:[.12,.16,.08]));}}
+   const rows=K+1+prof.length;for(let k=0;k<rows-1;k++)for(let a=0;a<A;a++){const p0=k*(A+1)+a,p1=p0+1,p2=p0+A+1,p3=p2+1;I.push(p0,p2,p1,p1,p2,p3);}
+   const trunk=new THREE.BufferGeometry();trunk.setAttribute('position',new THREE.Float32BufferAttribute(P,3));trunk.setAttribute('uv',new THREE.Float32BufferAttribute(U,2));
+   trunk.setAttribute('color',new THREE.Float32BufferAttribute(C,3));trunk.setIndex(I);trunk.computeVertexNormals();
+   // surface roots: from the end of each buttress out across the clearing, sinking into the ground
+   const roots=[trunk];for(let b=0;b<7;b++){const th=(b*TAU-.45)/7;for(const sp of [0,.12,-.1]){const a=th+sp,L=26+18*LMR(b*7+sp*10+500);
+       const pts=[];for(let k=0;k<=8;k++){const t=k/8,rr=30+t*L;pts.push(new THREE.Vector3(Math.cos(a+.05*Math.sin(t*5))*rr,.6-t*1.6,Math.sin(a+.05*Math.sin(t*5))*rr));}
+       const curve=new THREE.CatmullRomCurve3(pts),r0=sp?1.1:1.8;const g=new THREE.TubeGeometry(curve,24,1,8,false);const pp=g.attributes.position,n=pp.count,cc=new Float32Array(n*3);
+       for(let i=0;i<n;i++){const t=Math.floor(i/9)/24,c=curve.getPointAt(t),rr=r0*(1-.75*t);const x=pp.getX(i)-c.x,y=pp.getY(i)-c.y,z=pp.getZ(i)-c.z;pp.setXYZ(i,c.x+x*rr,c.y+y*rr*.55,c.z+z*rr);   // tapering, flattened, sinking into the ground
+         const v=.8+.3*LMR(i*.37+b),m=T.sm(.5,1,LMR(i*.11+b*3));cc.set([.42*v*(1-.4*m)+.08*m,.37*v*(1-.3*m)+.14*m,.3*v*(1-.5*m)+.05*m],i*3);}g.setAttribute('color',new THREE.BufferAttribute(cc,3));g.deleteAttribute('normal');g.computeVertexNormals();
+       const uv=g.attributes.uv;for(let i=0;i<uv.count;i++)uv.setXY(i,uv.getX(i)*L/3,uv.getY(i)*2);roots.push(g);}}
+   roots.forEach(g=>{for(const k of Object.keys(g.attributes))if(!['position','normal','uv','color'].includes(k))g.deleteAttribute(k);});
+   const bark=mergeGeometries(roots,false);
+   const parts=[];
+   // nest holes between 100 and 200 m: dark oval openings set into the bark, a worn lip round each
+   for(let k=0;k<64;k++){const th=LMR(k*3.3+50)*TAU,h=100+100*LMR(k*1.7+51);if(Math.abs(Math.atan2(Math.sin(th),Math.cos(th)))<.25&&h>150)continue;const r=radius(h,th)-.15,s=.7+.9*LMR(k+52);
+     parts.push({g:new THREE.CircleGeometry(1,14),m:new THREE.Matrix4().compose(new THREE.Vector3(Math.cos(th)*r,h,Math.sin(th)*r),new THREE.Quaternion().setFromEuler(new THREE.Euler(0,Math.PI/2-th,0)),new THREE.Vector3(s,s*1.35,s)),c:[.03,.025,.02]},
+       {g:new THREE.TorusGeometry(1.05,.22,5,14),m:new THREE.Matrix4().compose(new THREE.Vector3(Math.cos(th)*(r+.05),h,Math.sin(th)*(r+.05)),new THREE.Quaternion().setFromEuler(new THREE.Euler(0,Math.PI/2-th,0)),new THREE.Vector3(s,s*1.35,s)),c:[.34,.29,.23]});}
+   // moss cushions and small ferns, thickening upward from ~180 m to the rim, and a fern rim round the crown pit
+   for(let k=470;k<620;k++){const top=k>=470,th=LMR(k*2.9+60)*TAU,h=top?H+1.4:180+130*Math.pow(LMR(k*4.1+61),.6);const r=top?radius(H,th)*(.84+.12*LMR(k+62)):radius(Math.min(h,H),th);
+     const s=top?1+1.2*LMR(k+63):.5+1.1*LMR(k+63),g=[.12+.06*LMR(k+64),.21+.08*LMR(k+65),.08];
+     parts.push({g:new THREE.SphereGeometry(1,7,5),m:new THREE.Matrix4().makeScale(s*1.6,s*(top?.5:.28),s*1.6).premultiply(new THREE.Matrix4().compose(new THREE.Vector3(Math.cos(th)*r,h,Math.sin(th)*r),new THREE.Quaternion().setFromEuler(new THREE.Euler(0,-th,top?0:Math.PI/2)),new THREE.Vector3(1,1,1))),c:g});
+     if(top||LMR(k+66)<.3)for(let f=0;f<3;f++)parts.push({g:new THREE.PlaneGeometry(.4*s,1.8*s),m:new THREE.Matrix4().compose(new THREE.Vector3(Math.cos(th)*(r+(top?0:.6)),h+(top?s:0),Math.sin(th)*(r+(top?0:.6))),new THREE.Quaternion().setFromEuler(new THREE.Euler(top?(f-1)*.5:0,f*1.05,top?0:-Math.PI/2+.4*(f-1))),new THREE.Vector3(1,1,1)),c:[.14,.28,.09]});}
+   // the crown lake (~20 m) on the pit floor
+   parts.push({g:new THREE.CircleGeometry(10.5,32),m:M4(0,H-48.1,0,-Math.PI/2),c:[.05,.11,.15]});
+   // fluff-ball cloud at ~100 m (1 cm floating creatures, drawn as soft clumps)
+   for(let k=0;k<900;k++){const a=LMR(k*3.1)*6.283,rr=radius(100,a)+1+Math.pow(LMR(k*5.7),1.8)*14,yy=90+LMR(k*7.3)*24+Math.sin(a*3)*3,s=.25+LMR(k*9.1)*.45;
      parts.push({g:new THREE.IcosahedronGeometry(s,0),m:M4(Math.cos(a)*rr,yy,Math.sin(a)*rr),c:[2.1,2.1,2.05]});}
-   const rf=25*(1-.09*190/310);
-   parts.push({g:new THREE.CircleGeometry(4.2,16),m:M4(rf+.1,190,0,0,Math.PI/2,0),c:[.03,.03,.03]});
-   for(let k=0;k<3;k++)parts.push({g:new THREE.PlaneGeometry(5.5-k*1.2,190),m:M4(25.6+k*.5,95,(k-1)*1.4,0,Math.PI/2,0),c:[.72+k*.1,.84+k*.06,.9]});
-   parts.push({g:new THREE.CircleGeometry(9,20),m:M4(30,.4,0,-Math.PI/2),c:[1.2,1.25,1.25]});
-   GEOS.hometree={solid:merge(parts).solid,tex:null,bark:t.bark,sprig:t.sprig};}
+   // the waterfall: a big dark hole at ~190 m, white water arcing out a little and falling down the wet streak into a foaming pool
+   {const rf=radius(190,0);parts.push({g:new THREE.CircleGeometry(1,20),m:new THREE.Matrix4().compose(new THREE.Vector3(rf-.1,190,0),new THREE.Quaternion().setFromEuler(new THREE.Euler(0,Math.PI/2,0)),new THREE.Vector3(3.2,4.5,1)),c:[.02,.02,.02]});
+    // a bundle of strands, each leaving the hole with its own speed so the fall frays and widens; streaked white and grey-blue
+    for(let s=0;s<14;s++){const pts=[],w=.5+1.3*LMR(s+90),off=(LMR(s+91)-.5)*4.6,v0=1.6+2.2*LMR(s+92),ph=LMR(s+93)*6;
+      for(let k=0;k<=30;k++){const t=k/30,h=190-1.5-t*188.5;const x=Math.max(radius(Math.max(h,4),0)+.6,radius(190,0)+v0*Math.sqrt(t*5));pts.push([x,h,off*(1+1.6*t)+.35*Math.sin(t*11+ph)]);}
+      const g=new THREE.BufferGeometry(),pos=[],col=[],idx=[];pts.forEach(([x,y,z],k)=>{const t=k/30,ww=w*(1+1.8*t);pos.push(x,y,z-ww*.5,x,y,z+ww*.5);
+        const b=.85+.3*Math.sin(k*1.7+s*2.3)*LMR(s+94)+.15*(1-t);const c=[1.02*b,1.08*b,1.14*b];col.push(...c,...c);if(k<30)idx.push(k*2,k*2+2,k*2+1,k*2+1,k*2+2,k*2+3);});
+      g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(new Float32Array(pos.length/3*2),2));g.setIndex(idx);g.computeVertexNormals();
+      g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));parts.push({g,m:null,c:null,keep:1});}
+    // a sheet behind the strands so the fall reads as one body of water; it lands in the head of the tree's river (RIVERS in src/terrain.js)
+    {const pos=[],col=[],idx=[];for(let k=0;k<=30;k++){const t=k/30,h=190-1.5-t*188.5,x=Math.max(radius(Math.max(h,4),0)+.3,radius(190,0)+1.4*Math.sqrt(t*5)),ww=2.6*(1+2.2*t);
+       pos.push(x,h,-ww*.5,x,h,ww*.5);const b=.78+.1*(1-t);col.push(b,b*1.05,b*1.1,b,b*1.05,b*1.1);if(k<30)idx.push(k*2,k*2+2,k*2+1,k*2+1,k*2+2,k*2+3);}
+     const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(new Float32Array(pos.length/3*2),2));
+     g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));g.setIndex(idx);g.computeVertexNormals();parts.push({g,m:null,c:null,keep:1});}}
+   GEOS.hometree={solid:merge(parts,false).solid,tex:null,bark,sprig:null};}
   // 冰河上的巨树：冻死的家园树
   /* 冰河上的巨树 (encyclopedia frozentree): dead home trees, 50 m × 300 m, frost-grey, broken crown rim, no leaves */
   {const parts=[{g:new THREE.CylinderGeometry(22.5,25,300,24,6,true),m:M4(0,150,0),c:[.62,.65,.69]},{g:new THREE.RingGeometry(18,22.6,24),m:M4(0,300.1,0,-Math.PI/2),c:[.78,.8,.84]},{g:new THREE.CircleGeometry(18,20),m:M4(0,270,0,-Math.PI/2),c:[.2,.22,.25]}];
@@ -1147,7 +1203,22 @@ function buildGeos(){
     {g:new THREE.CircleGeometry(1.6,10),m:new THREE.Matrix4().compose(new THREE.Vector3(0,30,8.3),new THREE.Quaternion().setFromEuler(new THREE.Euler(-.54,0,0,'YXZ')),new THREE.Vector3(1,1,1)),c:[.05,.04,.03]}]);
   // 翡翠龙之城：巨蛋石
   /* 巨蛋石 (encyclopedia emeraldcity): smooth mossy ovoid boulders lying down, 10–20 m high and tens of m long */
-  GEOS.eggRock=merge([{g:new THREE.SphereGeometry(1,28,18),m:new THREE.Matrix4().makeScale(24,7.5,14).premultiply(M4(0,4.5,0)),c:[.19,.23,.16]}]);
+  /* 巨蛋石 (encyclopedia emeraldcity): smooth ovoid boulders 10–20 m high and tens of metres long lying in the ferns, grown over with
+     moss and plants, with climbing holds cut into the rock; grey stone [inferred colour] under a moss cap that runs down in streaks */
+  {const g=new THREE.SphereGeometry(1,72,44);const P=g.attributes.position,n=P.count,C=new Float32Array(n*3);
+   for(let i=0;i<n;i++){let x=P.getX(i),y=P.getY(i),z=P.getZ(i);const egg=1+.18*x;                      // one end fuller, like an egg
+     const lump=1+.05*T.fbm(x*2.2+3,y*2.2,z*2.2,3)+.012*T.fbm(x*14,y*14,z*14,2);x*=24*lump;y*=7.5*egg*lump;z*=14*egg*lump;P.setXYZ(i,x,y+4.5,z);
+     const up=y/(7.5*egg*lump),n1=T.fbm(x*.15,y*.15+7,z*.15,3),streak=T.fbm(x*.05,y*.6,z*.05,2);
+     const moss=T.sm(-.1,.5,up+.35*n1+.25*streak);const st=.42+.12*n1;
+     const c=[st*1.02,st,st*.93].map((v,k)=>v*(1-moss)+[.16,.27,.1][k]*(.8+.4*n1)*moss);
+     const foot=T.sm(-.55,-.85,up);C.set(c.map((v,k)=>v*(1-.5*foot)+[.12,.13,.08][k]*.5*foot),i*3);}
+   g.setAttribute('color',new THREE.BufferAttribute(C,3));g.computeVertexNormals();
+   const parts=[{g,m:null,c:null,keep:1}];
+   // climbing holds: a line of dark notches spiralling up one end to the top
+   for(let k=0;k<26;k++){const t=k/25,a=-.6+t*2.4,xx=17-20*t*t,yy=1.5+t*11.2;const zz=Math.cos(a)*12.6*(1-.35*t*t);parts.push({g:new THREE.BoxGeometry(.7,.35,.5),m:M4(xx,yy,zz,0,a*.3,0),c:[.06,.06,.05]});}
+   // ferns and plants crowding round the foot
+   for(let k=0;k<40;k++){const a=k/40*6.283,rx=25*Math.cos(a),rz=15*Math.sin(a);for(let f=0;f<3;f++)parts.push({g:new THREE.PlaneGeometry(.9,3.2),m:new THREE.Matrix4().compose(new THREE.Vector3(rx,1.5,rz),new THREE.Quaternion().setFromEuler(new THREE.Euler(.35*(f-1),a+f*1.05,0)),new THREE.Vector3(1,1,1)),c:[.15,.32,.11]});}
+   GEOS.eggRock=merge(parts,false);}
   // 空中群岛：倒挂着扭曲树林的鸣石岛
   {const parts=[{g:new THREE.ConeGeometry(120,160,9),m:M4(0,-80,0,3.1416,0,0),c:[.38,.34,.3]},{g:new THREE.CylinderGeometry(120,120,14,9),m:M4(0,7,0),c:[.2,.36,.14]}];
    for(let k=0;k<7;k++){const a=k*.9,r=40+k*9;parts.push({g:twistedTrunk(30,1.2,1.5,k),m:M4(Math.cos(a)*r,14,Math.sin(a)*r),c:[.28,.22,.16]});parts.push(...blob(7,Math.cos(a)*r,44,Math.sin(a)*r,leaf));
@@ -1158,6 +1229,11 @@ function buildGeos(){
     for(let i=0;i<19;i++){const q=i<1?0:i<7?1:2,a=(i<1?0:i<7?(i-1):(i-7)/2)*Math.PI/3,r=q*9.5;parts.push({g:new THREE.CylinderGeometry(4.6,4.6,.5,6),m:M4(Math.cos(a)*r,2.2,Math.sin(a)*r),c:[.92,.93,.92]});}
     parts.push({g:new THREE.BoxGeometry(22,12,22),m:M4(0,8,0),c:[1.15,1.15,1.12]},{g:new THREE.CircleGeometry(1.6,16),m:M4(0,3.8,11.05),c:[.2,.22,.25]},{g:new THREE.ConeGeometry(3,4,8),m:M4(0,-4,0,Math.PI,0,0),c:[.55,.57,.6]});
     GEOS.baseIsle=merge(parts);}
+   // 骸骨之桥 deck piece (24 m along the bridge, 100 m across): silk-and-chitin deck, bone ribs curving up at both edges, silk cables
+   {const bone=[.86,.82,.7],silk=[.92,.92,.88];const parts=[{g:new THREE.BoxGeometry(24.4,1.6,100),m:M4(0,0,0),c:[.62,.58,.5]},{g:new THREE.BoxGeometry(24.4,.3,96),m:M4(0,.9,0),c:[.72,.68,.6]}];
+    for(const z of [-50,50]){parts.push({g:new THREE.TorusGeometry(9,1.1,6,12,Math.PI*.55),m:M4(0,1,z+(z>0?-6:6),0,Math.PI/2,z>0?.2:-.2),c:bone},{g:new THREE.CylinderGeometry(.35,.35,24.4,5),m:M4(0,9,z*.9,0,0,Math.PI/2),c:silk});}
+    for(let k=0;k<5;k++)parts.push({g:new THREE.CylinderGeometry(.5,.7,100,6),m:M4(-10+k*5,-1.2,0,Math.PI/2,0,0),c:bone});
+    GEOS.boneDeck=merge(parts);}
    // 印加巨坑 cave mouth: a dark opening ~1.6 m across in a terrace riser, a lip of sand below it
    GEOS.caveMouth=merge([{g:new THREE.CircleGeometry(.8,14),m:new THREE.Matrix4().makeScale(1,.75,1).premultiply(M4(.05,0,0,0,Math.PI/2,0)),c:[.025,.022,.02]},{g:new THREE.CircleGeometry(.95,14),m:new THREE.Matrix4().makeScale(1,.85,1).premultiply(M4(0,-.02,0,0,Math.PI/2,0)),c:[.42,.36,.27]}],false);
    // fallen trunk (moss on its upper side, a root plate at one end) and a broken dead snag
@@ -1300,7 +1376,7 @@ function buildFlora(data,span){
     for(let i=0;i<n;i++){const o=i*8;_p.set(a[o],a[o+1],a[o+2]);_up.set(a[o+3],a[o+4],a[o+5]);_q.setFromUnitVectors(_Y,_up);_qy.setFromAxisAngle(_Y,a[o+7]);_q.multiply(_qy);const sc=a[o+6];_s.set(sc,sc,sc);_m.compose(_p,_q,_s);_m.toArray(mats,i*16);pos[i*3]=a[o];pos[i*3+1]=a[o+1];pos[i*3+2]=a[o+2];ups.set([_up.x,_up.y,_up.z],i*3);_x.set(1,0,0).applyQuaternion(_q);xs.set([_x.x,_x.y,_x.z],i*3);scs[i]=sc;}
     {let sd=n*31+7;const rn=()=>{sd=(sd*16807)%2147483647;return sd/2147483647;};for(let i=0;i<n;i++){const t=.82+rn()*.36,w=.95+rn()*.1;cols[i*3]=t*w;cols[i*3+1]=t;cols[i*3+2]=t*(2-w);}}
     const set=hiG?{k,pos,mats,cols,n,pairs:[],done:false,ups,xs,sc:scs}:null;
-    for(const part of ['solid','tex','bark','sprig']){const hg=geos&&geos[part],lg=lo&&lo[part];if(!hg&&!lg)continue;const mat=(k==='rock'&&ROCK.mat&&part==='solid')?ROCK.mat:PART_MAT[part][st?1:0];
+    for(const part of ['solid','tex','bark','sprig']){const hg=geos&&geos[part],lg=lo&&lo[part];if(!hg&&!lg)continue;const mat=(k==='rock'&&ROCK.mat&&part==='solid')?ROCK.mat:(geos&&geos.mat&&part==='solid')?geos.mat:PART_MAT[part][st?1:0];   // a kind may bring its own material (stone buildings)
       const mk=geo=>{const im=new THREE.InstancedMesh(geo,mat,n);im.userData.k=k;im.instanceMatrix.array.set(mats);im.instanceColor=new THREE.InstancedBufferAttribute(cols.slice(),3);
         im.instanceMatrix.needsUpdate=true;im.computeBoundingSphere();im.frustumCulled=true;g.add(im);
         if(part==='sprig'&&quality.prepass!==false){const tw=new THREE.InstancedMesh(geo,preMat(mat),n);tw.instanceMatrix=im.instanceMatrix;tw.boundingSphere=im.boundingSphere;tw.frustumCulled=true;tw.renderOrder=-1;tw.userData.pre=true;im.userData.twin=tw;g.add(tw);}
@@ -1344,13 +1420,13 @@ function resolveCollisions(){const h=ground(view.lat,view.lon);const p=fromLL(vi
   if(hit){const ll=toLL(px,py,pz);view.lat=ll.lat;view.lon=ll.lon;}}
 /* landmark framing for travel: where each landmark item stands, and how far back to stand to see it whole */
 /* city kinds (src/city.js) are merged in below */
-const LM_VIEW={hometree:{r:26,h:320,v:260},deadGiant:{r:26,h:300,v:340},pyramid:{r:36,h:50,v:380},eggRock:{r:24,h:18,v:140},floatIsle:{r:0,h:0,v:950},floatRock:{r:0,h:0,v:400},caveMouth:{r:0,h:0,v:12},baseIsle:{r:0,h:0,v:200},rock:{r:2,h:2,v:30},clickRock:{r:1.2,h:1.2,v:16},house:{r:9,h:14,v:110},tower:{r:9,h:95,v:240},mound:{r:7,h:22,v:70},coneHouse:{r:3.6,h:7,v:60},barMetal:{r:1,h:6,v:60},squareHall:{r:12,h:11,v:120},roundHall:{r:15,h:20,v:110},silverPyramid:{r:22,h:34,v:160},crystalPeak:{r:380,h:240,v:950}};
-{const cg=buildCityGeos({THREE,merge,M4});Object.assign(GEOS,cg.GEOS);Object.assign(COLL,cg.COLL);Object.assign(LM_VIEW,cg.LM_VIEW);for(const k of cg.STATIC)STATIC.add(k);}
+const LM_VIEW={hometree:{r:26,h:320,v:260},deadGiant:{r:26,h:300,v:340},pyramid:{r:36,h:50,v:380},eggRock:{r:24,h:18,v:140},floatIsle:{r:0,h:0,v:950},floatRock:{r:0,h:0,v:400},caveMouth:{r:0,h:0,v:12},boneDeck:{r:0,h:0,v:900},baseIsle:{r:0,h:0,v:200},rock:{r:2,h:2,v:30},clickRock:{r:1.2,h:1.2,v:16},house:{r:9,h:14,v:110},tower:{r:9,h:95,v:240},mound:{r:7,h:22,v:70},coneHouse:{r:3.6,h:7,v:60},barMetal:{r:1,h:6,v:60},squareHall:{r:12,h:11,v:120},roundHall:{r:15,h:20,v:110},silverPyramid:{r:22,h:34,v:160},crystalPeak:{r:380,h:240,v:950}};
+{const cg=buildCityGeos({THREE,merge,M4,plantMaterial});Object.assign(GEOS,cg.GEOS);Object.assign(COLL,cg.COLL);Object.assign(LM_VIEW,cg.LM_VIEW);for(const k of cg.STATIC)STATIC.add(k);}
 function landmarkItems(){const out=[];for(const [la,lo,kind,items] of T.LANDMARKS){const p=T.V(la,lo);const ex=-p[2],ez=p[0];const el=Math.hypot(ex,ez)||1;const E=[ex/el,0,ez/el];const N=[p[1]*E[2]-p[2]*E[1],p[2]*E[0]-p[0]*E[2],p[0]*E[1]-p[1]*E[0]];
   for(const [ox,oz,sc,lift] of items){let x=p[0]+(E[0]*ox+N[0]*oz)/R,y=p[1]+(E[1]*ox+N[1]*oz)/R,z=p[2]+(E[2]*ox+N[2]*oz)/R;const l=Math.hypot(x,y,z);out.push({kind,x:x/l,y:y/l,z:z/l,sc,lift});}}return out;}
 const LM_ITEMS=landmarkItems();
 function frameLandmark(lat,lon){const q=fromLL(lat,lon,1);let best=null,bd=1e9;
-  for(const it of LM_ITEMS){if(it.kind==='floatRock'||it.kind==='baseIsle')continue;const d=Math.acos(Math.min(1,q.x*it.x+q.y*it.y+q.z*it.z))*R;if(d<bd){bd=d;best=it;}}
+  for(const it of LM_ITEMS){if(it.kind==='floatRock'||it.kind==='baseIsle'||it.kind==='boneDeck')continue;const d=Math.acos(Math.min(1,q.x*it.x+q.y*it.y+q.z*it.z))*R;if(d<bd){bd=d;best=it;}}
   if(!best||bd>3000)return false;const info=LM_VIEW[best.kind];const ll=toLL(best.x,best.y,best.z);const {east,north}=frameAt(ll.lat,ll.lon);const vd=info.v*(best.kind==='floatIsle'?1:best.sc);
   for(let k=0;k<16;k++){const a=k*Math.PI/8+(best.kind==='pyramid'?Math.PI:0);const dir=new THREE.Vector3().copy(north).multiplyScalar(Math.cos(a)).addScaledVector(east,Math.sin(a));
     const c=new THREE.Vector3(best.x,best.y,best.z).multiplyScalar(Math.cos(vd/R)).addScaledVector(dir,Math.sin(vd/R)).normalize();const cl=toLL(c.x,c.y,c.z);
@@ -2132,7 +2208,7 @@ const PLACE_VIEW={
   silvercity:{t:[-4,56],d:580,aim:12,fly:45,b:180},capital:{t:[-14,63],d:900,aim:30,fly:90,b:180},
   jjzs:{t:[71,34],d:1300,aim:180,fly:20,b:180,water:1},inca_pit:{t:[22,-10],d:585,aim:0,fly:40,b:0},
   spires:{t:[15,-1],d:4180,aim:55,b:180},oasis:{t:[27,-11],d:450,aim:0,b:180},
-  canyon:{t:[30,6.35],d:12500,aim:0,fly:150,b:90},rift:{t:[14.5,-59.55],d:5600,aim:1000,fly:150,b:127},
+  canyon:{t:[30,6.35],d:12500,aim:0,fly:150,b:90},rift:{t:[14.526,-59.571],d:5600,aim:1560,fly:30,b:307},
   peak:{t:[33.2,11.2],d:4300,aim:150,fly:40,b:200},atmount:{t:[22,-94],d:8000,aim:1100,b:180},cloudpeak:{t:[-6.2,66.2],d:8500,aim:1600,fly:700,b:200},academy:{t:[-5.9,65.7],d:420,aim:10,fly:30,b:150}};
 function frameView(v){const tla=v.t[0]*D2R,tlo=v.t[1]*D2R;const tp=fromLL(tla,tlo,1);const tv=new THREE.Vector3(tp.x,tp.y,tp.z);const {east,north}=frameAt(tla,tlo);
   const g0=ground(tla,tlo);
@@ -2140,7 +2216,7 @@ function frameView(v){const tla=v.t[0]*D2R,tlo=v.t[1]*D2R;const tp=fromLL(tla,tl
     const dir=new THREE.Vector3().copy(north).multiplyScalar(Math.cos(a)).addScaledVector(east,Math.sin(a));
     const c=tv.clone().multiplyScalar(Math.cos(v.d/R)).addScaledVector(dir,Math.sin(v.d/R)).normalize();const cl=toLL(c.x,c.y,c.z);
     const gc=ground(cl.lat,cl.lon);if(!v.water&&gc<2)continue;
-    if(LM_ITEMS.some(o=>o.kind!=='floatIsle'&&o.kind!=='floatRock'&&o.kind!=='baseIsle'&&o.kind!=='barMetal'&&Math.acos(Math.min(1,c.x*o.x+c.y*o.y+c.z*o.z))*R<LM_VIEW[o.kind].r*o.sc+6))continue;
+    if(LM_ITEMS.some(o=>o.kind!=='floatIsle'&&o.kind!=='floatRock'&&o.kind!=='baseIsle'&&o.kind!=='boneDeck'&&o.kind!=='barMetal'&&Math.acos(Math.min(1,c.x*o.x+c.y*o.y+c.z*o.z))*R<LM_VIEW[o.kind].r*o.sc+6))continue;
     {const eyeH=gc+view.eye+(v.fly||0),tgtH=g0+Math.max(v.aim,2);let blocked=false;   // terrain must not hide the target
      for(let i=1;i<20&&!blocked;i++){const f=i/20;const q=tv.clone().multiplyScalar(Math.cos(v.d*(1-f)/R)).addScaledVector(dir,Math.sin(v.d*(1-f)/R)).normalize();const ql=toLL(q.x,q.y,q.z);
        if(ground(ql.lat,ql.lon)>eyeH+(tgtH-eyeH)*f+8)blocked=true;}
